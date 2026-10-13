@@ -25,7 +25,7 @@ JavaScript vanilla (ES modules), sans build, sans dépendance (le PDF charge svg
 </script>
 ```
 
-Les ES modules exigent un serveur HTTP : `python3 -m http.server 8000`, puis `http://localhost:8000/demo/index.html`.
+Les ES modules exigent un serveur HTTP : `npm run demo` (serveur sans cache, port 8000 ou `PORT=…`), puis `http://localhost:8000/demo/index.html`. Avec `python3 -m http.server`, le navigateur peut garder d'anciennes versions des modules : recharger sans cache (`Ctrl`/`Cmd` + `Maj` + `R`).
 
 ## Données
 

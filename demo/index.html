@@ -22,6 +22,11 @@
     <button data-scale="day" aria-pressed="false">Jour</button>
     <button data-scale="week" aria-pressed="true">Semaine</button>
     <button data-scale="month" aria-pressed="false">Mois</button>
+    <span style="flex:1"></span>
+    <button id="exp-svg">Export SVG</button>
+    <button id="exp-json">Export JSON</button>
+    <button id="exp-pdf">Export PDF</button>
+    <button id="exp-print">Imprimer</button>
   </div>
   <div id="chart"></div>
   <div id="log" aria-live="polite"></div>
@@ -71,6 +76,17 @@
         x.setAttribute('aria-pressed', String(x.dataset.scale === scale));
       }
     });
+
+    document.getElementById('exp-svg').onclick = () => gantt.exportSVG();
+    document.getElementById('exp-json').onclick = () => gantt.exportJSON();
+    document.getElementById('exp-print').onclick = () => gantt.print();
+    document.getElementById('exp-pdf').onclick = async () => {
+      try {
+        await gantt.exportPDF();
+      } catch (e) {
+        write('erreur', { message: e.message });
+      }
+    };
   </script>
 </body>
 </html>

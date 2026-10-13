@@ -2,6 +2,7 @@ import { GanttModel } from './model.js';
 import { Timescale, SCALES } from './timescale.js';
 import { computeLayout, renderSVG, readMetrics } from './renderer.js';
 import { attachInteractions } from './interactions.js';
+import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
 
@@ -25,15 +26,24 @@ export class Gantt {
     this.uid = `gantt${++uidCounter}`;
     this.readonly = options.readonly === true;
     this.scale = scale;
+    this.pdfLibs = options.pdfLibs ?? {};
     this.model = new GanttModel({ tasks: options.tasks, links: options.links });
     this.state = { selectedId: null, selectedLinkId: null };
     this.scroller.addEventListener('scroll', () => this.applySticky(), { passive: true });
     this.refresh();
     this.detach = attachInteractions(this);
+    this.onBeforePrint = () => {
+      for (const g of this.svg.querySelectorAll('[data-sticky]')) g.removeAttribute('transform');
+    };
+    this.onAfterPrint = () => this.applySticky();
+    window.addEventListener('beforeprint', this.onBeforePrint);
+    window.addEventListener('afterprint', this.onAfterPrint);
   }
 
   destroy() {
     this.detach();
+    window.removeEventListener('beforeprint', this.onBeforePrint);
+    window.removeEventListener('afterprint', this.onAfterPrint);
     this.root.replaceChildren();
   }
 
@@ -127,6 +137,28 @@ export class Gantt {
     this.emit('change', { type, ...detail });
     this.refresh();
     return result ?? { ok: true };
+  }
+
+  exportJSON(filename = 'gantt.json') {
+    const text = JSON.stringify(this.model.getData(), null, 2);
+    if (filename) downloadBlob(new Blob([text], { type: 'application/json' }), filename);
+    return text;
+  }
+
+  exportSVG(filename = 'gantt.svg') {
+    const text = serializeSVG(buildStandaloneSVG(this.svg));
+    if (filename) downloadBlob(new Blob([text], { type: 'image/svg+xml' }), filename);
+    return text;
+  }
+
+  async exportPDF(filename = 'gantt.pdf') {
+    const blob = await exportPDFBlob(this.svg, this.pdfLibs);
+    if (filename) downloadBlob(blob, filename);
+    return blob;
+  }
+
+  print() {
+    window.print();
   }
 
   getData() {

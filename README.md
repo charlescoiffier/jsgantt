@@ -65,6 +65,32 @@ g.print();
 g.destroy();
 ```
 
+## Clavier et accessibilité
+
+Le diagramme est une grille arborescente (`role="treegrid"`) : chaque ligne annonce son nom, ses dates, sa progression, son niveau, son état replié/déplié et ses prédécesseurs. Les actions sont annoncées dans une zone `aria-live`, refus compris. Les couches purement graphiques (grille, barres, liens, échelle de temps) sont masquées aux technologies d'assistance. Mode contraste élevé (`forced-colors`) pris en charge.
+
+Quand le diagramme a le focus :
+
+| Touches | Action |
+|---|---|
+| `↑` `↓` `Début` `Fin` | Sélectionner une ligne |
+| `→` / `←` | Déplier ou aller au premier enfant / replier ou aller au parent |
+| `Entrée` / `Maj`+`Entrée` | Ajouter une tâche en dessous / une sous-tâche (le nom s'édite aussitôt) |
+| `F2` | Éditer le nom (`Tab` : champ suivant, `Maj`+`Tab` : précédent) |
+| `Suppr` | Supprimer la tâche sélectionnée (ou le lien sélectionné), la ligne voisine est sélectionnée |
+| `Alt`+`←` `→` / `Alt`+`PgPréc` `PgSuiv` | Déplacer d'un jour / d'une semaine |
+| `Maj`+`←` `→` | Raccourcir / allonger la fin d'un jour |
+| `Alt`+`Maj`+`←` `→` | Avancer / reculer le début d'un jour |
+| `Alt`+`↑` `↓` | Monter / descendre parmi ses frères |
+| `Alt`+`Maj`+`↑` / `↓` | Sortir du parent / devenir enfant du frère précédent |
+| `+` / `-` | Progression de ±10 % |
+| `L` | Mode lien : `↑` `↓` choisissent la cible, `1` à `4` le type (FS, SS, FF, SF), `Entrée` valide en FS, `Échap` annule |
+| `Maj`+`L` | Parcourir les liens de la tâche sélectionnée, puis `Suppr` |
+| `Ctrl`/`Cmd`+`Z`, `Ctrl`/`Cmd`+`Maj`+`Z` ou `Ctrl`+`Y` | Annuler / rétablir |
+| `Échap` | Désélectionner le lien, puis la tâche |
+
+Toutes ces actions passent par le même chemin que la souris : annulables, avec les mêmes refus (cycle, dépendance bloquante). En lecture seule, seule la navigation et le repli restent actifs.
+
 ## Événements
 
 `change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason`), `scale`, `history` (`canUndo`, `canRedo`).

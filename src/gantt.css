@@ -49,6 +49,15 @@
   outline: none;
 }
 
+/* Couches superposées : le CSS fixe tableau, en-tête et coin au défilement (aucun repositionnement en JS) */
+.gantt-canvas { display: grid; width: max-content; }
+.gantt-canvas > .gantt-svg { grid-area: 1 / 1; justify-self: start; align-self: start; }
+.gantt-svg--table { position: sticky; left: 0; z-index: 2; }
+.gantt-svg--header { position: sticky; top: 0; z-index: 3; background: transparent !important; }
+.gantt-svg--corner { position: sticky; left: 0; top: 0; z-index: 4; background: transparent !important; }
+.gantt-svg--overlay { z-index: 5; pointer-events: none; background: transparent !important; }
+.gantt-print-only { display: none; }
+
 .gantt-svg {
   display: block;
   background: var(--gantt-bg);
@@ -112,9 +121,12 @@
 
 /* Tableau (collant à gauche) */
 .gantt-table-bg { fill: var(--gantt-bg); }
-.gantt-table-rowbg { fill: var(--gantt-bg); }
-.gantt-table-row--alt .gantt-table-rowbg { fill: var(--gantt-row-alt); }
-.gantt-table-row.is-selected .gantt-table-rowbg { fill: color-mix(in srgb, var(--gantt-selected) 14%, var(--gantt-bg)); }
+/* --row-bg : couleur de fond de la ligne dans son état courant (utilisée aussi par le dégradé des actions) */
+.gantt-table-row { --row-bg: var(--gantt-bg); }
+.gantt-table-row--alt { --row-bg: var(--gantt-row-alt); }
+.gantt-table-row.is-selected { --row-bg: color-mix(in srgb, var(--gantt-selected) 14%, var(--gantt-bg)); }
+.gantt-table-rowbg { fill: var(--row-bg); }
+.gantt-fade-stop { stop-color: var(--row-bg); }
 .gantt-table-text { fill: var(--gantt-text); pointer-events: none; }
 .gantt-table-text--date { fill: var(--gantt-text-muted); }
 .gantt-table-row--group .gantt-table-text--name { font-weight: 600; }
@@ -127,8 +139,6 @@
 .gantt-actions { opacity: 0; }
 .gantt-table-row:hover .gantt-actions,
 .gantt-table-row.is-selected .gantt-actions { opacity: 1; }
-.gantt-action-bg { fill: var(--gantt-bg); }
-.gantt-table-row--alt .gantt-action-bg { fill: var(--gantt-row-alt); }
 .gantt-action-icon { fill: none; stroke: var(--gantt-text-muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .gantt-action--grip .gantt-action-icon { stroke-width: 2.2; }
 .gantt-action-hit { fill: transparent; cursor: pointer; }
@@ -184,7 +194,22 @@
   body { background: #fff !important; }
   .gantt-toolbar, .toolbar, #log, h1 { display: none !important; }
   .gantt-root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .gantt-scroll { overflow: visible; max-height: none; border: 0; }
-  .gantt-svg { max-width: 100%; height: auto; }
+  .gantt-scroll { display: none; }
+  .gantt-print-only { display: block; }
+  .gantt-print-only .gantt-svg { max-width: 100%; height: auto; }
   .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit { display: none; }
+}
+
+/* Clavier et accessibilité */
+.gantt-scroll:focus-visible { outline: 2px solid var(--gantt-selected); outline-offset: -2px; }
+.gantt-scroll:focus-visible .gantt-table-row.is-selected .gantt-table-rowbg { stroke: var(--gantt-selected); stroke-width: 2; }
+.gantt-task.is-link-source .gantt-bar { stroke: var(--gantt-selected); stroke-width: 2; stroke-dasharray: 4 2; }
+.gantt-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (forced-colors: active) {
+  .gantt-bar, .gantt-group-pill { stroke: CanvasText; stroke-width: 1; }
+  .gantt-progress, .gantt-group-pill-progress { fill: Highlight; }
+  .gantt-link-path { stroke: CanvasText; }
+  .gantt-arrow { fill: CanvasText; }
+  .gantt-today { stroke: Highlight; }
+  .gantt-task.is-selected .gantt-bar, .gantt-link.is-selected .gantt-link-path { stroke: Highlight; stroke-width: 3; }
 }

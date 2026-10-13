@@ -1,8 +1,10 @@
 import { GanttModel } from './model.js';
 import { Timescale, SCALES } from './timescale.js';
-import { computeLayout, renderSVG, readMetrics } from './renderer.js';
+import { computeLayout, renderParts, readMetrics } from './renderer.js';
 import { attachInteractions } from './interactions.js';
 import { History } from './history.js';
+import { attachA11y, syncAria } from './a11y.js';
+import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
@@ -24,6 +26,9 @@ export class Gantt {
     this.scroller = document.createElement('div');
     this.scroller.className = 'gantt-scroll';
     this.scroller.tabIndex = 0;
+    this.canvas = document.createElement('div');
+    this.canvas.className = 'gantt-canvas';
+    this.scroller.replaceChildren(this.canvas);
     this.root.replaceChildren(this.scroller);
     this.uid = `gantt${++uidCounter}`;
     this.readonly = options.readonly === true;
@@ -32,19 +37,29 @@ export class Gantt {
     this.history = new History(options.historyLimit ?? 100);
     this.model = new GanttModel({ tasks: options.tasks, links: options.links });
     this.state = { selectedId: null, selectedLinkId: null };
-    this.scroller.addEventListener('scroll', () => this.applySticky(), { passive: true });
     this.refresh();
     this.detach = attachInteractions(this);
+    this.detachA11y = attachA11y(this);
+    this.detachKeyboard = attachKeyboard(this);
+    // À l'impression, les couches sont recomposées en un seul dessin (comme pour l'export SVG).
     this.onBeforePrint = () => {
-      for (const g of this.svg.querySelectorAll('[data-sticky]')) g.removeAttribute('transform');
+      this.onAfterPrint();
+      const sheet = document.createElement('div');
+      sheet.className = 'gantt-print-only';
+      sheet.append(buildStandaloneSVG(this.parts));
+      this.root.append(sheet);
     };
-    this.onAfterPrint = () => this.applySticky();
+    this.onAfterPrint = () => {
+      for (const n of this.root.querySelectorAll('.gantt-print-only')) n.remove();
+    };
     window.addEventListener('beforeprint', this.onBeforePrint);
     window.addEventListener('afterprint', this.onAfterPrint);
   }
 
   destroy() {
     this.detach();
+    this.detachKeyboard();
+    this.detachA11y();
     window.removeEventListener('beforeprint', this.onBeforePrint);
     window.removeEventListener('afterprint', this.onAfterPrint);
     this.root.replaceChildren();
@@ -82,31 +97,20 @@ export class Gantt {
       // L'origine a bougé : on garde les mêmes jours à l'écran.
       const shift = (previous.originDay - this.timescale.originDay) * this.timescale.pixelsPerDay;
       this.scroller.scrollLeft = Math.max(0, this.scroller.scrollLeft + shift);
-      this.applySticky();
     }
   }
 
   render({ model = this.model, dragId = null } = {}) {
     this.root.classList.toggle('is-readonly', this.readonly);
     this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay(), showAdd: !this.readonly });
-    const svg = renderSVG(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
+    const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
-    this.scroller.replaceChildren(svg);
+    this.canvas.replaceChildren(parts.main, parts.table, parts.header, parts.corner, parts.overlay);
     this.scroller.scrollLeft = scrollLeft;
     this.scroller.scrollTop = scrollTop;
-    this.svg = svg;
-    this.applySticky();
-  }
-
-  applySticky() {
-    if (!this.svg) return;
-    const { scrollLeft, scrollTop } = this.scroller;
-    for (const g of this.svg.querySelectorAll('[data-sticky]')) {
-      const mode = g.dataset.sticky;
-      const x = mode.includes('x') ? scrollLeft : 0;
-      const y = mode.includes('y') ? scrollTop : 0;
-      g.setAttribute('transform', `translate(${x},${y})`);
-    }
+    this.parts = parts;
+    this.svg = parts.main;
+    syncAria(this);
   }
 
   setScale(scale) {
@@ -117,24 +121,24 @@ export class Gantt {
     this.scale = scale;
     this.refresh();
     this.scroller.scrollLeft = Math.max(0, this.timescale.dayToX(centerDay) - view);
-    this.applySticky();
     this.emit('scale', { scale });
   }
 
   select(id, linkId = null) {
     this.state.selectedId = id;
     this.state.selectedLinkId = linkId;
-    for (const n of this.svg.querySelectorAll('.is-selected')) n.classList.remove('is-selected');
+    for (const n of this.canvas.querySelectorAll('.is-selected')) n.classList.remove('is-selected');
     if (id) {
-      for (const n of this.svg.querySelectorAll('[data-selectable]')) {
+      for (const n of this.canvas.querySelectorAll('[data-selectable]')) {
         if (n.dataset.id === id) n.classList.add('is-selected');
       }
     }
     if (linkId) {
-      for (const n of this.svg.querySelectorAll('.gantt-link')) {
+      for (const n of this.canvas.querySelectorAll('.gantt-link')) {
         if (n.dataset.linkId === linkId) n.classList.add('is-selected');
       }
     }
+    syncAria(this);
     this.emit('select', { id, linkId });
   }
 
@@ -209,7 +213,13 @@ export class Gantt {
     const bottom = row.y + this.layout.rowHeight;
     if (top < scrollTop + this.layout.headerHeight) this.scroller.scrollTop = Math.max(0, top - this.layout.headerHeight);
     else if (bottom > scrollTop + clientHeight) this.scroller.scrollTop = bottom - clientHeight;
-    this.applySticky();
+    const bar = this.layout.bars.find((b) => b.id === id);
+    if (bar) {
+      const { scrollLeft, clientWidth } = this.scroller;
+      const left = scrollLeft + this.metrics.tableWidth;
+      if (bar.x < left) this.scroller.scrollLeft = Math.max(0, bar.x - this.metrics.tableWidth - 24);
+      else if (bar.x + bar.width > scrollLeft + clientWidth) this.scroller.scrollLeft = bar.x + bar.width - clientWidth + 24;
+    }
   }
 
   editCell(id, field) {
@@ -266,13 +276,13 @@ export class Gantt {
   }
 
   exportSVG(filename = 'gantt.svg') {
-    const text = serializeSVG(buildStandaloneSVG(this.svg));
+    const text = serializeSVG(buildStandaloneSVG(this.parts));
     if (filename) downloadBlob(new Blob([text], { type: 'image/svg+xml' }), filename);
     return text;
   }
 
   async exportPDF(filename = 'gantt.pdf') {
-    const blob = await exportPDFBlob(this.svg, this.pdfLibs);
+    const blob = await exportPDFBlob(this.parts, this.pdfLibs);
     if (filename) downloadBlob(blob, filename);
     return blob;
   }

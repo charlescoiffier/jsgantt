@@ -1,6 +1,7 @@
 import { SCALES } from './timescale.js';
 import { svgEl } from './renderer.js';
 import { fromDay } from './dates.js';
+import { neighborAfterRemoval } from './keynav.js';
 
 const DRAG_THRESHOLD = 3;
 
@@ -15,7 +16,7 @@ export function attachInteractions(g) {
   };
 
   function showTip(text, p) {
-    const overlay = g.svg.querySelector('.gantt-overlay');
+    const overlay = g.canvas.querySelector('.gantt-overlay');
     const w = text.length * 6.2 + 12;
     overlay.replaceChildren(
       svgEl('rect', { class: 'gantt-tip-bg', x: p.x + 12, y: p.y - 30, width: w, height: 20 }),
@@ -207,7 +208,12 @@ export function attachInteractions(g) {
         g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
       } else if (g.state.selectedId) {
         e.preventDefault();
-        g.removeTask(g.state.selectedId);
+        const removed = g.state.selectedId;
+        const neighbor = neighborAfterRemoval(g.model, removed);
+        if (g.removeTask(removed).ok && neighbor) {
+          g.select(neighbor, null);
+          g.reveal(neighbor);
+        }
       }
     }
   }
@@ -226,7 +232,7 @@ export function attachInteractions(g) {
   function startReorder(id, e) {
     drag = { kind: 'reorder', id, base: g.model.clone(), drop: null, pointerId: e.pointerId };
     root.setPointerCapture(e.pointerId);
-    for (const n of g.svg.querySelectorAll('.gantt-table-row')) {
+    for (const n of g.canvas.querySelectorAll('.gantt-table-row')) {
       if (n.dataset.id === id) n.classList.add('is-reordering');
     }
   }
@@ -269,7 +275,7 @@ export function attachInteractions(g) {
     drop.reason = probe.reason;
     drag.drop = drop;
     const cls = probe.ok ? '' : ' is-invalid';
-    g.svg.querySelector('.gantt-overlay').replaceChildren(
+    g.canvas.querySelector('.gantt-overlay').replaceChildren(
       line !== null
         ? svgEl('line', { class: `gantt-drop-line${cls}`, x1: left + 4, x2: left + width - 4, y1: line, y2: line })
         : svgEl('rect', { class: `gantt-drop-box${cls}`, x: left + 2, y: box + 1, width: width - 4, height: rowHeight - 2 }),
@@ -298,10 +304,10 @@ export function attachInteractions(g) {
     const from = g.layout.bars.find((b) => b.id === drag.fromId);
     const x1 = drag.fromEdge === 'start' ? from.x : from.x + from.width;
     const y1 = from.y + from.height / 2;
-    g.svg.querySelector('.gantt-overlay').replaceChildren(
+    g.canvas.querySelector('.gantt-overlay').replaceChildren(
       svgEl('line', { class: 'gantt-link-draft', x1, y1, x2: p.x, y2: p.y }),
     );
-    for (const n of g.svg.querySelectorAll('.is-invalid, .is-target')) n.classList.remove('is-invalid', 'is-target');
+    for (const n of g.canvas.querySelectorAll('.is-invalid, .is-target')) n.classList.remove('is-invalid', 'is-target');
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
     const under = hovered?.closest('g.gantt-task[data-id]');
     drag.target = null;
@@ -340,7 +346,7 @@ export function attachInteractions(g) {
   function openEditor(id, field) {
     if (g.readonly || !['name', 'start', 'end'].includes(field)) return;
     let hit = null;
-    for (const n of g.svg.querySelectorAll(`[data-role="cell-${field}"]`)) {
+    for (const n of g.canvas.querySelectorAll(`[data-role="cell-${field}"]`)) {
       if (n.dataset.id === id) hit = n;
     }
     if (!hit) return;
@@ -371,24 +377,34 @@ export function attachInteractions(g) {
     };
     root.addEventListener('scroll', follow, { passive: true });
     let done = false;
-    const finish = (commit) => {
+    const finish = (commit, { refocus = false, next = null } = {}) => {
       if (done) return;
       done = true;
       root.removeEventListener('scroll', follow);
       const value = input.value.trim();
       input.remove();
-      if (!commit) return;
-      if (field === 'name') g.commit('rename', { id }, (m) => m.updateTask(id, { name: value }));
-      else g.commit('dates', { id }, (m) => m.updateTask(id, { [field]: value }));
+      if (commit) {
+        if (field === 'name') g.commit('rename', { id }, (m) => m.updateTask(id, { name: value }));
+        else g.commit('dates', { id }, (m) => m.updateTask(id, { [field]: value }));
+      }
+      if (next) openEditor(id, next);
+      else if (refocus) root.focus({ preventScroll: true });
     };
     input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') finish(true);
-      else if (ev.key === 'Escape') finish(false);
+      if (ev.key === 'Enter') finish(true, { refocus: true });
+      else if (ev.key === 'Escape') finish(false, { refocus: true });
+      else if (ev.key === 'Tab') {
+        ev.preventDefault();
+        const order = ['name', 'start', 'end'];
+        const next = order[order.indexOf(field) + (ev.shiftKey ? -1 : 1)] ?? null;
+        finish(true, { refocus: !next, next });
+      }
     });
     input.addEventListener('blur', () => finish(true));
   }
 
   g.openEditor = openEditor;
+  g.isDragging = () => drag !== null;
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
@@ -399,6 +415,7 @@ export function attachInteractions(g) {
 
   return () => {
     delete g.openEditor;
+    delete g.isDragging;
     root.removeEventListener('pointerdown', onPointerDown);
     root.removeEventListener('pointermove', onPointerMove);
     root.removeEventListener('pointerup', onPointerUp);

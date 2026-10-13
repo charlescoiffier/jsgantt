@@ -1,4 +1,5 @@
 import { fromDay } from './dates.js';
+import { describeTask } from './a11y.js';
 
 export const MIN_BAR_WIDTH = 4;
 
@@ -116,6 +117,8 @@ export function computeLayout(model, ts, metrics, state = {}) {
     });
     tableRows.push({
       id,
+      index: i,
+      label: describeTask(model, id, depth),
       y: rowTop,
       depth,
       name: t.name,
@@ -215,7 +218,7 @@ export function readMetrics(el) {
   };
 }
 
-function renderDefs(uid, layout) {
+function markerDefs(uid) {
   const defs = svgEl('defs');
   const marker = svgEl('marker', {
     id: `${uid}-arrow`,
@@ -227,14 +230,20 @@ function renderDefs(uid, layout) {
     markerUnits: 'userSpaceOnUse',
   });
   marker.append(svgEl('path', { class: 'gantt-arrow', d: 'M0,0 L8,4 L0,8 z' }));
+  defs.append(marker);
+  return defs;
+}
+
+function clipDefs(uid, layout) {
+  const defs = svgEl('defs');
   const clip = svgEl('clipPath', { id: `${uid}-clip-name` });
   clip.append(svgEl('rect', { x: 0, y: 0, width: Math.max(layout.table.nameW - 4, 0), height: layout.height }));
-  defs.append(marker, clip);
+  defs.append(clip);
   return defs;
 }
 
 function renderGrid(layout) {
-  const g = svgEl('g', { class: 'gantt-grid' });
+  const g = svgEl('g', { class: 'gantt-grid', 'aria-hidden': 'true' });
   const { tableWidth } = layout.metrics;
   for (const row of layout.rows) {
     g.append(svgEl('rect', {
@@ -245,7 +254,7 @@ function renderGrid(layout) {
   if (layout.addRow) {
     g.append(svgEl('rect', {
       class: cls('gantt-row', layout.addRow.alt && 'gantt-row--alt'),
-      x: 0, y: layout.addRow.y, width: layout.width, height: layout.rowHeight,
+      x: 0, y: layout.addRow.y, width: layout.width, height: layout.rowHeight, 'data-export': 'skip',
     }));
   }
   for (const w of layout.weekends) {
@@ -266,7 +275,7 @@ function renderGrid(layout) {
 }
 
 function renderHeader(layout) {
-  const g = svgEl('g', { class: 'gantt-header', 'data-sticky': 'y' });
+  const g = svgEl('g', { class: 'gantt-header', 'aria-hidden': 'true' });
   const { tableWidth } = layout.metrics;
   const half = layout.headerHeight / 2;
   g.append(svgEl('rect', {
@@ -289,7 +298,7 @@ function renderHeader(layout) {
 }
 
 function renderLinks(layout, uid) {
-  const g = svgEl('g', { class: 'gantt-links' });
+  const g = svgEl('g', { class: 'gantt-links', 'aria-hidden': 'true' });
   for (const link of layout.links) {
     const group = svgEl('g', {
       class: cls('gantt-link', `gantt-link--${link.type.toLowerCase()}`, link.selected && 'is-selected'),
@@ -323,7 +332,7 @@ function barShape(bar) {
 }
 
 function renderBars(layout, { readonly, dragId }) {
-  const g = svgEl('g', { class: 'gantt-bars' });
+  const g = svgEl('g', { class: 'gantt-bars', 'aria-hidden': 'true' });
   for (const bar of layout.bars) {
     const group = svgEl('g', {
       class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
@@ -387,11 +396,21 @@ const ACTION_ICONS = {
   delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
 };
 
-function renderRowActions(row, table, rowHeight) {
-  const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip' });
+function renderRowActions(row, table, rowHeight, uid) {
+  const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
   const x0 = table.nameW - 3 * w - 4;
-  g.append(svgEl('rect', { class: 'gantt-action-bg', x: x0 - 4, y: row.y + 3, width: 3 * w + 8, height: rowHeight - 6 }));
+  // Fond de la grappe : dégradé qui reprend la couleur réelle de la ligne (--row-bg) et estompe le nom trop long.
+  const fade = 28;
+  const total = 3 * w + 8 + fade;
+  const gradId = `${uid}-fade-${row.index}`;
+  const grad = svgEl('linearGradient', { id: gradId, x1: 0, y1: 0, x2: 1, y2: 0 });
+  const stop = (offset, opacity) => svgEl('stop', { class: 'gantt-fade-stop', offset, 'stop-opacity': opacity });
+  grad.append(stop(0, 0), stop((fade / total) * 0.5, 0.6), stop(fade / total, 1), stop(1, 1));
+  g.append(grad);
+  g.append(svgEl('rect', {
+    class: 'gantt-action-bg', x: x0 - 4 - fade, y: row.y + 1, width: total, height: rowHeight - 2, fill: `url(#${gradId})`,
+  }));
   const defs = [
     ['grip', LABELS.move, 'row-grip'],
     ['add', LABELS.addBelow, 'row-add'],
@@ -414,7 +433,7 @@ function renderRowActions(row, table, rowHeight) {
 
 function renderTable(layout, uid, readonly) {
   const { table } = layout;
-  const g = svgEl('g', { class: 'gantt-table', 'data-sticky': 'x' });
+  const g = svgEl('g', { class: 'gantt-table' });
   g.append(svgEl('rect', { class: 'gantt-table-bg', x: 0, y: 0, width: table.width, height: layout.height }));
   const colX = [0, table.nameW, table.nameW + table.dateColWidth];
   for (const row of table.rows) {
@@ -423,6 +442,12 @@ function renderTable(layout, uid, readonly) {
         row.selected && 'is-selected'),
       'data-id': row.id,
       'data-selectable': true,
+      id: `${uid}-row-${row.index}`,
+      role: 'row',
+      'aria-level': row.depth + 1,
+      'aria-expanded': row.group ? String(!row.collapsed) : undefined,
+      'aria-selected': String(row.selected),
+      'aria-label': row.label,
     });
     rowGroup.append(svgEl('rect', { class: 'gantt-table-rowbg', x: 0, y: row.y, width: table.width, height: layout.rowHeight }));
     const cx = 8 + row.depth * table.indent;
@@ -445,7 +470,7 @@ function renderTable(layout, uid, readonly) {
       }));
       rowGroup.append(svgEl('text', {
         class: cls('gantt-table-text', role === 'cell-name' ? 'gantt-table-text--name' : 'gantt-table-text--date'),
-        x: tx, y: cy, dy: '0.35em',
+        x: tx, y: cy, dy: '0.35em', role: 'gridcell',
         'clip-path': role === 'cell-name' ? `url(#${uid}-clip-name)` : undefined,
       }, text));
     }
@@ -455,7 +480,7 @@ function renderTable(layout, uid, readonly) {
         'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
       }));
     }
-    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight));
+    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight, uid));
     g.append(rowGroup);
   }
   if (layout.addRow && !readonly) {
@@ -480,7 +505,7 @@ function renderTable(layout, uid, readonly) {
 
 function renderCorner(layout) {
   const { table } = layout;
-  const g = svgEl('g', { class: 'gantt-corner', 'data-sticky': 'xy' });
+  const g = svgEl('g', { class: 'gantt-corner' });
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
   const titles = [['Nom', 8], ['Début', table.nameW + 8], ['Fin', table.nameW + table.dateColWidth + 8]];
   for (const [label, x] of titles) {
@@ -490,25 +515,27 @@ function renderCorner(layout) {
   return g;
 }
 
-export function renderSVG(layout, { uid = 'g0', readonly = false, dragId = null } = {}) {
-  const svg = svgEl('svg', {
-    class: 'gantt-svg',
+export function renderParts(layout, { uid = 'g0', readonly = false, dragId = null } = {}) {
+  const hh = layout.headerHeight;
+  const tw = layout.table.width;
+  const mk = (name, w, h) => svgEl('svg', {
+    class: `gantt-svg gantt-svg--${name}`,
     xmlns: NS,
-    width: layout.width,
-    height: layout.height,
-    viewBox: `0 0 ${layout.width} ${layout.height}`,
-    role: 'group',
-    'aria-label': 'Diagramme de Gantt',
+    width: w,
+    height: h,
+    viewBox: `0 0 ${w} ${h}`,
+    role: 'presentation',
   });
-  svg.append(
-    renderDefs(uid, layout),
-    renderGrid(layout),
-    renderLinks(layout, uid),
-    renderBars(layout, { readonly, dragId }),
-    renderHeader(layout),
-    renderTable(layout, uid, readonly),
-    renderCorner(layout),
-    svgEl('g', { class: 'gantt-overlay' }),
-  );
-  return svg;
+  // Les couches se superposent dans le même repère ; le CSS (position: sticky) fixe tableau, en-tête et coin.
+  const main = mk('main', layout.width, layout.height);
+  main.append(markerDefs(uid), renderGrid(layout), renderLinks(layout, uid), renderBars(layout, { readonly, dragId }));
+  const header = mk('header', layout.width, hh);
+  header.append(renderHeader(layout));
+  const table = mk('table', tw, layout.height);
+  table.append(clipDefs(uid, layout), renderTable(layout, uid, readonly));
+  const corner = mk('corner', tw, hh);
+  corner.append(renderCorner(layout));
+  const overlay = mk('overlay', layout.width, layout.height);
+  overlay.append(svgEl('g', { class: 'gantt-overlay' }));
+  return { main, header, table, corner, overlay };
 }

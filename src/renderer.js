@@ -106,6 +106,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
       height: barHeight,
       progress,
       progressWidth: kind === 'milestone' ? 0 : w * progress,
+      handleWidth: Math.min(6, w / 3),
       name: t.name,
       label: `${t.name} (${startLabel} → ${endLabel})`,
       className: t.className,
@@ -330,11 +331,12 @@ function renderBars(layout, { readonly, dragId }) {
       const skip = { 'data-export': 'skip', 'data-id': bar.id };
       if (bar.kind === 'task') {
         group.append(svgEl('rect', {
-          class: 'gantt-handle', x: bar.x, y: bar.y, width: 6, height: bar.height, 'data-role': 'handle-start', ...skip,
+          class: 'gantt-handle', x: bar.x, y: bar.y, width: bar.handleWidth, height: bar.height,
+          'data-role': 'handle-start', ...skip,
         }));
         group.append(svgEl('rect', {
-          class: 'gantt-handle', x: bar.x + bar.width - 6, y: bar.y, width: 6, height: bar.height,
-          'data-role': 'handle-end', ...skip,
+          class: 'gantt-handle', x: bar.x + bar.width - bar.handleWidth, y: bar.y, width: bar.handleWidth,
+          height: bar.height, 'data-role': 'handle-end', ...skip,
         }));
         group.append(svgEl('polygon', {
           class: 'gantt-handle gantt-handle--progress',

@@ -10,6 +10,12 @@ export class GanttModel {
   #linkSeq = 0;
 
   constructor(data = {}) {
+    if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Les données doivent être un objet { tasks, links }');
+    }
+    for (const key of Object.keys(data)) {
+      if (key !== 'tasks' && key !== 'links') throw new Error(`Les données contiennent une clé inconnue "${key}" (attendu : tasks, links)`);
+    }
     const { tasks = [], links = [] } = data;
     if (!Array.isArray(tasks)) throw new Error('"tasks" doit être un tableau');
     if (!Array.isArray(links)) throw new Error('"links" doit être un tableau');
@@ -330,10 +336,18 @@ export class GanttModel {
       start = end = next.start ?? next.end;
     }
     if (end < start) return { ok: false, reason: 'la fin précède le début' };
+    const saved = { name: t.name, start: t.start, end: t.end };
     if ('name' in next) t.name = next.name;
     if (!this.isGroup(id)) {
       t.start = start;
       t.end = end;
+      const planned = computeDates(this).get(id);
+      if (planned.start !== t.start || planned.end !== t.end) {
+        t.name = saved.name;
+        t.start = saved.start;
+        t.end = saved.end;
+        return { ok: false, reason: 'modification bloquée par une dépendance' };
+      }
     }
     this.reschedule();
     return { ok: true };

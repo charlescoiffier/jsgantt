@@ -173,3 +173,13 @@ test('roundedPath : coins arrondis et segments dégénérés', () => {
   assert.equal(roundedPath([{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 10, y: 0 }], 4), 'M0,0 L10,0');
   assert.equal(roundedPath([{ x: 0, y: 0 }, { x: 10, y: 0 }], 4), 'M0,0 L10,0');
 });
+
+test('poignées : jamais plus de la moitié de la barre, pour garder une zone de déplacement', () => {
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-05'), t('b', '2026-10-05', '2026-10-12')] });
+  const week = ts({ scale: 'week', colWidths: { week: 84 } }); // 12 px par jour
+  const layout = computeLayout(m, week, metrics);
+  const a = barOf(layout, 'a');
+  assert.equal(a.width, 12);
+  assert.ok(a.handleWidth * 2 < a.width, 'une barre d\'un jour garde un corps central');
+  assert.equal(barOf(layout, 'b').handleWidth, 6);
+});

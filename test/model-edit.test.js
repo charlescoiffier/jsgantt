@@ -127,3 +127,25 @@ test('toggleCollapsed', () => {
 test('méthodes d\'édition : id inconnu', () => {
   assert.throws(() => base().moveTask('zzz', 1), /inconnue/);
 });
+
+test('updateTask : une date bloquée par une dépendance est refusée, état restauré', () => {
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-10'), t('b', '2026-10-11', '2026-10-15')],
+    links: [l('a', 'b', 'FS')],
+  });
+  const r = m.updateTask('b', { start: '2026-10-05' });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /dépendance/);
+  assert.equal(span(m, 'b'), '2026-10-11..2026-10-15');
+  assert.equal(m.updateTask('b', { start: '2026-10-12' }).ok, true);
+  assert.equal(span(m, 'b'), '2026-10-12..2026-10-15');
+});
+
+test('updateTask : une fin bloquée par un lien FF est refusée', () => {
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-20'), t('b', '2026-10-05', '2026-10-20')],
+    links: [l('a', 'b', 'FF')],
+  });
+  assert.match(m.updateTask('b', { end: '2026-10-10' }).reason, /dépendance/);
+  assert.equal(span(m, 'b'), '2026-10-05..2026-10-20');
+});

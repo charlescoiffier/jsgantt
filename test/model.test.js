@@ -153,3 +153,11 @@ test('clone est indépendant', () => {
   assert.equal(c.links.length, 1);
   assert.equal(c.getTask('a').start, toDay('2026-10-05'));
 });
+
+test('import : la racine doit être un objet { tasks, links }', () => {
+  for (const bad of [null, [], 'x', 42]) {
+    assert.throws(() => new GanttModel(bad), /objet/, String(bad));
+  }
+  assert.throws(() => new GanttModel({ task: [] }), /clé inconnue "task"/);
+  assert.doesNotThrow(() => new GanttModel({ tasks: [], links: [] }));
+});

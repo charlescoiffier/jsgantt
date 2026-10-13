@@ -71,9 +71,16 @@ export class Gantt {
   }
 
   refresh() {
+    const previous = this.timescale;
     this.metrics = readMetrics(this.root);
     this.timescale = this.#buildTimescale();
     this.render();
+    if (previous && previous.scale === this.timescale.scale && previous.originDay !== this.timescale.originDay) {
+      // L'origine a bougé : on garde les mêmes jours à l'écran.
+      const shift = (previous.originDay - this.timescale.originDay) * this.timescale.pixelsPerDay;
+      this.scroller.scrollLeft = Math.max(0, this.scroller.scrollLeft + shift);
+      this.applySticky();
+    }
   }
 
   render({ model = this.model, dragId = null } = {}) {

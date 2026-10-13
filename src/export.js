@@ -1,3 +1,5 @@
+import { GanttError } from './i18n.js';
+
 const INLINE_PROPS = [
   'fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linejoin', 'stroke-linecap',
   'stroke-dasharray', 'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-anchor', 'rx', 'ry',
@@ -88,7 +90,7 @@ function loadScript(url) {
     const s = document.createElement('script');
     s.src = url;
     s.onload = resolve;
-    s.onerror = () => reject(new Error(`Impossible de charger ${url}`));
+    s.onerror = () => reject(new GanttError('export.loadFailed', { url }));
     document.head.append(s);
   });
 }
@@ -99,7 +101,7 @@ export async function exportPDFBlob(parts, libs = {}) {
     if (!window.jspdf) await loadScript(urls.jspdf);
     if (!window.svg2pdf) await loadScript(urls.svg2pdf);
   } catch (e) {
-    throw new Error(`Export PDF indisponible : ${e.message}`);
+    throw new GanttError('export.pdfUnavailable', { detail: e });
   }
   const { jsPDF } = window.jspdf;
   const clone = buildStandaloneSVG(parts);

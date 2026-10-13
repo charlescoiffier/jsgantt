@@ -6,6 +6,7 @@ import { History } from './history.js';
 import { attachA11y, syncAria } from './a11y.js';
 import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
+import { createI18n } from './i18n.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -21,6 +22,8 @@ export class Gantt {
   constructor(el, options = {}) {
     const scale = options.scale ?? 'week';
     if (!SCALES.includes(scale)) throw new Error(`Échelle inconnue : "${scale}"`);
+    this.i18n = createI18n(options.locale);
+    this.weekStart = options.weekStart ?? 1;
     this.root = el;
     this.root.classList.add('gantt-root');
     this.scroller = document.createElement('div');
@@ -35,7 +38,11 @@ export class Gantt {
     this.scale = scale;
     this.pdfLibs = options.pdfLibs ?? {};
     this.history = new History(options.historyLimit ?? 100);
-    this.model = new GanttModel({ tasks: options.tasks, links: options.links });
+    try {
+      this.model = new GanttModel({ tasks: options.tasks, links: options.links });
+    } catch (e) {
+      throw this.#localizeError(e);
+    }
     this.state = { selectedId: null, selectedLinkId: null };
     this.refresh();
     this.detach = attachInteractions(this);
@@ -85,7 +92,14 @@ export class Gantt {
     if (min === Infinity) min = max = todayDay();
     const originDay = min - 7;
     const endDay = Math.max(max + 14, originDay + 30);
-    return new Timescale({ scale: this.scale, colWidths: this.metrics.colWidths, originDay, endDay });
+    return new Timescale({
+      scale: this.scale,
+      colWidths: this.metrics.colWidths,
+      originDay,
+      endDay,
+      months: this.i18n.months,
+      weekStart: this.weekStart,
+    });
   }
 
   refresh() {
@@ -102,7 +116,7 @@ export class Gantt {
 
   render({ model = this.model, dragId = null } = {}) {
     this.root.classList.toggle('is-readonly', this.readonly);
-    this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay(), showAdd: !this.readonly });
+    this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay(), showAdd: !this.readonly, i18n: this.i18n });
     const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
     this.canvas.replaceChildren(parts.main, parts.table, parts.header, parts.corner, parts.overlay);
@@ -146,7 +160,7 @@ export class Gantt {
     const before = this.model.getData();
     const result = mutate(this.model);
     if (result && result.ok === false) {
-      this.emit('invalid', { reason: result.reason });
+      this.emit('invalid', { reason: this.i18n.localize(result), code: result.code });
       this.render();
       return result;
     }
@@ -167,9 +181,28 @@ export class Gantt {
   }
 
   #denyReadonly() {
-    const reason = 'le diagramme est en lecture seule';
-    this.emit('invalid', { reason });
-    return { ok: false, reason };
+    const reason = this.i18n.t('readonly');
+    this.emit('invalid', { reason, code: 'readonly' });
+    return { ok: false, reason, code: 'readonly' };
+  }
+
+  #localizeError(e) {
+    if (e?.code) e.message = this.i18n.localize(e);
+    return e;
+  }
+
+  t(key, params) {
+    return this.i18n.t(key, params);
+  }
+
+  refuse(code, params = {}) {
+    this.emit('invalid', { reason: this.i18n.t(code, params), code });
+  }
+
+  setLocale(locale) {
+    this.i18n = createI18n(locale);
+    this.refresh();
+    this.emit('locale', { code: this.i18n.code });
   }
 
   #viewCenterDay() {
@@ -282,7 +315,12 @@ export class Gantt {
   }
 
   async exportPDF(filename = 'gantt.pdf') {
-    const blob = await exportPDFBlob(this.parts, this.pdfLibs);
+    let blob;
+    try {
+      blob = await exportPDFBlob(this.parts, this.pdfLibs);
+    } catch (e) {
+      throw this.#localizeError(e);
+    }
     if (filename) downloadBlob(blob, filename);
     return blob;
   }
@@ -296,7 +334,12 @@ export class Gantt {
   }
 
   setData(data) {
-    const model = new GanttModel(data); // lève avant de toucher à l'état courant
+    let model;
+    try {
+      model = new GanttModel(data); // lève avant de toucher à l'état courant
+    } catch (e) {
+      throw this.#localizeError(e);
+    }
     this.model = model;
     this.state = { selectedId: null, selectedLinkId: null };
     this.history.clear();

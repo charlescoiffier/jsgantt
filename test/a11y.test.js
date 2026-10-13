@@ -56,3 +56,17 @@ test('announceChange : messages par type d\'événement', () => {
   assert.equal(announceChange(m, { type: 'reorder', id: 'c1' }), 'Maquettes déplacée, niveau 2');
   assert.equal(announceChange(m, { type: 'collapse', id: 'g' }), null);
 });
+
+test('libellés et annonces en anglais', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const en = createI18n('en');
+  const m = model();
+  assert.equal(describeTask(m, 'a', 0, en), 'Conception, from 2026-10-05 to 2026-10-09, progress 60%, level 1');
+  assert.equal(describeTask(m, 'g', 0, en), 'Équipe, from 2026-10-12 to 2026-10-14, progress 0%, level 1, group of 1 task, expanded');
+  assert.equal(describeTask(m, 'm', 0, en), 'Livraison, milestone on 2026-10-20, level 1, predecessors: Maquettes (SS)');
+  assert.equal(announceChange(m, { type: 'move', id: 'a' }, en), 'Conception: from 2026-10-05 to 2026-10-09');
+  assert.equal(announceChange(m, { type: 'add', id: 'a' }, en), 'Task added: Conception');
+  assert.equal(announceChange(m, { type: 'link', from: 'a', to: 'c1', linkType: 'FS' }, en), 'Link created: Conception to Maquettes (FS)');
+  assert.equal(announceChange(m, { type: 'undo' }, en), 'Undone');
+  assert.equal(announceChange(m, { type: 'reorder', id: 'c1' }, en), 'Maquettes moved, level 2');
+});

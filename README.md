@@ -48,7 +48,7 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit });
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -56,6 +56,7 @@ g.removeTask(id);        // supprime la tâche, ses descendants et leurs liens
 g.moveTaskTo(id, { parentId, beforeId }); // réordonne ou change de parent
 // ces trois méthodes renvoient { ok, … } ; refusées en lecture seule ou si le résultat est invalide
 g.setScale('month');
+g.setLocale('en');        // change la langue à chaud (voir « Localisation »)
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -93,7 +94,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason`), `scale`, `history` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -124,6 +125,31 @@ Thème sombre d'exemple : `data-theme="dark"` sur l'élément racine, puis `gant
 
 Thème « Todoist » : charger `src/themes/todoist.css` après `gantt.css`, puis `data-theme="todoist"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (lignes de 40 px, barres en pilule). Les priorités se posent avec la classe `p1`, `p2` ou `p3` dans le `className` d'une tâche (`p4`, gris, par défaut). Les groupes y sont dessinés comme une pilule fine (le rendu produit aussi cette forme, masquée par défaut : classes `gantt-group-pill` et `gantt-group-pill-progress`).
 Après un changement de variable de géométrie, appeler `gantt.refresh()`.
+
+## Localisation
+
+Langues fournies : français (par défaut) et anglais.
+
+```js
+new Gantt(el, { locale: 'en' });          // 'fr' | 'en'
+g.setLocale('fr');                        // à chaud, tableau, échelle et annonces compris
+
+// Ajouter ou compléter une langue (les clés absentes retombent sur `base`, puis sur le français) :
+new Gantt(el, {
+  locale: {
+    code: 'es',
+    base: 'en',                           // facultatif
+    months: { short: ['ene', 'feb', /* … 12 */], long: ['enero', 'febrero', /* … 12 */] },
+    messages: { 'ui.addTask': 'Añadir una tarea', 'ui.name': 'Nombre' },
+  },
+});
+
+new Gantt(el, { weekStart: 0 });          // début de semaine : 1 = lundi (défaut), 0 = dimanche
+```
+
+Sont traduits : en-têtes du tableau, mois, infobulles, libellés et annonces d'accessibilité, aide du mode lien, refus et erreurs d'import. Les clés disponibles sont dans `src/i18n.js` (`BUILTIN_LOCALES.fr.messages`). Les paramètres s'écrivent `{nom}` ; les pluriels utilisent les variantes `clé.one` / `clé.other` (règles `Intl.PluralRules`).
+
+Les refus (`invalid`, résultats de `addTask`, `moveTaskTo`…) et les exceptions d'import portent un `code` stable (`link.cycle`, `task.unknown`…) et des `params` : ils restent traduisibles quelle que soit la langue du diagramme. Les noms de tâches sont des données et ne sont jamais traduits. Les dates restent au format `AAAA-MM-JJ`. Seules les erreurs d'arguments destinées aux développeurs (option `scale` inconnue, etc.) restent en français.
 
 ## Tests
 

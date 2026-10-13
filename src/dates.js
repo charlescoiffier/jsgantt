@@ -1,3 +1,5 @@
+import { GanttError } from './i18n.js';
+
 const MS = 86400000;
 
 function utc(year, month, day) {
@@ -8,11 +10,11 @@ function utc(year, month, day) {
 
 export function toDay(str) {
   const m = typeof str === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(str) : null;
-  if (!m) throw new Error(`Date invalide : ${JSON.stringify(str)} (attendu AAAA-MM-JJ)`);
+  if (!m) throw new GanttError('date.format', { value: JSON.stringify(str) ?? 'undefined' });
   const [year, month, day] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
   const d = utc(year, month, day);
   if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month || d.getUTCDate() !== day) {
-    throw new Error(`Date invalide : ${JSON.stringify(str)} (ce jour n'existe pas)`);
+    throw new GanttError('date.nonexistent', { value: JSON.stringify(str) });
   }
   return d.getTime() / MS;
 }

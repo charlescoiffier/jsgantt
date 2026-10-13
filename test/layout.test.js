@@ -200,3 +200,14 @@ test('ligne d\'ajout sur un planning vide : juste sous l\'en-tête', () => {
   assert.deepEqual(layout.addRow, { y: 48, alt: false });
   assert.equal(layout.height, 48 + 32);
 });
+
+test('libellés de la mise en page selon la langue', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
+  const fr = computeLayout(m, ts(), metrics);
+  assert.deepEqual([fr.labels.name, fr.labels.start, fr.labels.end, fr.labels.addTask], ['Nom', 'Début', 'Fin', 'Ajouter une tâche']);
+  const en = computeLayout(m, ts(), metrics, { i18n: createI18n('en') });
+  assert.deepEqual([en.labels.name, en.labels.start, en.labels.end, en.labels.addTask], ['Name', 'Start', 'End', 'Add a task']);
+  assert.match(en.table.rows[0].label, /^a, from 2026-10-05 to 2026-10-07, progress 0%, level 1$/);
+  assert.match(fr.table.rows[0].label, /^a, du 2026-10-05 au 2026-10-07, progression 0 %, niveau 1$/);
+});

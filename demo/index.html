@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jsgantt — démo</title>
+  <link rel="stylesheet" href="../src/gantt.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
+    body.dark { background: #111827; color: #e5e7eb; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .toolbar button { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
+    body.dark .toolbar button { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+    .toolbar button[aria-pressed="true"] { border-color: #2563eb; background: #dbeafe; color: #1e3a8a; }
+    #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
+    #chart { --gantt-max-height: 520px; }
+    body.dark .toolbar .import { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+    .toolbar .import { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>jsgantt</h1>
+  <div class="toolbar" id="toolbar">
+    <button data-scale="day" aria-pressed="false">Jour</button>
+    <button data-scale="week" aria-pressed="true">Semaine</button>
+    <button data-scale="month" aria-pressed="false">Mois</button>
+    <span style="flex:1"></span>
+    <button id="exp-svg">Export SVG</button>
+    <button id="exp-json">Export JSON</button>
+    <button id="exp-pdf">Export PDF</button>
+    <button id="exp-print">Imprimer</button>
+    <button id="toggle-theme" aria-pressed="false">Thème sombre</button>
+    <button id="toggle-readonly" aria-pressed="false">Lecture seule</button>
+    <label class="import">Import JSON <input id="imp-json" type="file" accept="application/json" hidden></label>
+  </div>
+  <div id="chart"></div>
+  <div id="log" aria-live="polite"></div>
+
+  <script type="module">
+    import { Gantt } from '../src/gantt.js';
+
+    const tasks = [
+      { id: 'p1', name: 'Conception' },
+      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1 },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6 },
+      { id: 'p2', name: 'Développement' },
+      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3 },
+      { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04' },
+      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06' },
+      { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06' },
+      { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
+      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04' },
+    ];
+    const links = [
+      { id: 'l1', from: 't1', to: 't2', type: 'FS' },
+      { id: 'l2', from: 'p1', to: 'p2', type: 'FS' },
+      { id: 'l3', from: 't3', to: 't4', type: 'FS' },
+      { id: 'l4', from: 't4', to: 't5', type: 'SS', lag: 1 },
+      { id: 'l5', from: 't5', to: 't6', type: 'FF' },
+      { id: 'l6', from: 't6', to: 'm1', type: 'FS' },
+      { id: 'l7', from: 'm1', to: 't7', type: 'SF' },
+    ];
+
+    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, scale: 'week' });
+    window.gantt = gantt;
+
+    const log = document.getElementById('log');
+    const write = (kind, detail) => {
+      log.prepend(Object.assign(document.createElement('div'), { textContent: `${kind} ${JSON.stringify(detail)}` }));
+    };
+    for (const name of ['change', 'select', 'invalid', 'scale']) gantt.on(name, (d) => write(name, d));
+
+    const toolbar = document.getElementById('toolbar');
+    toolbar.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-scale]');
+      if (!b) return;
+      gantt.setScale(b.dataset.scale);
+    });
+    gantt.on('scale', ({ scale }) => {
+      for (const x of toolbar.querySelectorAll('button[data-scale]')) {
+        x.setAttribute('aria-pressed', String(x.dataset.scale === scale));
+      }
+    });
+
+    document.getElementById('exp-svg').onclick = () => gantt.exportSVG();
+    document.getElementById('exp-json').onclick = () => gantt.exportJSON();
+    document.getElementById('exp-print').onclick = () => gantt.print();
+    document.getElementById('exp-pdf').onclick = async () => {
+      try {
+        await gantt.exportPDF();
+      } catch (e) {
+        write('erreur', { message: e.message });
+      }
+    };
+
+    const chart = document.getElementById('chart');
+    const themeBtn = document.getElementById('toggle-theme');
+    themeBtn.onclick = () => {
+      const dark = chart.dataset.theme !== 'dark';
+      chart.dataset.theme = dark ? 'dark' : 'light';
+      document.body.classList.toggle('dark', dark);
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      gantt.refresh();
+    };
+    const roBtn = document.getElementById('toggle-readonly');
+    roBtn.onclick = () => {
+      gantt.readonly = !gantt.readonly;
+      roBtn.setAttribute('aria-pressed', String(gantt.readonly));
+      gantt.render();
+    };
+    document.getElementById('imp-json').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        gantt.setData(JSON.parse(await file.text()));
+        write('import', { fichier: file.name });
+      } catch (err) {
+        write('erreur', { message: err.message });
+      }
+      e.target.value = '';
+    };
+  </script>
+</body>
+</html>

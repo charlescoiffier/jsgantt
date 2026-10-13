@@ -1,5 +1,6 @@
 import { toDay, fromDay } from './dates.js';
 import { computeDates } from './scheduler.js';
+import { GanttError, fail, failFrom } from './i18n.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
 
@@ -11,40 +12,40 @@ export class GanttModel {
 
   constructor(data = {}) {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) {
-      throw new Error('Les données doivent être un objet { tasks, links }');
+      throw new GanttError('data.notObject');
     }
     for (const key of Object.keys(data)) {
-      if (key !== 'tasks' && key !== 'links') throw new Error(`Les données contiennent une clé inconnue "${key}" (attendu : tasks, links)`);
+      if (key !== 'tasks' && key !== 'links') throw new GanttError('data.unknownKey', { key });
     }
     const { tasks = [], links = [] } = data;
-    if (!Array.isArray(tasks)) throw new Error('"tasks" doit être un tableau');
-    if (!Array.isArray(links)) throw new Error('"links" doit être un tableau');
+    if (!Array.isArray(tasks)) throw new GanttError('data.tasksNotArray');
+    if (!Array.isArray(links)) throw new GanttError('data.linksNotArray');
     for (const raw of tasks) this.#loadTask(raw);
     this.#buildHierarchy();
     this.#resolveDates();
     this.#aggregateGroups();
     for (const raw of links) {
       const res = this.addLink(raw);
-      if (!res.ok) throw new Error(`Lien ${raw?.id ?? `${raw?.from}→${raw?.to}`} invalide : ${res.reason}`);
+      if (!res.ok) throw new GanttError('link.invalid', { link: raw?.id ?? `${raw?.from}→${raw?.to}`, reason: res });
     }
     this.reschedule();
   }
 
   #loadTask(raw) {
-    if (!raw || typeof raw !== 'object') throw new Error('Chaque tâche doit être un objet');
+    if (!raw || typeof raw !== 'object') throw new GanttError('task.notObject');
     const { id } = raw;
-    if (typeof id !== 'string' || id === '') throw new Error('Chaque tâche doit avoir un "id" (chaîne non vide)');
-    if (this.#tasks.has(id)) throw new Error(`Identifiant de tâche dupliqué : "${id}"`);
+    if (typeof id !== 'string' || id === '') throw new GanttError('task.idRequired');
+    if (this.#tasks.has(id)) throw new GanttError('task.duplicateId', { id });
     const progress = raw.progress ?? 0;
     if (typeof progress !== 'number' || !(progress >= 0 && progress <= 1)) {
-      throw new Error(`Tâche "${id}" : "progress" doit être un nombre entre 0 et 1`);
+      throw new GanttError('task.progressRange', { id });
     }
     const parse = (key) => {
       if (raw[key] === undefined) return undefined;
       try {
         return toDay(raw[key]);
       } catch (e) {
-        throw new Error(`Tâche "${id}" : ${e.message}`);
+        throw new GanttError('task.error', { id, detail: e });
       }
     };
     this.#tasks.set(id, {
@@ -66,9 +67,9 @@ export class GanttModel {
       this.#children.get(parent).push(id);
     };
     for (const t of this.#tasks.values()) {
-      if (t.parentId === t.id) throw new Error(`Boucle dans la hiérarchie autour de "${t.id}"`);
+      if (t.parentId === t.id) throw new GanttError('hierarchy.loop', { id: t.id });
       if (t.parentId !== null && !this.#tasks.has(t.parentId)) {
-        throw new Error(`Tâche "${t.id}" : parent inconnu "${t.parentId}"`);
+        throw new GanttError('task.parentUnknown', { id: t.id, parentId: t.parentId });
       }
       push(t.parentId, t.id);
     }
@@ -77,7 +78,7 @@ export class GanttModel {
       let steps = 0;
       while (cur.parentId !== null) {
         cur = this.#tasks.get(cur.parentId);
-        if (++steps > this.#tasks.size) throw new Error(`Boucle dans la hiérarchie autour de "${t.id}"`);
+        if (++steps > this.#tasks.size) throw new GanttError('hierarchy.loop', { id: t.id });
       }
     }
   }
@@ -85,14 +86,14 @@ export class GanttModel {
   #resolveDates() {
     for (const t of this.#tasks.values()) {
       if (this.isGroup(t.id)) continue;
-      if (t.start === undefined) throw new Error(`Tâche "${t.id}" : "start" est requis`);
+      if (t.start === undefined) throw new GanttError('task.startRequired', { id: t.id });
       if (t.milestone) {
         if (t.end === undefined) t.end = t.start;
-        else if (t.end !== t.start) throw new Error(`Tâche "${t.id}" : un jalon doit avoir une fin égale à son début`);
+        else if (t.end !== t.start) throw new GanttError('task.milestoneEnd', { id: t.id });
         continue;
       }
-      if (t.end === undefined) throw new Error(`Tâche "${t.id}" : "end" est requis`);
-      if (t.end < t.start) throw new Error(`Tâche "${t.id}" : la fin précède le début`);
+      if (t.end === undefined) throw new GanttError('task.endRequired', { id: t.id });
+      if (t.end < t.start) throw new GanttError('task.endBeforeStart', { id: t.id });
     }
   }
 
@@ -201,27 +202,28 @@ export class GanttModel {
   #linksProblem() {
     for (const link of this.#links) {
       if (this.ancestorsOf(link.from).includes(link.to) || this.ancestorsOf(link.to).includes(link.from)) {
-        return 'le déplacement créerait un lien interdit entre un groupe et un de ses descendants';
+        return fail('move.linkForbidden');
       }
     }
-    return this.#wouldCycle() ? 'le déplacement créerait un cycle' : null;
+    return this.#wouldCycle() ? fail('move.cycle') : null;
+  }
+
+  // Refus éventuel d'un lien : { ok: false, reason, code, params } ou null.
+  linkProblem(link) {
+    const { from, to } = link;
+    if (!this.#tasks.has(from)) return fail('link.sourceUnknown', { id: from });
+    if (!this.#tasks.has(to)) return fail('link.targetUnknown', { id: to });
+    if (!LINK_TYPES.includes(link.type)) return fail('link.typeUnknown', { type: link.type });
+    if (!Number.isInteger(link.lag ?? 0)) return fail('link.lagInteger');
+    if (from === to) return fail('link.self');
+    if (this.ancestorsOf(from).includes(to) || this.ancestorsOf(to).includes(from)) return fail('link.groupDescendant');
+    if (this.#links.some((x) => x.from === from && x.to === to && x.type === link.type)) return fail('link.exists');
+    if (this.#wouldCycle(from, to)) return fail('link.cycle');
+    return null;
   }
 
   checkLink(link) {
-    const { from, to } = link;
-    if (!this.#tasks.has(from)) return `tâche source inconnue : "${from}"`;
-    if (!this.#tasks.has(to)) return `tâche cible inconnue : "${to}"`;
-    if (!LINK_TYPES.includes(link.type)) return `type de lien inconnu : "${link.type}"`;
-    if (!Number.isInteger(link.lag ?? 0)) return 'le décalage (lag) doit être un entier';
-    if (from === to) return 'une tâche ne peut pas être liée à elle-même';
-    if (this.ancestorsOf(from).includes(to) || this.ancestorsOf(to).includes(from)) {
-      return 'lien interdit entre un groupe et un de ses descendants';
-    }
-    if (this.#links.some((x) => x.from === from && x.to === to && x.type === link.type)) {
-      return 'ce lien existe déjà';
-    }
-    if (this.#wouldCycle(from, to)) return 'ce lien créerait un cycle';
-    return null;
+    return this.linkProblem(link)?.reason ?? null;
   }
 
   #wouldCycle(from, to) {
@@ -261,15 +263,15 @@ export class GanttModel {
 
   addLink(link) {
     const norm = { from: link?.from, to: link?.to, type: link?.type ?? 'FS', lag: link?.lag ?? 0 };
-    const reason = this.checkLink(norm);
-    if (reason) return { ok: false, reason };
+    const problem = this.linkProblem(norm);
+    if (problem) return problem;
     let id = link?.id;
     if (id === undefined) {
       do {
         id = `l${++this.#linkSeq}`;
       } while (this.#links.some((x) => x.id === id));
     } else if (this.#links.some((x) => x.id === id)) {
-      return { ok: false, reason: `identifiant de lien dupliqué : "${id}"` };
+      return fail('link.duplicateId', { id });
     }
     const stored = { id, ...norm };
     this.#links.push(stored);
@@ -295,7 +297,7 @@ export class GanttModel {
 
   #require(id) {
     const t = this.#tasks.get(id);
-    if (!t) throw new Error(`Tâche inconnue : "${id}"`);
+    if (!t) throw new GanttError('task.unknown', { id });
     return t;
   }
 
@@ -314,21 +316,21 @@ export class GanttModel {
     const t = this.#require(id);
     if (edge !== 'start' && edge !== 'end') throw new Error(`Bord inconnu : "${edge}"`);
     if (!Number.isInteger(day)) throw new TypeError('day doit être un entier');
-    if (this.isGroup(id)) return { ok: false, reason: 'un groupe ne peut pas être redimensionné' };
-    if (t.milestone) return { ok: false, reason: 'un jalon ne peut pas être redimensionné' };
+    if (this.isGroup(id)) return fail('resize.group');
+    if (t.milestone) return fail('resize.milestone');
     const saved = { start: t.start, end: t.end };
     if (edge === 'start') {
-      if (day > t.end) return { ok: false, reason: 'le début ne peut pas suivre la fin' };
+      if (day > t.end) return fail('resize.startAfterEnd');
       t.start = day;
     } else {
-      if (day < t.start) return { ok: false, reason: 'la fin ne peut pas précéder le début' };
+      if (day < t.start) return fail('resize.endBeforeStart');
       t.end = day;
     }
     const planned = computeDates(this).get(id);
     if (planned.start !== t.start || planned.end !== t.end) {
       t.start = saved.start;
       t.end = saved.end;
-      return { ok: false, reason: 'redimensionnement bloqué par une dépendance' };
+      return fail('resize.blocked');
     }
     this.reschedule();
     return { ok: true };
@@ -336,7 +338,7 @@ export class GanttModel {
 
   setProgress(id, value) {
     const t = this.#require(id);
-    if (this.isGroup(id)) return { ok: false, reason: 'la progression d\'un groupe est calculée' };
+    if (this.isGroup(id)) return fail('progress.group');
     t.progress = Math.round(Math.min(1, Math.max(0, value)) * 100) / 100;
     return { ok: true };
   }
@@ -347,11 +349,11 @@ export class GanttModel {
     if ('name' in patch) next.name = String(patch.name);
     for (const key of ['start', 'end']) {
       if (!(key in patch)) continue;
-      if (this.isGroup(id)) return { ok: false, reason: 'les dates d\'un groupe sont calculées' };
+      if (this.isGroup(id)) return fail('dates.group');
       try {
         next[key] = toDay(patch[key]);
       } catch (e) {
-        return { ok: false, reason: e.message };
+        return failFrom(e);
       }
     }
     let start = next.start ?? t.start;
@@ -359,7 +361,7 @@ export class GanttModel {
     if (t.milestone && !this.isGroup(id) && ('start' in next || 'end' in next)) {
       start = end = next.start ?? next.end;
     }
-    if (end < start) return { ok: false, reason: 'la fin précède le début' };
+    if (end < start) return fail('dates.endBeforeStart');
     const saved = { name: t.name, start: t.start, end: t.end };
     if ('name' in next) t.name = next.name;
     if (!this.isGroup(id)) {
@@ -370,7 +372,7 @@ export class GanttModel {
         t.name = saved.name;
         t.start = saved.start;
         t.end = saved.end;
-        return { ok: false, reason: 'modification bloquée par une dépendance' };
+        return fail('update.blocked');
       }
     }
     this.reschedule();
@@ -384,29 +386,29 @@ export class GanttModel {
 
   addTask(spec = {}) {
     let { id, name, start, end, parentId = null, afterId = null } = spec;
-    if (typeof start !== 'string') return { ok: false, reason: '"start" est requis (AAAA-MM-JJ)' };
+    if (typeof start !== 'string') return fail('add.startRequired');
     let s;
     let e;
     try {
       s = toDay(start);
       e = end === undefined ? s + 2 : toDay(end);
     } catch (err) {
-      return { ok: false, reason: err.message };
+      return failFrom(err);
     }
-    if (e < s) return { ok: false, reason: 'la fin précède le début' };
+    if (e < s) return fail('dates.endBeforeStart');
     if (afterId !== null) {
       const ref = this.#tasks.get(afterId);
-      if (!ref) return { ok: false, reason: `tâche de référence inconnue : "${afterId}"` };
+      if (!ref) return fail('add.refUnknown', { id: afterId });
       parentId = ref.parentId;
     } else if (parentId !== null && !this.#tasks.has(parentId)) {
-      return { ok: false, reason: `parent inconnu : "${parentId}"` };
+      return fail('parent.unknown', { id: parentId });
     }
     if (id === undefined) {
       let n = this.#tasks.size + 1;
       while (this.#tasks.has(`t${n}`)) n++;
       id = `t${n}`;
     } else if (this.#tasks.has(id)) {
-      return { ok: false, reason: `identifiant de tâche dupliqué : "${id}"` };
+      return fail('task.duplicateId', { id });
     }
     const order = [...this.#tasks.keys()];
     let at;
@@ -451,13 +453,13 @@ export class GanttModel {
   moveTaskTo(id, { parentId = null, beforeId = null } = {}) {
     const t = this.#require(id);
     if (parentId === id || (parentId !== null && this.descendantsOf(id).includes(parentId))) {
-      return { ok: false, reason: 'une tâche ne peut pas être déplacée dans elle-même ni dans un de ses descendants' };
+      return fail('move.intoSelf');
     }
-    if (parentId !== null && !this.#tasks.has(parentId)) return { ok: false, reason: `parent inconnu : "${parentId}"` };
+    if (parentId !== null && !this.#tasks.has(parentId)) return fail('parent.unknown', { id: parentId });
     if (beforeId !== null) {
       const b = this.#tasks.get(beforeId);
       if (!b || b.parentId !== parentId || beforeId === id) {
-        return { ok: false, reason: 'beforeId doit être un enfant du nouveau parent' };
+        return fail('move.beforeId');
       }
     }
     const saved = { order: [...this.#tasks.keys()], parentId: t.parentId };
@@ -476,11 +478,11 @@ export class GanttModel {
     rest.splice(at, 0, ...moved);
     t.parentId = parentId;
     this.#applyOrder(rest);
-    const reason = this.#linksProblem();
-    if (reason) {
+    const problem = this.#linksProblem();
+    if (problem) {
       t.parentId = saved.parentId;
       this.#applyOrder(saved.order);
-      return { ok: false, reason };
+      return problem;
     }
     this.reschedule();
     return { ok: true };

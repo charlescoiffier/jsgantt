@@ -1,7 +1,9 @@
 import { fromDay } from './dates.js';
 import { describeTask } from './a11y.js';
+import { createI18n } from './i18n.js';
 
 export const MIN_BAR_WIDTH = 4;
+const DEFAULT_I18N = createI18n('fr');
 
 const fmt = (n) => +n.toFixed(2);
 
@@ -54,6 +56,16 @@ const LINK_EDGES = {
 };
 
 export function computeLayout(model, ts, metrics, state = {}) {
+  const i18n = state.i18n ?? DEFAULT_I18N;
+  const labels = {
+    name: i18n.t('ui.name'),
+    start: i18n.t('ui.start'),
+    end: i18n.t('ui.end'),
+    addTask: i18n.t('ui.addTask'),
+    addBelow: i18n.t('ui.addBelow'),
+    remove: i18n.t('ui.remove'),
+    move: i18n.t('ui.move'),
+  };
   const { rowHeight, barHeight, headerHeight, tableWidth, dateColWidth, indent, linkGap, linkRadius } = metrics;
   const rowsInfo = model.visibleRows();
   const width = tableWidth + ts.totalWidth;
@@ -118,7 +130,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     tableRows.push({
       id,
       index: i,
-      label: describeTask(model, id, depth),
+      label: describeTask(model, id, depth, i18n),
       y: rowTop,
       depth,
       name: t.name,
@@ -163,6 +175,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     metrics,
     rowHeight,
     headerHeight,
+    labels,
     header,
     rows,
     weekends,
@@ -176,13 +189,6 @@ export function computeLayout(model, ts, metrics, state = {}) {
 }
 
 const NS = 'http://www.w3.org/2000/svg';
-
-const LABELS = {
-  addTask: 'Ajouter une tâche',
-  addBelow: 'Ajouter une tâche en dessous',
-  remove: 'Supprimer la tâche',
-  move: 'Déplacer la ligne',
-};
 
 export function svgEl(name, attrs = {}, text) {
   const e = document.createElementNS(NS, name);
@@ -396,7 +402,7 @@ const ACTION_ICONS = {
   delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
 };
 
-function renderRowActions(row, table, rowHeight, uid) {
+function renderRowActions(row, table, rowHeight, uid, labels) {
   const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
   const x0 = table.nameW - 3 * w - 4;
@@ -412,9 +418,9 @@ function renderRowActions(row, table, rowHeight, uid) {
     class: 'gantt-action-bg', x: x0 - 4 - fade, y: row.y + 1, width: total, height: rowHeight - 2, fill: `url(#${gradId})`,
   }));
   const defs = [
-    ['grip', LABELS.move, 'row-grip'],
-    ['add', LABELS.addBelow, 'row-add'],
-    ['delete', LABELS.remove, 'row-delete'],
+    ['grip', labels.move, 'row-grip'],
+    ['add', labels.addBelow, 'row-add'],
+    ['delete', labels.remove, 'row-delete'],
   ];
   defs.forEach(([icon, label, role], i) => {
     const x = x0 + i * w;
@@ -480,7 +486,7 @@ function renderTable(layout, uid, readonly) {
         'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
       }));
     }
-    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight, uid));
+    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight, uid, layout.labels));
     g.append(rowGroup);
   }
   if (layout.addRow && !readonly) {
@@ -491,11 +497,11 @@ function renderTable(layout, uid, readonly) {
     }));
     add.append(svgEl('text', {
       class: 'gantt-add-text', x: 8, y: layout.addRow.y + layout.rowHeight / 2, dy: '0.35em',
-    }, `+ ${LABELS.addTask}`));
+    }, `+ ${layout.labels.addTask}`));
     const hit = svgEl('rect', {
       class: 'gantt-add-hit', x: 0, y: layout.addRow.y, width: table.width, height: layout.rowHeight, 'data-role': 'add-task',
     });
-    hit.append(svgEl('title', {}, LABELS.addTask));
+    hit.append(svgEl('title', {}, layout.labels.addTask));
     add.append(hit);
     g.append(add);
   }
@@ -507,7 +513,7 @@ function renderCorner(layout) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-corner' });
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
-  const titles = [['Nom', 8], ['Début', table.nameW + 8], ['Fin', table.nameW + table.dateColWidth + 8]];
+  const titles = [[layout.labels.name, 8], [layout.labels.start, table.nameW + 8], [layout.labels.end, table.nameW + table.dateColWidth + 8]];
   for (const [label, x] of titles) {
     g.append(svgEl('text', { class: 'gantt-header-text gantt-header-text--table', x, y: layout.headerHeight / 2, dy: '0.35em' }, label));
   }

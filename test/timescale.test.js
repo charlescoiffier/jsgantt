@@ -122,3 +122,20 @@ test('week-ends', () => {
   const month = new Timescale({ scale: 'month', originDay: 0, endDay: 100 });
   assert.deepEqual(month.weekendRects(), []);
 });
+
+test('en-tête avec les mois d\'une autre langue', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const en = createI18n('en');
+  const d = new Timescale({ scale: 'day', colWidths: { day: 20 }, originDay: toDay('2026-10-01'), endDay: toDay('2026-10-07'), months: en.months });
+  assert.equal(d.headerCells().top[0].label, 'October 2026');
+  const m = new Timescale({ scale: 'month', colWidths: { month: 120 }, originDay: toDay('2026-01-01'), endDay: toDay('2026-12-31'), months: en.months });
+  assert.deepEqual(m.headerCells().bottom.slice(0, 2).map((c) => c.label), ['Jan', 'Feb']);
+});
+
+test('début de semaine configurable', () => {
+  const mk = (weekStart) =>
+    new Timescale({ scale: 'week', colWidths: { week: 70 }, originDay: toDay('2026-10-04'), endDay: toDay('2026-10-17'), weekStart });
+  assert.deepEqual(mk(0).headerCells().bottom.map((c) => [c.label, c.width]), [['4', 70], ['11', 70]]); // dimanche
+  assert.deepEqual(mk(1).headerCells().bottom.map((c) => [c.label, c.width]), [['28', 10], ['5', 70], ['12', 60]]); // lundi
+  assert.throws(() => new Timescale({ originDay: 0, endDay: 1, weekStart: 7 }), /weekStart/);
+});

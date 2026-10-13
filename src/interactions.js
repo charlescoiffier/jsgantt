@@ -272,7 +272,7 @@ export function attachInteractions(g) {
     }
     const probe = model.clone().moveTaskTo(drag.id, drop);
     drop.valid = probe.ok;
-    drop.reason = probe.reason;
+    drop.problem = probe.ok ? null : probe;
     drag.drop = drop;
     const cls = probe.ok ? '' : ' is-invalid';
     g.canvas.querySelector('.gantt-overlay').replaceChildren(
@@ -289,7 +289,7 @@ export function attachInteractions(g) {
       return;
     }
     if (!drop.valid) {
-      g.emit('invalid', { reason: drop.reason });
+      g.emit('invalid', { reason: g.i18n.localize(drop.problem), code: drop.problem.code });
       g.render();
       return;
     }
@@ -318,9 +318,9 @@ export function attachInteractions(g) {
       ? overAnchor.dataset.role.slice('anchor-'.length)
       : p.x < bar.x + bar.width / 2 ? 'start' : 'end';
     const type = LINK_TYPE[`${drag.fromEdge}>${toEdge}`];
-    const reason = g.model.checkLink({ from: drag.fromId, to: bar.id, type, lag: 0 });
-    under.classList.add(reason ? 'is-invalid' : 'is-target');
-    drag.target = { id: bar.id, type, reason };
+    const problem = g.model.linkProblem({ from: drag.fromId, to: bar.id, type, lag: 0 });
+    under.classList.add(problem ? 'is-invalid' : 'is-target');
+    drag.target = { id: bar.id, type, problem };
   }
 
   function finishLink(d) {
@@ -329,8 +329,8 @@ export function attachInteractions(g) {
       g.render();
       return;
     }
-    if (target.reason) {
-      g.emit('invalid', { reason: target.reason });
+    if (target.problem) {
+      g.emit('invalid', { reason: g.i18n.localize(target.problem), code: target.problem.code });
       g.render();
       return;
     }
@@ -351,7 +351,7 @@ export function attachInteractions(g) {
     }
     if (!hit) return;
     if (field !== 'name' && g.model.isGroup(id)) {
-      g.emit('invalid', { reason: 'les dates d\'un groupe sont calculées' });
+      g.refuse('dates.group');
       return;
     }
     const task = g.model.getTask(id);

@@ -7,7 +7,7 @@ export function attachKeyboard(g) {
   let linkMode = null; // { fromId, targetId }
 
   const say = (m) => g.say?.(m);
-  const nameOf = (id) => g.model.getTask(id)?.name || 'Tâche sans nom';
+  const nameOf = (id) => g.model.getTask(id)?.name || g.t('a11y.untitled');
 
   function selectRow(id) {
     g.select(id, null);
@@ -22,8 +22,8 @@ export function attachKeyboard(g) {
     for (const n of g.canvas.querySelectorAll('g.gantt-task')) {
       if (n.dataset.id === linkMode.fromId) n.classList.add('is-link-source');
       if (n.dataset.id === linkMode.targetId) {
-        const reason = g.model.checkLink({ from: linkMode.fromId, to: linkMode.targetId, type: 'FS', lag: 0 });
-        n.classList.add(reason ? 'is-invalid' : 'is-target');
+        const problem = g.model.linkProblem({ from: linkMode.fromId, to: linkMode.targetId, type: 'FS', lag: 0 });
+        n.classList.add(problem ? 'is-invalid' : 'is-target');
       }
     }
   }
@@ -37,7 +37,7 @@ export function attachKeyboard(g) {
     e.preventDefault();
     if (e.key === 'Escape') {
       endLinkMode();
-      say('Mode lien annulé');
+      say(g.t('kb.linkModeCancelled'));
       return;
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -47,14 +47,16 @@ export function attachKeyboard(g) {
       linkMode.targetId = next;
       g.reveal(next);
       markLinkMode();
-      const reason = g.model.checkLink({ from: linkMode.fromId, to: next, type: 'FS', lag: 0 });
-      say(`Cible : ${nameOf(next)}${reason ? ` (refusée : ${reason})` : ''}`);
+      const problem = g.model.linkProblem({ from: linkMode.fromId, to: next, type: 'FS', lag: 0 });
+      say(problem
+        ? g.t('kb.targetRefused', { name: nameOf(next), reason: g.i18n.localize(problem) })
+        : g.t('kb.target', { name: nameOf(next) }));
       return;
     }
     const type = linkTypeForKey(e.key);
     if (!type) return;
     if (!linkMode.targetId) {
-      say('Choisissez d\'abord une cible avec les flèches haut et bas');
+      say(g.t('kb.pickTargetFirst'));
       return;
     }
     const { fromId, targetId } = linkMode;
@@ -66,7 +68,7 @@ export function attachKeyboard(g) {
   function shiftDates(id, kind, delta) {
     const t = g.model.getTask(id);
     if (g.model.isGroup(id) && kind !== 'move') {
-      g.emit('invalid', { reason: 'les dates d\'un groupe sont calculées' });
+      g.refuse('dates.group');
       return;
     }
     if (kind === 'move') g.commit('move', { id }, (m) => m.moveTask(id, delta));
@@ -78,7 +80,7 @@ export function attachKeyboard(g) {
   function restructure(id, kind) {
     const to = structureMove(g.model, id, kind);
     if (!to) {
-      g.emit('invalid', { reason: 'ce déplacement n\'est pas possible ici' });
+      g.refuse('move.impossible');
       return;
     }
     g.moveTaskTo(id, to);
@@ -166,7 +168,7 @@ export function attachKeyboard(g) {
       handled();
       linkMode = { fromId: id, targetId: null };
       markLinkMode();
-      say(`Mode lien depuis ${nameOf(id)}. Flèches haut et bas pour choisir la cible, puis 1 à 4 pour FS, SS, FF, SF, ou Entrée pour FS. Échap annule.`);
+      say(g.t('kb.linkModeStart', { name: nameOf(id) }));
       return;
     }
     if (isL && e.shiftKey) {
@@ -175,9 +177,9 @@ export function attachKeyboard(g) {
       if (next) {
         g.select(id, next);
         const l = g.model.links.find((x) => x.id === next);
-        say(`Lien ${nameOf(l.from)} vers ${nameOf(l.to)} (${l.type}) sélectionné. Suppr pour le supprimer.`);
+        say(g.t('kb.linkSelected', { from: nameOf(l.from), to: nameOf(l.to), type: l.type }));
       } else {
-        say('Cette tâche n\'a aucun lien');
+        say(g.t('kb.noLinks'));
       }
     }
   }

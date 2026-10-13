@@ -70,53 +70,112 @@
 </head>
 <body>
   <h1>jsgantt</h1>
-  <div class="toolbar" id="toolbar" role="toolbar" aria-label="Actions du diagramme">
-    <div class="seg" role="group" aria-label="Échelle">
-      <button data-scale="day" aria-pressed="false">Jour</button>
-      <button data-scale="week" aria-pressed="true">Semaine</button>
-      <button data-scale="month" aria-pressed="false">Mois</button>
+  <div class="toolbar" id="toolbar" role="toolbar" aria-label="Actions du diagramme" data-i18n-aria="toolbar">
+    <div class="seg" role="group" aria-label="Échelle" data-i18n-aria="group.scale">
+      <button data-scale="day" aria-pressed="false" data-i18n="scale.day">Jour</button>
+      <button data-scale="week" aria-pressed="true" data-i18n="scale.week">Semaine</button>
+      <button data-scale="month" aria-pressed="false" data-i18n="scale.month">Mois</button>
     </div>
-    <div class="group" role="group" aria-label="Historique">
-      <button id="undo" disabled title="Annuler (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Annuler</button>
-      <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Rétablir</button>
+    <div class="group" role="group" aria-label="Historique" data-i18n-aria="group.history">
+      <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span data-i18n="undo">Annuler</span></button>
+      <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span data-i18n="redo">Rétablir</span></button>
     </div>
     <span class="spacer"></span>
-    <div class="group" role="group" aria-label="Export">
-      <span class="group-label">Exporter</span>
-      <button id="exp-svg" title="Télécharger en SVG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>SVG</button>
-      <button id="exp-json" title="Télécharger en JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>JSON</button>
-      <button id="exp-pdf" title="Télécharger en PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
-      <button id="exp-print" title="Imprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg>Imprimer</button>
+    <div class="group" role="group" aria-label="Export" data-i18n-aria="group.export">
+      <span class="group-label" data-i18n="export">Exporter</span>
+      <button id="exp-svg" title="Télécharger en SVG" data-i18n-title="export.svg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>SVG</button>
+      <button id="exp-json" title="Télécharger en JSON" data-i18n-title="export.json"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>JSON</button>
+      <button id="exp-pdf" title="Télécharger en PDF" data-i18n-title="export.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
+      <button id="exp-print" title="Imprimer" data-i18n-title="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg><span data-i18n="print">Imprimer</span></button>
     </div>
-    <div class="group" role="group" aria-label="Affichage">
-      <label class="group-label" for="theme">Thème</label>
+    <div class="group" role="group" aria-label="Affichage" data-i18n-aria="group.display">
+      <label class="group-label" for="theme" data-i18n="theme">Thème</label>
       <select id="theme">
-        <option value="light">Défaut</option>
-        <option value="dark">Sombre</option>
+        <option value="light" data-i18n="theme.light">Défaut</option>
+        <option value="dark" data-i18n="theme.dark">Sombre</option>
         <option value="todoist">Todoist</option>
       </select>
-      <button id="toggle-readonly" class="toggle" aria-pressed="false" title="Verrouiller l'édition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Lecture seule</button>
-      <label class="import" title="Importer un fichier JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Importer <input id="imp-json" class="visually-hidden" type="file" accept="application/json"></label>
+      <label class="group-label" for="lang" data-i18n="lang">Langue</label>
+      <select id="lang">
+        <option value="fr">Français</option>
+        <option value="en">English</option>
+      </select>
+      <button id="toggle-readonly" class="toggle" aria-pressed="false" title="Verrouiller l'édition" data-i18n-title="readonly.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-i18n="readonly">Lecture seule</span></button>
+      <label class="import" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span> <input id="imp-json" class="visually-hidden" type="file" accept="application/json"></label>
     </div>
   </div>
   <div id="chart"></div>
   <details class="help">
-    <summary>Raccourcis clavier</summary>
+    <summary data-i18n="help.title">Raccourcis clavier</summary>
     <table>
-      <tr><th>Naviguer</th><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Début</kbd> <kbd>Fin</kbd> lignes · <kbd>→</kbd> déplier / premier enfant · <kbd>←</kbd> replier / parent</td></tr>
-      <tr><th>Créer</th><td><kbd>Entrée</kbd> tâche en dessous · <kbd>Maj</kbd>+<kbd>Entrée</kbd> sous-tâche · <kbd>F2</kbd> éditer le nom (<kbd>Tab</kbd> : champ suivant)</td></tr>
-      <tr><th>Supprimer</th><td><kbd>Suppr</kbd> tâche sélectionnée (ou lien sélectionné)</td></tr>
-      <tr><th>Dates</th><td><kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> déplacer d'un jour · <kbd>Alt</kbd>+<kbd>PgPréc</kbd><kbd>PgSuiv</kbd> d'une semaine · <kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> fin · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> début</td></tr>
-      <tr><th>Structure</th><td><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> monter / descendre · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>↑</kbd> sortir du parent · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>↓</kbd> devenir enfant du frère précédent</td></tr>
-      <tr><th>Progression</th><td><kbd>+</kbd> <kbd>-</kbd> de 10 %</td></tr>
-      <tr><th>Liens</th><td><kbd>L</kbd> mode lien (<kbd>↑</kbd><kbd>↓</kbd> cible, <kbd>1</kbd> FS, <kbd>2</kbd> SS, <kbd>3</kbd> FF, <kbd>4</kbd> SF, <kbd>Entrée</kbd> FS, <kbd>Échap</kbd> annule) · <kbd>Maj</kbd>+<kbd>L</kbd> parcourir les liens de la tâche</td></tr>
-      <tr><th>Historique</th><td><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> annuler · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Maj</kbd>+<kbd>Z</kbd> ou <kbd>Ctrl</kbd>+<kbd>Y</kbd> rétablir</td></tr>
+      <tr><th data-i18n="help.nav.h">Naviguer</th><td data-i18n-html="help.nav"></td></tr>
+      <tr><th data-i18n="help.create.h">Créer</th><td data-i18n-html="help.create"></td></tr>
+      <tr><th data-i18n="help.delete.h">Supprimer</th><td data-i18n-html="help.delete"></td></tr>
+      <tr><th data-i18n="help.dates.h">Dates</th><td data-i18n-html="help.dates"></td></tr>
+      <tr><th data-i18n="help.structure.h">Structure</th><td data-i18n-html="help.structure"></td></tr>
+      <tr><th data-i18n="help.progress.h">Progression</th><td data-i18n-html="help.progress"></td></tr>
+      <tr><th data-i18n="help.links.h">Liens</th><td data-i18n-html="help.links"></td></tr>
+      <tr><th data-i18n="help.history.h">Historique</th><td data-i18n-html="help.history"></td></tr>
     </table>
   </details>
   <div id="log" aria-live="polite"></div>
 
   <script type="module">
     import { Gantt } from '../src/gantt.js';
+
+    const K = (t) => `<kbd>${t}</kbd>`;
+    const DEMO = {
+      fr: {
+        toolbar: 'Actions du diagramme', 'group.scale': 'Échelle', 'group.history': 'Historique', 'group.export': 'Export', 'group.display': 'Affichage',
+        'scale.day': 'Jour', 'scale.week': 'Semaine', 'scale.month': 'Mois',
+        undo: 'Annuler', redo: 'Rétablir', 'undo.title': 'Annuler (Ctrl+Z)', 'redo.title': 'Rétablir (Ctrl+Maj+Z)',
+        export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
+        print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
+        readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier JSON',
+        'log.error': 'erreur', 'log.import': 'import',
+        'help.title': 'Raccourcis clavier',
+        'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
+        'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique',
+        'help.nav': `${K('↑')} ${K('↓')} ${K('Début')} ${K('Fin')} lignes · ${K('→')} déplier / premier enfant · ${K('←')} replier / parent`,
+        'help.create': `${K('Entrée')} tâche en dessous · ${K('Maj')}+${K('Entrée')} sous-tâche · ${K('F2')} éditer le nom (${K('Tab')} : champ suivant)`,
+        'help.delete': `${K('Suppr')} tâche sélectionnée (ou lien sélectionné)`,
+        'help.dates': `${K('Alt')}+${K('←')}${K('→')} déplacer d'un jour · ${K('Alt')}+${K('PgPréc')}${K('PgSuiv')} d'une semaine · ${K('Maj')}+${K('←')}${K('→')} fin · ${K('Alt')}+${K('Maj')}+${K('←')}${K('→')} début`,
+        'help.structure': `${K('Alt')}+${K('↑')}${K('↓')} monter / descendre · ${K('Alt')}+${K('Maj')}+${K('↑')} sortir du parent · ${K('Alt')}+${K('Maj')}+${K('↓')} devenir enfant du frère précédent`,
+        'help.progress': `${K('+')} ${K('-')} de 10 %`,
+        'help.links': `${K('L')} mode lien (${K('↑')}${K('↓')} cible, ${K('1')} FS, ${K('2')} SS, ${K('3')} FF, ${K('4')} SF, ${K('Entrée')} FS, ${K('Échap')} annule) · ${K('Maj')}+${K('L')} parcourir les liens de la tâche`,
+        'help.history': `${K('Ctrl')}/${K('Cmd')}+${K('Z')} annuler · ${K('Ctrl')}/${K('Cmd')}+${K('Maj')}+${K('Z')} ou ${K('Ctrl')}+${K('Y')} rétablir`,
+      },
+      en: {
+        toolbar: 'Chart actions', 'group.scale': 'Scale', 'group.history': 'History', 'group.export': 'Export', 'group.display': 'Display',
+        'scale.day': 'Day', 'scale.week': 'Week', 'scale.month': 'Month',
+        undo: 'Undo', redo: 'Redo', 'undo.title': 'Undo (Ctrl+Z)', 'redo.title': 'Redo (Ctrl+Shift+Z)',
+        export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
+        print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
+        readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a JSON file',
+        'log.error': 'error', 'log.import': 'import',
+        'help.title': 'Keyboard shortcuts',
+        'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
+        'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History',
+        'help.nav': `${K('↑')} ${K('↓')} ${K('Home')} ${K('End')} rows · ${K('→')} expand / first child · ${K('←')} collapse / parent`,
+        'help.create': `${K('Enter')} task below · ${K('Shift')}+${K('Enter')} subtask · ${K('F2')} edit the name (${K('Tab')}: next field)`,
+        'help.delete': `${K('Delete')} selected task (or selected link)`,
+        'help.dates': `${K('Alt')}+${K('←')}${K('→')} move by one day · ${K('Alt')}+${K('PgUp')}${K('PgDn')} by one week · ${K('Shift')}+${K('←')}${K('→')} end · ${K('Alt')}+${K('Shift')}+${K('←')}${K('→')} start`,
+        'help.structure': `${K('Alt')}+${K('↑')}${K('↓')} move up / down · ${K('Alt')}+${K('Shift')}+${K('↑')} leave the parent · ${K('Alt')}+${K('Shift')}+${K('↓')} become a child of the previous sibling`,
+        'help.progress': `${K('+')} ${K('-')} by 10%`,
+        'help.links': `${K('L')} link mode (${K('↑')}${K('↓')} target, ${K('1')} FS, ${K('2')} SS, ${K('3')} FF, ${K('4')} SF, ${K('Enter')} FS, ${K('Esc')} cancels) · ${K('Shift')}+${K('L')} walk through the task's links`,
+        'help.history': `${K('Ctrl')}/${K('Cmd')}+${K('Z')} undo · ${K('Ctrl')}/${K('Cmd')}+${K('Shift')}+${K('Z')} or ${K('Ctrl')}+${K('Y')} redo`,
+      },
+    };
+    const initialLang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'fr';
+    let lang = initialLang;
+    const T = (key) => DEMO[lang][key];
+    function applyLang() {
+      document.documentElement.lang = lang;
+      for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = T(el.dataset.i18n);
+      for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = T(el.dataset.i18nHtml);
+      for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = T(el.dataset.i18nTitle);
+      for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', T(el.dataset.i18nAria));
+    }
 
     const tasks = [
       { id: 'p1', name: 'Conception' },
@@ -140,7 +199,14 @@
       { id: 'l7', from: 'm1', to: 't7', type: 'SF' },
     ];
 
-    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, scale: 'week' });
+    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, scale: 'week', locale: initialLang });
+    applyLang();
+    document.getElementById('lang').value = lang;
+    document.getElementById('lang').onchange = (e) => {
+      lang = e.target.value;
+      applyLang();
+      gantt.setLocale(lang);
+    };
     window.gantt = gantt;
 
     const log = document.getElementById('log');
@@ -178,7 +244,7 @@
       try {
         await gantt.exportPDF();
       } catch (e) {
-        write('erreur', { message: e.message });
+        write(T('log.error'), { message: e.message });
       }
     };
 
@@ -201,9 +267,9 @@
       if (!file) return;
       try {
         gantt.setData(JSON.parse(await file.text()));
-        write('import', { fichier: file.name });
+        write(T('log.import'), { file: file.name });
       } catch (err) {
-        write('erreur', { message: err.message });
+        write(T('log.error'), { message: err.message });
       }
       e.target.value = '';
     };

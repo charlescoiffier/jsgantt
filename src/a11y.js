@@ -1,68 +1,61 @@
 import { fromDay } from './dates.js';
+import { createI18n } from './i18n.js';
 
-const T = {
-  untitled: 'Tâche sans nom',
-  level: (n) => `niveau ${n}`,
-  progress: (p) => `progression ${Math.round(p * 100)} %`,
-  milestone: (d) => `jalon le ${d}`,
-  range: (a, b) => `du ${a} au ${b}`,
-  group: (n, collapsed) => `groupe de ${n} tâche${n > 1 ? 's' : ''}, ${collapsed ? 'replié' : 'déplié'}`,
-  predecessors: (list) => `prédécesseurs : ${list}`,
-  added: 'Tâche ajoutée',
-  removed: 'Tâche supprimée',
-  renamed: 'Tâche renommée',
-  linkCreated: 'Lien créé',
-  linkRemoved: 'Lien supprimé',
-  undo: 'Annulé',
-  redo: 'Rétabli',
-  refused: 'Action refusée',
-};
+const FR = createI18n('fr');
 
-const nameOf = (model, id) => model.getTask(id)?.name || T.untitled;
+const nameOf = (model, id, i18n) => model.getTask(id)?.name || i18n.t('a11y.untitled');
 
-export function describeTask(model, id, depth) {
-  const t = model.getTask(id);
+export function describeTask(model, id, depth, i18n = FR) {
+  const { t } = i18n;
+  const task = model.getTask(id);
   const group = model.isGroup(id);
-  const parts = [t.name || T.untitled];
-  if (t.milestone && !group) {
-    parts.push(T.milestone(fromDay(t.start)));
+  const parts = [task.name || t('a11y.untitled')];
+  if (task.milestone && !group) {
+    parts.push(t('a11y.milestone', { date: fromDay(task.start) }));
   } else {
-    parts.push(T.range(fromDay(t.start), fromDay(t.end)));
-    parts.push(T.progress(model.progressOf(id)));
+    parts.push(t('a11y.range', { start: fromDay(task.start), end: fromDay(task.end) }));
+    parts.push(t('a11y.progress', { p: Math.round(model.progressOf(id) * 100) }));
   }
-  parts.push(T.level(depth + 1));
-  if (group) parts.push(T.group(model.childrenOf(id).length, t.collapsed));
-  const preds = model.links.filter((l) => l.to === id).map((l) => `${nameOf(model, l.from)} (${l.type})`);
-  if (preds.length) parts.push(T.predecessors(preds.join(', ')));
+  parts.push(t('a11y.level', { n: depth + 1 }));
+  if (group) {
+    parts.push(t('a11y.group', {
+      count: model.childrenOf(id).length,
+      state: t(task.collapsed ? 'a11y.collapsed' : 'a11y.expanded'),
+    }));
+  }
+  const preds = model.links.filter((l) => l.to === id).map((l) => `${nameOf(model, l.from, i18n)} (${l.type})`);
+  if (preds.length) parts.push(t('a11y.predecessors', { list: preds.join(', ') }));
   return parts.join(', ');
 }
 
-export function announceChange(model, detail) {
+export function announceChange(model, detail, i18n = FR) {
+  const { t } = i18n;
   const { type, id } = detail;
   const task = id ? model.getTask(id) : null;
+  const name = () => nameOf(model, id, i18n);
   switch (type) {
     case 'move':
     case 'resize':
     case 'dates':
-      return task ? `${nameOf(model, id)} : ${T.range(fromDay(task.start), fromDay(task.end))}` : null;
+      return task ? t('a11y.rowDates', { name: name(), range: t('a11y.range', { start: fromDay(task.start), end: fromDay(task.end) }) }) : null;
     case 'progress':
-      return task ? `${nameOf(model, id)} : ${T.progress(model.progressOf(id))}` : null;
+      return task ? t('a11y.rowProgress', { name: name(), progress: t('a11y.progress', { p: Math.round(model.progressOf(id) * 100) }) }) : null;
     case 'add':
-      return task ? `${T.added} : ${nameOf(model, id)}` : T.added;
+      return task ? t('a11y.added', { name: name() }) : t('a11y.addedBare');
     case 'rename':
-      return task ? `${T.renamed} : ${nameOf(model, id)}` : null;
+      return task ? t('a11y.renamed', { name: name() }) : null;
     case 'remove':
-      return T.removed;
+      return t('a11y.removed');
     case 'link':
-      return `${T.linkCreated} : ${nameOf(model, detail.from)} vers ${nameOf(model, detail.to)} (${detail.linkType})`;
+      return t('a11y.linkCreated', { from: nameOf(model, detail.from, i18n), to: nameOf(model, detail.to, i18n), type: detail.linkType });
     case 'unlink':
-      return T.linkRemoved;
+      return t('a11y.linkRemoved');
     case 'reorder':
-      return task ? `${nameOf(model, id)} déplacée, ${T.level(model.ancestorsOf(id).length + 1)}` : null;
+      return task ? t('a11y.reordered', { name: name(), level: t('a11y.level', { n: model.ancestorsOf(id).length + 1 }) }) : null;
     case 'undo':
-      return T.undo;
+      return t('a11y.undo');
     case 'redo':
-      return T.redo;
+      return t('a11y.redo');
     default:
       return null;
   }
@@ -71,7 +64,7 @@ export function announceChange(model, detail) {
 export function syncAria(g) {
   const s = g.scroller;
   s.setAttribute('role', 'treegrid');
-  s.setAttribute('aria-label', 'Diagramme de Gantt');
+  s.setAttribute('aria-label', g.i18n.t('a11y.chart'));
   s.setAttribute('aria-rowcount', String(g.layout.rows.length));
   const i = g.layout.rows.findIndex((r) => r.id === g.state.selectedId);
   if (i === -1) s.removeAttribute('aria-activedescendant');
@@ -91,8 +84,8 @@ export function attachA11y(g) {
     live.textContent = message + (flip ? '' : ' ');
   };
   const offs = [
-    g.on('change', (d) => g.say(announceChange(g.model, d))),
-    g.on('invalid', ({ reason }) => g.say(`${T.refused} : ${reason}`)),
+    g.on('change', (d) => g.say(announceChange(g.model, d, g.i18n))),
+    g.on('invalid', ({ reason }) => g.say(g.i18n.t('a11y.refused', { reason }))),
   ];
   return () => {
     for (const off of offs) off();

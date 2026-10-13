@@ -20,6 +20,7 @@ Calendriers ouvrés et jours fériés, chemin critique et marges, planification 
 
 ```
 src/
+  dates.js        # Conversion 'YYYY-MM-DD' <-> numéro de jour (UTC)
   model.js        # Tâches, liens, validation, (dé)sérialisation JSON
   scheduler.js    # Calcul des dates (FS/SS/FF/SF + lag)
   timescale.js    # Échelles jour/semaine/mois : date <-> pixel, graduations
@@ -61,15 +62,17 @@ Contraintes sur la tâche cible B pour un lien depuis A :
 
 | Type | Contrainte |
 |---|---|
-| FS | `start(B) ≥ end(A) + lag` |
+| FS | `start(B) ≥ end(A) + 1 + lag` |
 | SS | `start(B) ≥ start(A) + lag` |
 | FF | `end(B) ≥ end(A) + lag` |
-| SF | `end(B) ≥ start(A) + lag` |
+| SF | `end(B) ≥ start(A) - 1 + lag` |
+
+Les fins étant incluses, un lien FS de décalage 0 fait démarrer B le lendemain de la fin de A, et un lien SF de décalage 0 fait finir B la veille du début de A.
 
 - Planification **en avant seulement** : une tâche liée n'est jamais avancée, seulement repoussée si une contrainte est violée (durée conservée).
 - Tri topologique du graphe de liens ; déplacer une tâche repousse ses successeurs en cascade, jamais ses prédécesseurs.
 - **Liens vers un groupe** : autorisés, appliqués à ses dates agrégées. Si un lien contraint un groupe, **tout le groupe** (tous les descendants) est décalé du même delta, puis les contraintes internes sont rejouées.
-- Un lien groupe → descendant du même groupe est rejeté.
+- Un lien entre un groupe et un de ses descendants (dans un sens ou dans l'autre) est rejeté.
 - Cycles détectés à l'ajout d'un lien (un lien vers un groupe compte comme un lien vers chacun de ses descendants) : lien refusé, événement `invalid` avec la raison.
 
 ## 5. Rendu SVG et thème CSS

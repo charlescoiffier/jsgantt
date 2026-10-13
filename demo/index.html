@@ -15,6 +15,22 @@
     .toolbar button[aria-pressed="true"] { border-color: #2563eb; background: #dbeafe; color: #1e3a8a; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
+    .toolbar .seg { display: contents; }
+    /* Boutons du thème Todoist */
+    body.theme-todoist .toolbar { gap: 4px; }
+    body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import {
+      border: 0; background: transparent; color: #202020; border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer;
+    }
+    body.theme-todoist .toolbar button:hover, body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
+    body.theme-todoist .toolbar .seg { display: inline-flex; background: #f1f1f1; border-radius: 10px; padding: 3px; margin-right: 8px; }
+    body.theme-todoist .toolbar .seg button { padding: 5px 14px; color: #666; }
+    body.theme-todoist .toolbar .seg button:hover { background: transparent; color: #202020; }
+    body.theme-todoist .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+    body.theme-todoist .toolbar button.primary { background: #dc4c3e; color: #fff; font-weight: 600; }
+    body.theme-todoist .toolbar button.primary:hover { background: #c3392c; }
+    body.theme-todoist .toolbar button[aria-pressed="true"]:not(.seg button) { background: #fdf0ef; color: #dc4c3e; }
+    body.theme-todoist .toolbar select { border: 0; background: #f5f5f5; border-radius: 8px; padding: 7px 10px; font: inherit; color: #202020; }
+    body.theme-todoist .toolbar label { color: #808080; font-size: 13px; }
     body.dark .toolbar .import { background: #1f2937; color: #e5e7eb; border-color: #374151; }
     .toolbar .import { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
   </style>
@@ -22,13 +38,15 @@
 <body>
   <h1>jsgantt</h1>
   <div class="toolbar" id="toolbar">
-    <button data-scale="day" aria-pressed="false">Jour</button>
-    <button data-scale="week" aria-pressed="true">Semaine</button>
-    <button data-scale="month" aria-pressed="false">Mois</button>
+    <div class="seg">
+      <button data-scale="day" aria-pressed="false">Jour</button>
+      <button data-scale="week" aria-pressed="true">Semaine</button>
+      <button data-scale="month" aria-pressed="false">Mois</button>
+    </div>
     <span style="flex:1"></span>
     <button id="exp-svg">Export SVG</button>
     <button id="exp-json">Export JSON</button>
-    <button id="exp-pdf">Export PDF</button>
+    <button id="exp-pdf" class="primary">Export PDF</button>
     <button id="exp-print">Imprimer</button>
     <label>Thème
       <select id="theme">
@@ -104,6 +122,7 @@
     document.getElementById('theme').onchange = (e) => {
       chart.dataset.theme = e.target.value;
       document.body.classList.toggle('dark', e.target.value === 'dark');
+      document.body.classList.toggle('theme-todoist', e.target.value === 'todoist');
       gantt.refresh();
     };
     const roBtn = document.getElementById('toggle-readonly');

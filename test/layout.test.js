@@ -37,7 +37,7 @@ test('géométrie d\'une barre de tâche', () => {
     ['task', 300 + 4 * 20, 48 + 7, 60, 18, 30],
   );
   assert.equal(layout.height, 48 + 32);
-  assert.deepEqual(layout.rows, [{ id: 'a', y: 48, alt: false }]);
+  assert.deepEqual(layout.rows, [{ id: 'a', y: 48, alt: false, group: false }]);
 });
 
 test('jalon : losange de la hauteur de barre centré sur le jour', () => {
@@ -72,6 +72,7 @@ test('groupe : barre agrégée, progression pondérée, ligne de tableau', () =>
   assert.equal(rows[0].startLabel, '2026-10-05');
   assert.equal(rows[0].endLabel, '2026-10-08');
   assert.deepEqual(layout.rows.map((r) => r.alt), [false, true, false]);
+  assert.deepEqual(layout.rows.map((r) => r.group), [true, false, false]);
 });
 
 test('en-tête, grille, week-ends et aujourd\'hui', () => {

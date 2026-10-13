@@ -96,7 +96,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     const progress = model.progressOf(id);
     const startLabel = fromDay(t.start);
     const endLabel = fromDay(t.end);
-    rows.push({ id, y: rowTop, alt });
+    rows.push({ id, y: rowTop, alt, group });
     bars.push({
       id,
       kind,
@@ -229,7 +229,7 @@ function renderGrid(layout) {
   const { tableWidth } = layout.metrics;
   for (const row of layout.rows) {
     g.append(svgEl('rect', {
-      class: cls('gantt-row', row.alt && 'gantt-row--alt'),
+      class: cls('gantt-row', row.alt && 'gantt-row--alt', row.group && 'gantt-row--group'),
       x: 0, y: row.y, width: layout.width, height: layout.rowHeight,
     }));
   }
@@ -318,6 +318,17 @@ function renderBars(layout, { readonly, dragId }) {
       'aria-label': bar.label,
     });
     group.append(barShape(bar));
+    if (bar.kind === 'group') {
+      // Forme alternative (pilule fine), masquée par défaut : un thème peut l'afficher à la place de l'accolade.
+      const ph = bar.height * 0.4;
+      const py = bar.y + (bar.height - ph) / 2;
+      group.append(svgEl('rect', {
+        class: 'gantt-group-pill', x: bar.x, y: py, width: bar.width, height: ph, 'data-role': 'bar', 'data-id': bar.id,
+      }));
+      group.append(svgEl('rect', {
+        class: 'gantt-group-pill-progress', x: bar.x, y: py, width: bar.progressWidth, height: ph, 'pointer-events': 'none',
+      }));
+    }
     if (bar.kind === 'task' && bar.progressWidth > 0) {
       group.append(svgEl('rect', {
         class: 'gantt-progress', x: bar.x, y: bar.y, width: bar.progressWidth, height: bar.height, 'pointer-events': 'none',

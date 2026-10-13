@@ -84,7 +84,7 @@ Classes : `gantt-row`, `gantt-row--alt`, `gantt-bar`, `gantt-bar--group`, `gantt
 
 Thème sombre d'exemple : `data-theme="dark"` sur l'élément racine, puis `gantt.refresh()`.
 
-Thème « Todoist » : charger `src/themes/todoist.css` après `gantt.css`, puis `data-theme="todoist"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (lignes de 40 px, barres en pilule). Les priorités se posent avec la classe `p1`, `p2` ou `p3` dans le `className` d'une tâche (`p4`, gris, par défaut).
+Thème « Todoist » : charger `src/themes/todoist.css` après `gantt.css`, puis `data-theme="todoist"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (lignes de 40 px, barres en pilule). Les priorités se posent avec la classe `p1`, `p2` ou `p3` dans le `className` d'une tâche (`p4`, gris, par défaut). Les groupes y sont dessinés comme une pilule fine (le rendu produit aussi cette forme, masquée par défaut : classes `gantt-group-pill` et `gantt-group-pill-progress`).
 Après un changement de variable de géométrie, appeler `gantt.refresh()`.
 
 ## Tests

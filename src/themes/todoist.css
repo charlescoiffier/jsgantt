@@ -12,8 +12,7 @@
   --gantt-header-bg: #ffffff;
   --gantt-bar-bg: #e8e8e8;
   --gantt-progress-bg: #999999;
-  --gantt-group-bg: #b8b8b8;
-  --gantt-milestone-bg: #dc4c3e;
+    --gantt-milestone-bg: #dc4c3e;
   --gantt-link-color: #c4c4c4;
   --gantt-link-width: 1.5px;
   --gantt-link-selected: #dc4c3e;
@@ -35,6 +34,16 @@
 .gantt-root[data-theme="todoist"] .gantt-task.p1 { --gantt-bar-bg: #fbd9d6; --gantt-progress-bg: #d1453b; }
 .gantt-root[data-theme="todoist"] .gantt-task.p2 { --gantt-bar-bg: #ffe6c2; --gantt-progress-bg: #eb8909; }
 .gantt-root[data-theme="todoist"] .gantt-task.p3 { --gantt-bar-bg: #d3e0ff; --gantt-progress-bg: #246fe0; }
+
+/* Groupes : pilule fine à la place de l'accolade, ligne de tableau grisée et en gras */
+.gantt-root[data-theme="todoist"] .gantt-bar--group { display: none; }
+.gantt-root[data-theme="todoist"] .gantt-group-pill,
+.gantt-root[data-theme="todoist"] .gantt-group-pill-progress { display: inline; rx: 4px; ry: 4px; }
+.gantt-root[data-theme="todoist"] .gantt-group-pill { fill: var(--gantt-bar-bg); stroke: none; cursor: grab; }
+.gantt-root[data-theme="todoist"] .gantt-group-pill-progress { fill: var(--gantt-progress-bg); }
+.gantt-root[data-theme="todoist"] .gantt-task.is-selected .gantt-group-pill { stroke: #dc4c3e; stroke-width: 2; }
+.gantt-root[data-theme="todoist"] .gantt-row--group { fill: #fafafa; }
+.gantt-root[data-theme="todoist"] .gantt-table-row--group .gantt-table-rowbg { fill: #fafafa; }
 
 /* Barres en pilule, sans contour */
 .gantt-root[data-theme="todoist"] .gantt-bar { stroke: none; }

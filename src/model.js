@@ -263,6 +263,87 @@ export class GanttModel {
     this.#aggregateGroups();
   }
 
+  #require(id) {
+    const t = this.#tasks.get(id);
+    if (!t) throw new Error(`Tâche inconnue : "${id}"`);
+    return t;
+  }
+
+  moveTask(id, delta) {
+    this.#require(id);
+    if (!Number.isInteger(delta)) throw new TypeError('delta doit être un entier');
+    for (const leafId of this.leafIdsUnder(id)) {
+      const leaf = this.#tasks.get(leafId);
+      leaf.start += delta;
+      leaf.end += delta;
+    }
+    this.reschedule();
+  }
+
+  resizeTask(id, edge, day) {
+    const t = this.#require(id);
+    if (edge !== 'start' && edge !== 'end') throw new Error(`Bord inconnu : "${edge}"`);
+    if (!Number.isInteger(day)) throw new TypeError('day doit être un entier');
+    if (this.isGroup(id)) return { ok: false, reason: 'un groupe ne peut pas être redimensionné' };
+    if (t.milestone) return { ok: false, reason: 'un jalon ne peut pas être redimensionné' };
+    const saved = { start: t.start, end: t.end };
+    if (edge === 'start') {
+      if (day > t.end) return { ok: false, reason: 'le début ne peut pas suivre la fin' };
+      t.start = day;
+    } else {
+      if (day < t.start) return { ok: false, reason: 'la fin ne peut pas précéder le début' };
+      t.end = day;
+    }
+    const planned = computeDates(this).get(id);
+    if (planned.start !== t.start || planned.end !== t.end) {
+      t.start = saved.start;
+      t.end = saved.end;
+      return { ok: false, reason: 'redimensionnement bloqué par une dépendance' };
+    }
+    this.reschedule();
+    return { ok: true };
+  }
+
+  setProgress(id, value) {
+    const t = this.#require(id);
+    if (this.isGroup(id)) return { ok: false, reason: 'la progression d\'un groupe est calculée' };
+    t.progress = Math.round(Math.min(1, Math.max(0, value)) * 100) / 100;
+    return { ok: true };
+  }
+
+  updateTask(id, patch) {
+    const t = this.#require(id);
+    const next = {};
+    if ('name' in patch) next.name = String(patch.name);
+    for (const key of ['start', 'end']) {
+      if (!(key in patch)) continue;
+      if (this.isGroup(id)) return { ok: false, reason: 'les dates d\'un groupe sont calculées' };
+      try {
+        next[key] = toDay(patch[key]);
+      } catch (e) {
+        return { ok: false, reason: e.message };
+      }
+    }
+    let start = next.start ?? t.start;
+    let end = next.end ?? t.end;
+    if (t.milestone && !this.isGroup(id) && ('start' in next || 'end' in next)) {
+      start = end = next.start ?? next.end;
+    }
+    if (end < start) return { ok: false, reason: 'la fin précède le début' };
+    if ('name' in next) t.name = next.name;
+    if (!this.isGroup(id)) {
+      t.start = start;
+      t.end = end;
+    }
+    this.reschedule();
+    return { ok: true };
+  }
+
+  toggleCollapsed(id) {
+    const t = this.#require(id);
+    t.collapsed = !t.collapsed;
+  }
+
   getData() {
     const tasks = this.tasks.map((t) => {
       const o = {

@@ -14,6 +14,8 @@
     .toolbar button[aria-pressed="true"] { border-color: #2563eb; background: #dbeafe; color: #1e3a8a; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
+    body.dark .toolbar .import { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+    .toolbar .import { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -27,6 +29,9 @@
     <button id="exp-json">Export JSON</button>
     <button id="exp-pdf">Export PDF</button>
     <button id="exp-print">Imprimer</button>
+    <button id="toggle-theme" aria-pressed="false">Thème sombre</button>
+    <button id="toggle-readonly" aria-pressed="false">Lecture seule</button>
+    <label class="import">Import JSON <input id="imp-json" type="file" accept="application/json" hidden></label>
   </div>
   <div id="chart"></div>
   <div id="log" aria-live="polite"></div>
@@ -86,6 +91,33 @@
       } catch (e) {
         write('erreur', { message: e.message });
       }
+    };
+
+    const chart = document.getElementById('chart');
+    const themeBtn = document.getElementById('toggle-theme');
+    themeBtn.onclick = () => {
+      const dark = chart.dataset.theme !== 'dark';
+      chart.dataset.theme = dark ? 'dark' : 'light';
+      document.body.classList.toggle('dark', dark);
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      gantt.refresh();
+    };
+    const roBtn = document.getElementById('toggle-readonly');
+    roBtn.onclick = () => {
+      gantt.readonly = !gantt.readonly;
+      roBtn.setAttribute('aria-pressed', String(gantt.readonly));
+      gantt.render();
+    };
+    document.getElementById('imp-json').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        gantt.setData(JSON.parse(await file.text()));
+        write('import', { fichier: file.name });
+      } catch (err) {
+        write('erreur', { message: err.message });
+      }
+      e.target.value = '';
     };
   </script>
 </body>

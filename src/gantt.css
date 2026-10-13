@@ -131,6 +131,23 @@
   z-index: 2;
 }
 
+/* Thème sombre d'exemple : s'active avec data-theme="dark" sur l'élément racine */
+.gantt-root[data-theme="dark"] {
+  --gantt-bg: #111827;
+  --gantt-text: #e5e7eb;
+  --gantt-text-muted: #9ca3af;
+  --gantt-border: #374151;
+  --gantt-row-alt: #1f2937;
+  --gantt-weekend: #1f2937;
+  --gantt-header-bg: #1f2937;
+  --gantt-bar-bg: #1e40af;
+  --gantt-bar-stroke: #60a5fa;
+  --gantt-progress-bg: #60a5fa;
+  --gantt-group-bg: #9ca3af;
+  --gantt-link-color: #9ca3af;
+  --gantt-selected: #60a5fa;
+}
+
 @media print {
   @page { size: landscape; margin: 10mm; }
   body { background: #fff !important; }

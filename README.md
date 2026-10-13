@@ -1,0 +1,94 @@
+# jsgantt
+
+Diagrammes de Gantt interactifs en SVG, dont tout le design est piloté par CSS.
+JavaScript vanilla (ES modules), sans build, sans dépendance (le PDF charge svg2pdf.js et jsPDF à la demande).
+
+## Démarrage
+
+```html
+<link rel="stylesheet" href="src/gantt.css">
+<div id="chart"></div>
+<script type="module">
+  import { Gantt } from './src/gantt.js';
+  const gantt = new Gantt(document.getElementById('chart'), {
+    scale: 'week', // 'day' | 'week' | 'month'
+    tasks: [
+      { id: 'a', name: 'Conception', start: '2026-10-05', end: '2026-10-09', progress: 0.5 },
+      { id: 'b', name: 'Réalisation', start: '2026-10-12', end: '2026-10-20' },
+      { id: 'm', name: 'Livraison', start: '2026-10-21', milestone: true },
+    ],
+    links: [
+      { from: 'a', to: 'b', type: 'FS' },
+      { from: 'b', to: 'm', type: 'FS', lag: 0 },
+    ],
+  });
+</script>
+```
+
+Les ES modules exigent un serveur HTTP : `python3 -m http.server 8000`, puis `http://localhost:8000/demo/index.html`.
+
+## Données
+
+**Tâche** : `id` (obligatoire), `name`, `start` et `end` (`AAAA-MM-JJ`, fin incluse, obligatoires sauf pour un groupe), `progress` (0 à 1), `parentId`, `collapsed`, `milestone` (jalon : `end` facultatif), `className`.
+Une tâche qui a des enfants est un **groupe** : ses dates sont calculées à partir de ses enfants.
+
+**Lien** : `from`, `to`, `type` (`FS`, `SS`, `FF`, `SF`), `lag` (jours, négatif = avance), `id` facultatif.
+
+| Type | Contrainte sur la cible B |
+|---|---|
+| FS | `start(B) ≥ end(A) + 1 + lag` |
+| SS | `start(B) ≥ start(A) + lag` |
+| FF | `end(B) ≥ end(A) + lag` |
+| SF | `end(B) ≥ start(A) - 1 + lag` |
+
+Planification en avant : une tâche n'est jamais avancée, seulement repoussée. Un lien vers un groupe décale tout le groupe. Les cycles et les liens entre un groupe et un de ses descendants sont refusés. Un import invalide lève une exception avec un message précis.
+
+## API
+
+```js
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs });
+g.on('change' | 'select' | 'invalid' | 'scale', handler); // retourne une fonction de désabonnement
+g.setScale('month');
+g.getData();            // { tasks, links } au format JSON
+g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
+g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
+g.exportJSON(filename?);
+await g.exportPDF(filename?);
+g.print();
+g.destroy();
+```
+
+## Interactions
+
+Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
+
+## Styles
+
+Tout le design passe par CSS. Variables principales (définies sur `.gantt-root`) :
+
+| Variable | Rôle |
+|---|---|
+| `--gantt-font`, `--gantt-font-size` | Typographie |
+| `--gantt-bg`, `--gantt-text`, `--gantt-text-muted`, `--gantt-border` | Couleurs de base |
+| `--gantt-row-alt`, `--gantt-weekend`, `--gantt-header-bg`, `--gantt-today-color` | Grille |
+| `--gantt-bar-bg`, `--gantt-bar-stroke`, `--gantt-progress-bg`, `--gantt-bar-radius` | Barres |
+| `--gantt-group-bg`, `--gantt-milestone-bg` | Groupes, jalons |
+| `--gantt-link-color`, `--gantt-link-width`, `--gantt-link-selected` | Liens |
+| `--gantt-selected`, `--gantt-invalid` | États |
+| `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
+| `--gantt-link-gap`, `--gantt-link-radius` | Tracé des liens |
+| `--gantt-col-width-day`, `--gantt-col-width-week`, `--gantt-col-width-month` | Largeur d'une colonne par échelle |
+| `--gantt-max-height` | Hauteur maximale du conteneur (défilement vertical) |
+
+Classes : `gantt-row`, `gantt-row--alt`, `gantt-bar`, `gantt-bar--group`, `gantt-bar--milestone`, `gantt-progress`, `gantt-label`, `gantt-handle`, `gantt-link`, `gantt-link--fs|ss|ff|sf`, `gantt-today`, `gantt-weekend` ; états `is-selected`, `is-collapsed`, `is-dragging`, `is-invalid`. Chaque tâche porte `data-id` et sa classe libre `className`, ce qui permet de styler par catégorie.
+
+Thème sombre d'exemple : `data-theme="dark"` sur l'élément racine, puis `gantt.refresh()`.
+Après un changement de variable de géométrie, appeler `gantt.refresh()`.
+
+## Tests
+
+`npm test` (runner natif de Node) couvre les dates, le modèle, le planificateur, l'échelle de temps et la mise en page. Le rendu, les interactions et les exports se vérifient dans `demo/index.html`.
+
+## Hors v1
+
+Calendriers ouvrés, chemin critique, planification en arrière, contraintes de dates, navigation clavier complète, heures.

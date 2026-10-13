@@ -67,6 +67,20 @@
     body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 8px; font: inherit; font-size: 13px; }
     body.theme-todoist .toolbar .group-label { color: #808080; }
 
+    /* Menus Importer / Exporter */
+    .toolbar .menu { position: relative; display: inline-flex; }
+    .toolbar .chev { width: 12px; height: 12px; margin-left: -2px; opacity: .7; }
+    .toolbar .menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 170px; display: flex; flex-direction: column; gap: 1px; padding: 4px; background: #fff; border: 1px solid #d1d5db; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+    .toolbar .menu-list[hidden] { display: none; }
+    .toolbar .menu-list button.menu-item { width: 100%; height: 32px; justify-content: flex-start; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; color: #1f2937; font: 500 13px system-ui, sans-serif; }
+    .toolbar .menu-list button.menu-item:hover, .toolbar .menu-list button.menu-item:focus-visible { background: #f3f4f6; outline: 0; }
+    body.dark .toolbar .menu-list { background: #111827; border-color: #374151; }
+    body.dark .toolbar .menu-list button.menu-item { color: #e5e7eb; }
+    body.dark .toolbar .menu-list button.menu-item:hover, body.dark .toolbar .menu-list button.menu-item:focus-visible { background: #1f2937; }
+    body.theme-todoist .toolbar .menu-list { border-color: #ececec; border-radius: 10px; }
+    body.theme-todoist .toolbar .menu-list button.menu-item { color: #202020; font-size: 13px; }
+    body.theme-todoist .toolbar .menu-list button.menu-item:hover, body.theme-todoist .toolbar .menu-list button.menu-item:focus-visible { background: #f5f5f5; }
+
     /* Modale des paramètres */
     #settings { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(460px, calc(100vw - 32px)); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
     #settings::backdrop { background: rgba(17,24,39,.45); }
@@ -106,18 +120,26 @@
       <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span data-i18n="undo">Annuler</span></button>
       <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span data-i18n="redo">Rétablir</span></button>
     </div>
-    <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
     <span class="spacer"></span>
-    <div class="group" role="group" aria-label="Export" data-i18n-aria="group.export">
-      <span class="group-label" data-i18n="export">Exporter</span>
-      <button id="exp-svg" title="Télécharger en SVG" data-i18n-title="export.svg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>SVG</button>
-      <button id="exp-json" title="Télécharger en JSON" data-i18n-title="export.json"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>JSON</button>
-      <button id="exp-pdf" title="Télécharger en PDF" data-i18n-title="export.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
-      <button id="exp-print" title="Imprimer" data-i18n-title="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg><span data-i18n="print">Imprimer</span></button>
+    <div class="group" role="group" aria-label="Actions" data-i18n-aria="group.actions">
+      <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
+      <div class="menu">
+        <button id="import-btn" aria-controls="import-menu" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div id="import-menu" class="menu-list" role="menu" aria-labelledby="import-btn" hidden>
+          <button class="menu-item" role="menuitem" id="imp-json-item" data-i18n="fmt.json">JSON</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button id="export-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu" title="Exporter le diagramme" data-i18n-title="export.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg><span data-i18n="export">Exporter</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div id="export-menu" class="menu-list" role="menu" aria-labelledby="export-btn" hidden>
+          <button class="menu-item" role="menuitem" id="exp-svg" title="Télécharger en SVG" data-i18n-title="export.svg">SVG</button>
+          <button class="menu-item" role="menuitem" id="exp-json" title="Télécharger en JSON" data-i18n-title="export.json">JSON</button>
+          <button class="menu-item" role="menuitem" id="exp-pdf" title="Télécharger en PDF" data-i18n-title="export.pdf">PDF</button>
+          <button class="menu-item" role="menuitem" id="exp-print" title="Imprimer" data-i18n-title="print" data-i18n="print.item">Imprimer…</button>
+        </div>
+      </div>
     </div>
-    <div class="group" role="group" aria-label="Fichier" data-i18n-aria="group.file">
-      <label class="import" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span> <input id="imp-json" class="visually-hidden" type="file" accept="application/json"></label>
-    </div>
+    <input id="imp-json" type="file" accept="application/json" hidden>
   </div>
   <div id="chart"></div>
   <dialog id="settings" aria-labelledby="settings-title">
@@ -193,6 +215,7 @@
         export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
         print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
         readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier JSON',
+        'group.actions': 'Actions', 'export.title': 'Exporter le diagramme', 'print.item': 'Imprimer…', 'fmt.json': 'JSON',
         'group.file': 'Fichier', settings: 'Paramètres', 'settings.title': 'Paramètres', 'settings.appearance': 'Apparence', 'settings.planning': 'Planification',
         'settings.editing': 'Édition', 'settings.weekStart': 'Début de semaine', 'week.mon': 'Lundi', 'week.sun': 'Dimanche',
         'cal.days': 'Jours travaillés', 'cal.days.all': 'Calendaires (7 j/7)', 'cal.days.ouvrables': 'Ouvrables (lundi–samedi)', 'cal.days.ouvres': 'Ouvrés (lundi–vendredi)',
@@ -219,6 +242,7 @@
         export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
         print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
         readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a JSON file',
+        'group.actions': 'Actions', 'export.title': 'Export the chart', 'print.item': 'Print…', 'fmt.json': 'JSON',
         'group.file': 'File', settings: 'Settings', 'settings.title': 'Settings', 'settings.appearance': 'Appearance', 'settings.planning': 'Planning',
         'settings.editing': 'Editing', 'settings.weekStart': 'Week starts on', 'week.mon': 'Monday', 'week.sun': 'Sunday',
         'cal.days': 'Working days', 'cal.days.all': 'Calendar days (7/7)', 'cal.days.ouvrables': 'Working days (Mon–Sat)', 'cal.days.ouvres': 'Business days (Mon–Fri)',
@@ -373,6 +397,63 @@
     settings.addEventListener('click', (e) => {
       if (e.target === settings) settings.close();
     });
+    // Menus Importer / Exporter (un seul format : l'action est directe, sans menu)
+    const menus = [];
+    function setupMenu(buttonId, menuId, onPick) {
+      const btn = $(buttonId);
+      const list = $(menuId);
+      const items = () => [...list.querySelectorAll('[role="menuitem"]')];
+      const close = (refocus = false) => {
+        list.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+        if (refocus) btn.focus();
+      };
+      const open = () => {
+        for (const m of menus) if (m.list !== list) m.close();
+        list.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        items()[0].focus();
+      };
+      const single = items().length === 1;
+      if (single) {
+        btn.querySelector('.chev')?.remove();
+        btn.addEventListener('click', () => items()[0].click());
+      } else {
+        btn.setAttribute('aria-haspopup', 'menu');
+        btn.addEventListener('click', () => (list.hidden ? open() : close()));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            open();
+          }
+        });
+      }
+      list.addEventListener('keydown', (e) => {
+        const all = items();
+        const i = all.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') all[(i + 1) % all.length].focus();
+        else if (e.key === 'ArrowUp') all[(i - 1 + all.length) % all.length].focus();
+        else if (e.key === 'Home') all[0].focus();
+        else if (e.key === 'End') all[all.length - 1].focus();
+        else if (e.key === 'Escape') close(true);
+        else if (e.key === 'Tab') close();
+        else return;
+        if (e.key !== 'Tab') e.preventDefault();
+      });
+      list.addEventListener('click', (e) => {
+        const item = e.target.closest('[role="menuitem"]');
+        if (!item) return;
+        close(!single);
+        onPick?.(item);
+      });
+      menus.push({ list, close });
+    }
+    setupMenu('import-btn', 'import-menu', () => $('imp-json').click());
+    setupMenu('export-btn', 'export-menu');
+    document.addEventListener('click', (e) => {
+      for (const m of menus) if (!m.list.parentElement.contains(e.target)) m.close();
+    });
+
     document.getElementById('imp-json').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;

@@ -84,6 +84,10 @@
 .gantt-task.is-invalid .gantt-bar { stroke: var(--gantt-invalid); stroke-width: 2; }
 .gantt-task.is-target .gantt-bar { stroke: var(--gantt-selected); stroke-width: 3; }
 
+/* Pilule de groupe : masquée par défaut, affichée par les thèmes qui la préfèrent à l'accolade */
+.gantt-group-pill, .gantt-group-pill-progress { display: none; }
+.gantt-task.is-selected .gantt-group-pill { stroke: var(--gantt-selected); stroke-width: 2; }
+
 /* Poignées et ancres (visibles au survol) */
 .gantt-handle { fill: transparent; cursor: ew-resize; }
 .gantt-handle--progress { fill: var(--gantt-progress-bg); cursor: pointer; opacity: 0; }

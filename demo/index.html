@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>jsgantt — démo</title>
   <link rel="stylesheet" href="../src/gantt.css">
+  <link rel="stylesheet" href="../src/themes/todoist.css">
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
     body.dark { background: #111827; color: #e5e7eb; }
@@ -14,6 +15,22 @@
     .toolbar button[aria-pressed="true"] { border-color: #2563eb; background: #dbeafe; color: #1e3a8a; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
+    .toolbar .seg { display: contents; }
+    /* Boutons du thème Todoist */
+    body.theme-todoist .toolbar { gap: 4px; }
+    body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import {
+      border: 0; background: transparent; color: #202020; border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer;
+    }
+    body.theme-todoist .toolbar button:hover, body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
+    body.theme-todoist .toolbar .seg { display: inline-flex; background: #f1f1f1; border-radius: 10px; padding: 3px; margin-right: 8px; }
+    body.theme-todoist .toolbar .seg button { padding: 5px 14px; color: #666; }
+    body.theme-todoist .toolbar .seg button:hover { background: transparent; color: #202020; }
+    body.theme-todoist .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+    body.theme-todoist .toolbar button.primary { background: #dc4c3e; color: #fff; font-weight: 600; }
+    body.theme-todoist .toolbar button.primary:hover { background: #c3392c; }
+    body.theme-todoist .toolbar button[aria-pressed="true"]:not(.seg button) { background: #fdf0ef; color: #dc4c3e; }
+    body.theme-todoist .toolbar select { border: 0; background: #f5f5f5; border-radius: 8px; padding: 7px 10px; font: inherit; color: #202020; }
+    body.theme-todoist .toolbar label { color: #808080; font-size: 13px; }
     body.dark .toolbar .import { background: #1f2937; color: #e5e7eb; border-color: #374151; }
     .toolbar .import { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
   </style>
@@ -21,15 +38,23 @@
 <body>
   <h1>jsgantt</h1>
   <div class="toolbar" id="toolbar">
-    <button data-scale="day" aria-pressed="false">Jour</button>
-    <button data-scale="week" aria-pressed="true">Semaine</button>
-    <button data-scale="month" aria-pressed="false">Mois</button>
+    <div class="seg">
+      <button data-scale="day" aria-pressed="false">Jour</button>
+      <button data-scale="week" aria-pressed="true">Semaine</button>
+      <button data-scale="month" aria-pressed="false">Mois</button>
+    </div>
     <span style="flex:1"></span>
     <button id="exp-svg">Export SVG</button>
     <button id="exp-json">Export JSON</button>
-    <button id="exp-pdf">Export PDF</button>
+    <button id="exp-pdf" class="primary">Export PDF</button>
     <button id="exp-print">Imprimer</button>
-    <button id="toggle-theme" aria-pressed="false">Thème sombre</button>
+    <label>Thème
+      <select id="theme">
+        <option value="light">Défaut</option>
+        <option value="dark">Sombre</option>
+        <option value="todoist">Todoist</option>
+      </select>
+    </label>
     <button id="toggle-readonly" aria-pressed="false">Lecture seule</button>
     <label class="import">Import JSON <input id="imp-json" type="file" accept="application/json" hidden></label>
   </div>
@@ -41,12 +66,12 @@
 
     const tasks = [
       { id: 'p1', name: 'Conception' },
-      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1 },
-      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6 },
+      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3' },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1' },
       { id: 'p2', name: 'Développement' },
-      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3 },
+      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2' },
       { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04' },
-      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06' },
+      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1' },
       { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06' },
       { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
       { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04' },
@@ -94,12 +119,10 @@
     };
 
     const chart = document.getElementById('chart');
-    const themeBtn = document.getElementById('toggle-theme');
-    themeBtn.onclick = () => {
-      const dark = chart.dataset.theme !== 'dark';
-      chart.dataset.theme = dark ? 'dark' : 'light';
-      document.body.classList.toggle('dark', dark);
-      themeBtn.setAttribute('aria-pressed', String(dark));
+    document.getElementById('theme').onchange = (e) => {
+      chart.dataset.theme = e.target.value;
+      document.body.classList.toggle('dark', e.target.value === 'dark');
+      document.body.classList.toggle('theme-todoist', e.target.value === 'todoist');
       gantt.refresh();
     };
     const roBtn = document.getElementById('toggle-readonly');

@@ -7,6 +7,7 @@ import { attachA11y, syncAria } from './a11y.js';
 import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
 import { createI18n } from './i18n.js';
+import { openConstraintEditor } from './constraint-editor.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -204,6 +205,16 @@ export class Gantt {
   setCalendar(spec) {
     if (this.readonly) return this.#denyReadonly();
     return this.commit('calendar', {}, (m) => m.setCalendar(spec));
+  }
+
+  // Contrainte de date d'une tâche : { type: 'SNET' | 'SNLT' | 'FNET' | 'FNLT' | 'MSO' | 'MFO', date } ou null. Annulable.
+  setConstraint(id, spec) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('constraint', { id }, (m) => m.setConstraint(id, spec));
+  }
+
+  editConstraint(id) {
+    openConstraintEditor(this, id);
   }
 
   setWeekStart(day) {

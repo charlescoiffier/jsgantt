@@ -2,6 +2,7 @@ import { toDay, fromDay } from './dates.js';
 import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
 import { createCalendar } from './calendar.js';
+import { CONSTRAINT_TYPES, constraintSide, isViolated } from './constraints.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
 
@@ -62,7 +63,19 @@ export class GanttModel {
       collapsed: raw.collapsed === true,
       milestone: raw.milestone === true,
       className: raw.className ?? '',
+      constraint: this.#parseConstraint(id, raw.constraint),
     });
+  }
+
+  #parseConstraint(id, c) {
+    if (c === undefined || c === null) return null;
+    if (typeof c !== 'object' || Array.isArray(c)) throw new GanttError('task.constraint', { id });
+    if (!CONSTRAINT_TYPES.includes(c.type)) throw new GanttError('task.constraintType', { id, type: c.type });
+    try {
+      return { type: c.type, date: toDay(c.date) };
+    } catch (e) {
+      throw new GanttError('task.error', { id, detail: e });
+    }
   }
 
   #buildHierarchy() {
@@ -89,7 +102,10 @@ export class GanttModel {
 
   #resolveDates() {
     for (const t of this.#tasks.values()) {
-      if (this.isGroup(t.id)) continue;
+      if (this.isGroup(t.id)) {
+        if (t.constraint) throw new GanttError('task.constraintGroup', { id: t.id });
+        continue;
+      }
       if (t.start === undefined) throw new GanttError('task.startRequired', { id: t.id });
       if (t.milestone) {
         if (t.end === undefined) t.end = t.start;
@@ -126,6 +142,46 @@ export class GanttModel {
     this.#snapLeaves();
     this.reschedule();
     return { ok: true };
+  }
+
+  constraintOf(id) {
+    const c = this.#tasks.get(id)?.constraint;
+    return c ? { ...c } : null;
+  }
+
+  // Contraintes non respectées après planification : [{ id, type, date, side }]
+  violations() {
+    const out = [];
+    for (const t of this.#tasks.values()) {
+      if (!t.constraint || this.isGroup(t.id)) continue;
+      if (isViolated(this.#calendar, t.constraint.type, t.constraint.date, t.start, t.end)) {
+        out.push({ id: t.id, type: t.constraint.type, date: t.constraint.date, side: constraintSide(t.constraint.type) });
+      }
+    }
+    return out;
+  }
+
+  setConstraint(id, spec) {
+    const t = this.#require(id);
+    if (this.isGroup(id)) return fail('constraint.group');
+    let constraint = null;
+    if (spec !== null && spec !== undefined) {
+      if (typeof spec !== 'object' || Array.isArray(spec)) return fail('constraint.spec');
+      if (!CONSTRAINT_TYPES.includes(spec.type)) return fail('constraint.type', { type: spec.type });
+      try {
+        constraint = { type: spec.type, date: toDay(spec.date) };
+      } catch (e) {
+        return failFrom(e);
+      }
+    }
+    t.constraint = constraint;
+    this.reschedule();
+    return { ok: true };
+  }
+
+  // Une tâche qui devient un groupe ne porte plus de contrainte (ses enfants en portent).
+  #clearGroupConstraints() {
+    for (const t of this.#tasks.values()) if (t.constraint && this.isGroup(t.id)) t.constraint = null;
   }
 
   #aggregateGroups() {
@@ -477,10 +533,12 @@ export class GanttModel {
       collapsed: false,
       milestone: false,
       className: '',
+      constraint: null,
     };
     order.splice(at, 0, id);
     this.#tasks.set(id, task);
     this.#applyOrder(order);
+    this.#clearGroupConstraints();
     this.reschedule();
     return { ok: true, task: { ...task } };
   }
@@ -531,6 +589,7 @@ export class GanttModel {
       this.#applyOrder(saved.order);
       return problem;
     }
+    this.#clearGroupConstraints();
     this.reschedule();
     return { ok: true };
   }
@@ -548,6 +607,7 @@ export class GanttModel {
       if (t.collapsed) o.collapsed = true;
       if (t.milestone) o.milestone = true;
       if (t.className) o.className = t.className;
+      if (t.constraint) o.constraint = { type: t.constraint.type, date: fromDay(t.constraint.date) };
       return o;
     });
     const calendar = this.#calendar.toJSON();

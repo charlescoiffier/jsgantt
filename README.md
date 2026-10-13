@@ -59,6 +59,7 @@ g.setScale('month');
 g.setLocale('en');        // change la langue à chaud (voir « Localisation »)
 g.setCalendar({ workingDays: [1, 2, 3, 4, 5], holidays: [], lagUnit: 'working' }); // ou null : 7 jours sur 7 ; replanifie, annulable
 g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
+g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulable (voir « Contraintes de dates »)
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -87,6 +88,7 @@ Quand le diagramme a le focus :
 | `Alt`+`↑` `↓` | Monter / descendre parmi ses frères |
 | `Alt`+`Maj`+`↑` / `↓` | Sortir du parent / devenir enfant du frère précédent |
 | `+` / `-` | Progression de ±10 % |
+| `C` | Contrainte de date de la tâche sélectionnée |
 | `L` | Mode lien : `↑` `↓` choisissent la cible, `1` à `4` le type (FS, SS, FF, SF), `Entrée` valide en FS, `Échap` annule |
 | `Maj`+`L` | Parcourir les liens de la tâche sélectionnée, puis `Suppr` |
 | `Ctrl`/`Cmd`+`Z`, `Ctrl`/`Cmd`+`Maj`+`Z` ou `Ctrl`+`Y` | Annuler / rétablir |
@@ -96,7 +98,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -151,6 +153,25 @@ new Gantt(el, {
 - **Remarque :** pour les calendriers ouvrés ou ouvrables, `setCalendar` ramène les dates existantes sur des jours travaillés ; une tâche qui ne couvrait que des jours non travaillés se réduit à un jour.
 
 Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, début de semaine, jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis), unité du décalage des liens et lecture seule.
+
+## Contraintes de dates
+
+Une tâche simple peut porter **une** contrainte, `constraint: { type, date }` dans les données (importée et exportée avec le JSON) ou avec `g.setConstraint(id, { type, date } | null)` (annulable).
+
+| Type | Nom | Effet |
+|---|---|---|
+| `SNET` | Début au plus tôt | La tâche est repoussée si elle commencerait avant la date |
+| `FNET` | Fin au plus tôt | La tâche est repoussée si elle finirait avant la date |
+| `SNLT` | Début au plus tard | Aucun décalage ; contrainte non respectée si le début dépasse la date |
+| `FNLT` | Fin au plus tard | Aucun décalage ; contrainte non respectée si la fin dépasse la date |
+| `MSO` | Doit commencer le | Calée sur la date ; non respectée si les liens ou un déplacement la repoussent plus tard |
+| `MFO` | Doit finir le | Idem pour la fin |
+
+- **Planification :** `SNET`, `FNET`, `MSO` et `MFO` agissent comme des bornes inférieures, avec les liens. Redimensionner ou déplacer une tâche en deçà de sa borne est bloqué ou ramené, comme pour une dépendance ; déplacer plus tard est permis (et signalé pour `MSO`/`MFO`). Retirer une contrainte ne ramène pas la tâche en arrière.
+- **Calendrier :** une date non travaillée est ramenée au jour travaillé suivant pour un début, précédent pour une fin.
+- **Groupes :** ils ne portent pas de contrainte (leurs enfants oui) ; une tâche qui devient un groupe perd la sienne.
+- **Affichage :** un drapeau marque la date de chaque contrainte sur la ligne de la tâche (côté gauche pour un début, droit pour une fin, infobulle avec le texte) ; rouge, avec la barre cerclée de rouge, quand elle n'est pas respectée (`--gantt-constraint`, `--gantt-invalid`, classes `gantt-constraint`, `is-violated`). `g.model.violations()` donne la liste.
+- **Édition :** icône drapeau au survol de la ligne, clic sur le drapeau, ou touche `C` : une petite fenêtre (type, date ; `Entrée` valide, `Échap` annule, « Retirer »). Les libellés sont traduits.
 
 ## Localisation
 

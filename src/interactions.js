@@ -85,6 +85,10 @@ export function attachInteractions(g) {
       case 'row-add':
         if (!g.readonly) g.addTask({ afterId: id });
         break;
+      case 'row-constraint':
+      case 'constraint':
+        if (!g.readonly) g.editConstraint(id);
+        break;
       case 'row-delete':
         if (!g.readonly) g.removeTask(id);
         break;

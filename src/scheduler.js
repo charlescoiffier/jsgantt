@@ -1,3 +1,5 @@
+import { pushTarget, constraintSide } from './constraints.js';
+
 export function computeDates(model) {
   const cur = new Map();
   const leavesOf = new Map();
@@ -57,6 +59,20 @@ export function computeDates(model) {
           c.start = cal.addWorkingDays(c.start, k);
           c.end = cal.addWorkingDays(c.end, k);
         }
+        changed = true;
+      }
+    }
+    // Contraintes « au plus tôt » et « doit » : bornes inférieures sur le début ou la fin d'une tâche simple.
+    for (const t of model.tasks) {
+      if (!t.constraint || model.isGroup(t.id)) continue;
+      const target = pushTarget(cal, t.constraint.type, t.constraint.date);
+      if (target === null) continue;
+      const c = cur.get(t.id);
+      const current = constraintSide(t.constraint.type) === 'start' ? c.start : c.end;
+      if (current < target) {
+        const k = cal.workingDistance(current, target);
+        c.start = cal.addWorkingDays(c.start, k);
+        c.end = cal.addWorkingDays(c.end, k);
         changed = true;
       }
     }

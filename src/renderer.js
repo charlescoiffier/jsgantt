@@ -1,6 +1,8 @@
 import { fromDay } from './dates.js';
 import { describeTask } from './a11y.js';
 import { createI18n } from './i18n.js';
+import { constraintSide } from './constraints.js';
+import { constraintText } from './a11y.js';
 
 export const MIN_BAR_WIDTH = 4;
 const DEFAULT_I18N = createI18n('fr');
@@ -65,6 +67,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     addBelow: i18n.t('ui.addBelow'),
     remove: i18n.t('ui.remove'),
     move: i18n.t('ui.move'),
+    constraint: i18n.t('ui.constraint'),
   };
   const { rowHeight, barHeight, headerHeight, tableWidth, dateColWidth, indent, linkGap, linkRadius } = metrics;
   const rowsInfo = model.visibleRows();
@@ -131,6 +134,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
       id,
       index: i,
       label: describeTask(model, id, depth, i18n),
+      constrained: !group && model.constraintOf(id) !== null,
       y: rowTop,
       depth,
       name: t.name,
@@ -142,6 +146,28 @@ export function computeLayout(model, ts, metrics, state = {}) {
       selected,
     });
   });
+
+  // Contraintes de dates : un repère par tâche visible, sur la date de la contrainte.
+  const violated = new Set(model.violations().map((v) => v.id));
+  const constraints = [];
+  for (const bar of bars) {
+    const c = model.constraintOf(bar.id);
+    bar.violated = violated.has(bar.id);
+    if (!c) continue;
+    const side = constraintSide(c.type);
+    const x = tableWidth + ts.dayToX(c.date) + (side === 'end' ? ts.pixelsPerDay : 0);
+    const text = constraintText(model, bar.id, i18n);
+    constraints.push({
+      id: bar.id,
+      type: c.type,
+      side,
+      x,
+      y: bar.y,
+      height: bar.height,
+      violated: bar.violated,
+      title: bar.violated ? `${text} — ${i18n.t('constraint.violated')}` : text,
+    });
+  }
 
   const barById = new Map(bars.map((b) => [b.id, b]));
   const visibleBar = (id) => {
@@ -181,6 +207,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     weekends,
     gridLines,
     addRow,
+    constraints,
     today,
     bars,
     links,
@@ -345,7 +372,7 @@ function renderBars(layout, { readonly, dragId }) {
   for (const bar of layout.bars) {
     const group = svgEl('g', {
       class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
-        bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging'),
+        bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging', bar.violated && 'is-violated'),
       'data-id': bar.id,
       'data-selectable': true,
       role: 'img',
@@ -402,16 +429,18 @@ function renderBars(layout, { readonly, dragId }) {
 const ACTION_ICONS = {
   grip: 'M5.5 4.5h.01M10.5 4.5h.01M5.5 8h.01M10.5 8h.01M5.5 11.5h.01M10.5 11.5h.01',
   add: 'M8 3.5v9M3.5 8h9',
+  constraint: 'M4.5 13.5v-10M4.5 3.5h7l-1.5 2.5 1.5 2.5h-7',
   delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
 };
 
 function renderRowActions(row, table, rowHeight, uid, labels) {
   const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
-  const x0 = table.nameW - 3 * w - 4;
+  const count = row.group ? 3 : 4;
+  const x0 = table.nameW - count * w - 4;
   // Fond de la grappe : dégradé qui reprend la couleur réelle de la ligne (--row-bg) et estompe le nom trop long.
   const fade = 28;
-  const total = 3 * w + 8 + fade;
+  const total = count * w + 8 + fade;
   const gradId = `${uid}-fade-${row.index}`;
   const grad = svgEl('linearGradient', { id: gradId, x1: 0, y1: 0, x2: 1, y2: 0 });
   const stop = (offset, opacity) => svgEl('stop', { class: 'gantt-fade-stop', offset, 'stop-opacity': opacity });
@@ -423,11 +452,12 @@ function renderRowActions(row, table, rowHeight, uid, labels) {
   const defs = [
     ['grip', labels.move, 'row-grip'],
     ['add', labels.addBelow, 'row-add'],
+    ...(row.group ? [] : [['constraint', labels.constraint, 'row-constraint']]),
     ['delete', labels.remove, 'row-delete'],
   ];
   defs.forEach(([icon, label, role], i) => {
     const x = x0 + i * w;
-    const a = svgEl('g', { class: `gantt-action gantt-action--${icon}` });
+    const a = svgEl('g', { class: cls('gantt-action', `gantt-action--${icon}`, icon === 'constraint' && row.constrained && 'is-set') });
     a.append(svgEl('path', {
       class: 'gantt-action-icon', d: ACTION_ICONS[icon],
       transform: `translate(${x + w / 2 - 8},${row.y + rowHeight / 2 - 8})`,
@@ -437,6 +467,29 @@ function renderRowActions(row, table, rowHeight, uid, labels) {
     a.append(hit);
     g.append(a);
   });
+  return g;
+}
+
+function renderConstraints(layout, readonly) {
+  const g = svgEl('g', { class: 'gantt-constraints', 'aria-hidden': 'true' });
+  for (const c of layout.constraints) {
+    const y1 = c.y - 4;
+    const y2 = c.y + c.height + 4;
+    const dir = c.side === 'start' ? 1 : -1;
+    const marker = svgEl('g', {
+      class: cls('gantt-constraint', `gantt-constraint--${c.type.toLowerCase()}`, c.violated && 'is-violated'),
+      'data-id': c.id,
+    });
+    marker.append(svgEl('line', { class: 'gantt-constraint-line', x1: c.x, x2: c.x, y1, y2 }));
+    marker.append(svgEl('polygon', { class: 'gantt-constraint-flag', points: `${c.x},${y1} ${c.x + 8 * dir},${y1 + 4} ${c.x},${y1 + 8}` }));
+    const hit = svgEl('rect', {
+      class: 'gantt-constraint-hit', x: c.x - 6, y: y1, width: 12, height: y2 - y1,
+      'data-role': readonly ? undefined : 'constraint', 'data-id': c.id, 'data-export': 'skip',
+    });
+    hit.append(svgEl('title', {}, c.title));
+    marker.append(hit);
+    g.append(marker);
+  }
   return g;
 }
 
@@ -537,7 +590,7 @@ export function renderParts(layout, { uid = 'g0', readonly = false, dragId = nul
   });
   // Les couches se superposent dans le même repère ; le CSS (position: sticky) fixe tableau, en-tête et coin.
   const main = mk('main', layout.width, layout.height);
-  main.append(markerDefs(uid), renderGrid(layout), renderLinks(layout, uid), renderBars(layout, { readonly, dragId }));
+  main.append(markerDefs(uid), renderGrid(layout), renderLinks(layout, uid), renderBars(layout, { readonly, dragId }), renderConstraints(layout, readonly));
   const header = mk('header', layout.width, hh);
   header.append(renderHeader(layout));
   const table = mk('table', tw, layout.height);

@@ -196,6 +196,7 @@
       <tr><th data-i18n="help.dates.h">Dates</th><td data-i18n-html="help.dates"></td></tr>
       <tr><th data-i18n="help.structure.h">Structure</th><td data-i18n-html="help.structure"></td></tr>
       <tr><th data-i18n="help.progress.h">Progression</th><td data-i18n-html="help.progress"></td></tr>
+      <tr><th data-i18n="help.constraint.h">Contrainte</th><td data-i18n-html="help.constraint"></td></tr>
       <tr><th data-i18n="help.links.h">Liens</th><td data-i18n-html="help.links"></td></tr>
       <tr><th data-i18n="help.history.h">Historique</th><td data-i18n-html="help.history"></td></tr>
     </table>
@@ -225,7 +226,8 @@
         'log.error': 'erreur', 'log.import': 'import',
         'help.title': 'Raccourcis clavier',
         'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
-        'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique',
+        'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique', 'help.constraint.h': 'Contrainte',
+        'help.constraint': `${K('C')} contrainte de date de la tâche (ou drapeau au survol de la ligne)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Début')} ${K('Fin')} lignes · ${K('→')} déplier / premier enfant · ${K('←')} replier / parent`,
         'help.create': `${K('Entrée')} tâche en dessous · ${K('Maj')}+${K('Entrée')} sous-tâche · ${K('F2')} éditer le nom (${K('Tab')} : champ suivant)`,
         'help.delete': `${K('Suppr')} tâche sélectionnée (ou lien sélectionné)`,
@@ -252,7 +254,8 @@
         'log.error': 'error', 'log.import': 'import',
         'help.title': 'Keyboard shortcuts',
         'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
-        'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History',
+        'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History', 'help.constraint.h': 'Constraint',
+        'help.constraint': `${K('C')} date constraint of the task (or the flag shown when hovering the row)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Home')} ${K('End')} rows · ${K('→')} expand / first child · ${K('←')} collapse / parent`,
         'help.create': `${K('Enter')} task below · ${K('Shift')}+${K('Enter')} subtask · ${K('F2')} edit the name (${K('Tab')}: next field)`,
         'help.delete': `${K('Delete')} selected task (or selected link)`,
@@ -277,14 +280,14 @@
     const tasks = [
       { id: 'p1', name: 'Conception' },
       { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3' },
-      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1' },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1', constraint: { type: 'SNET', date: '2026-10-12' } },
       { id: 'p2', name: 'Développement' },
       { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2' },
       { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04' },
       { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1' },
       { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06' },
       { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
-      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04' },
+      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04', constraint: { type: 'FNLT', date: '2026-11-06' } },
     ];
     const links = [
       { id: 'l1', from: 't1', to: 't2', type: 'FS' },

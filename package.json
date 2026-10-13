@@ -1,0 +1,10 @@
+{
+  "name": "jsgantt",
+  "version": "0.1.0",
+  "description": "Diagrammes de Gantt interactifs en SVG, stylés par CSS",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}

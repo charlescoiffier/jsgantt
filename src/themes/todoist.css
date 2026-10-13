@@ -43,7 +43,7 @@
 .gantt-root[data-theme="todoist"] .gantt-group-pill-progress { fill: var(--gantt-progress-bg); }
 .gantt-root[data-theme="todoist"] .gantt-task.is-selected .gantt-group-pill { stroke: #dc4c3e; stroke-width: 2; }
 .gantt-root[data-theme="todoist"] .gantt-row--group { fill: #fafafa; }
-.gantt-root[data-theme="todoist"] .gantt-table-row--group .gantt-table-rowbg { fill: #fafafa; }
+.gantt-root[data-theme="todoist"] .gantt-table-row--group { --row-bg: #fafafa; }
 
 /* Barres en pilule, sans contour */
 .gantt-root[data-theme="todoist"] .gantt-bar { stroke: none; }
@@ -59,8 +59,8 @@
 .gantt-root[data-theme="todoist"] .gantt-header-text--table { fill: #202020; font-weight: 600; }
 
 /* Tableau */
-.gantt-root[data-theme="todoist"] .gantt-table-row:hover .gantt-table-rowbg { fill: #f5f5f5; }
-.gantt-root[data-theme="todoist"] .gantt-table-row.is-selected .gantt-table-rowbg { fill: #fdf0ef; }
+.gantt-root[data-theme="todoist"] .gantt-table-row:hover { --row-bg: #f5f5f5; }
+.gantt-root[data-theme="todoist"] .gantt-table-row.is-selected { --row-bg: #fdf0ef; }
 .gantt-root[data-theme="todoist"] .gantt-table-row--group .gantt-table-text--name { font-weight: 700; }
 
 /* Liens : arrondis, sans pointillés */

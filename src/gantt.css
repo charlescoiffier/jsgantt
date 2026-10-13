@@ -112,9 +112,12 @@
 
 /* Tableau (collant à gauche) */
 .gantt-table-bg { fill: var(--gantt-bg); }
-.gantt-table-rowbg { fill: var(--gantt-bg); }
-.gantt-table-row--alt .gantt-table-rowbg { fill: var(--gantt-row-alt); }
-.gantt-table-row.is-selected .gantt-table-rowbg { fill: color-mix(in srgb, var(--gantt-selected) 14%, var(--gantt-bg)); }
+/* --row-bg : couleur de fond de la ligne dans son état courant (utilisée aussi par le dégradé des actions) */
+.gantt-table-row { --row-bg: var(--gantt-bg); }
+.gantt-table-row--alt { --row-bg: var(--gantt-row-alt); }
+.gantt-table-row.is-selected { --row-bg: color-mix(in srgb, var(--gantt-selected) 14%, var(--gantt-bg)); }
+.gantt-table-rowbg { fill: var(--row-bg); }
+.gantt-fade-stop { stop-color: var(--row-bg); }
 .gantt-table-text { fill: var(--gantt-text); pointer-events: none; }
 .gantt-table-text--date { fill: var(--gantt-text-muted); }
 .gantt-table-row--group .gantt-table-text--name { font-weight: 600; }
@@ -127,8 +130,6 @@
 .gantt-actions { opacity: 0; }
 .gantt-table-row:hover .gantt-actions,
 .gantt-table-row.is-selected .gantt-actions { opacity: 1; }
-.gantt-action-bg { fill: var(--gantt-bg); }
-.gantt-table-row--alt .gantt-action-bg { fill: var(--gantt-row-alt); }
 .gantt-action-icon { fill: none; stroke: var(--gantt-text-muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .gantt-action--grip .gantt-action-icon { stroke-width: 2.2; }
 .gantt-action-hit { fill: transparent; cursor: pointer; }

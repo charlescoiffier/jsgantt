@@ -390,11 +390,21 @@ const ACTION_ICONS = {
   delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
 };
 
-function renderRowActions(row, table, rowHeight) {
+function renderRowActions(row, table, rowHeight, uid) {
   const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
   const x0 = table.nameW - 3 * w - 4;
-  g.append(svgEl('rect', { class: 'gantt-action-bg', x: x0 - 4, y: row.y + 3, width: 3 * w + 8, height: rowHeight - 6 }));
+  // Fond de la grappe : dégradé qui reprend la couleur réelle de la ligne (--row-bg) et estompe le nom trop long.
+  const fade = 28;
+  const total = 3 * w + 8 + fade;
+  const gradId = `${uid}-fade-${row.index}`;
+  const grad = svgEl('linearGradient', { id: gradId, x1: 0, y1: 0, x2: 1, y2: 0 });
+  const stop = (offset, opacity) => svgEl('stop', { class: 'gantt-fade-stop', offset, 'stop-opacity': opacity });
+  grad.append(stop(0, 0), stop((fade / total) * 0.5, 0.6), stop(fade / total, 1), stop(1, 1));
+  g.append(grad);
+  g.append(svgEl('rect', {
+    class: 'gantt-action-bg', x: x0 - 4 - fade, y: row.y + 1, width: total, height: rowHeight - 2, fill: `url(#${gradId})`,
+  }));
   const defs = [
     ['grip', LABELS.move, 'row-grip'],
     ['add', LABELS.addBelow, 'row-add'],
@@ -464,7 +474,7 @@ function renderTable(layout, uid, readonly) {
         'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
       }));
     }
-    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight));
+    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight, uid));
     g.append(rowGroup);
   }
   if (layout.addRow && !readonly) {

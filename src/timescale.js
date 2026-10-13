@@ -7,13 +7,14 @@ export const MONTHS_SHORT = BUILTIN_LOCALES.fr.months.short;
 export const MONTHS_LONG = BUILTIN_LOCALES.fr.months.long;
 
 export class Timescale {
-  constructor({ scale = 'week', colWidths = {}, originDay, endDay, months = BUILTIN_LOCALES.fr.months, weekStart = 1 } = {}) {
+  constructor({ scale = 'week', colWidths = {}, originDay, endDay, months = BUILTIN_LOCALES.fr.months, weekStart = 1, calendar = null } = {}) {
     if (!SCALES.includes(scale)) throw new Error(`Échelle inconnue : "${scale}"`);
     if (!Number.isInteger(originDay) || !Number.isInteger(endDay) || endDay < originDay) {
       throw new Error('Plage de dates invalide');
     }
     if (!Number.isInteger(weekStart) || weekStart < 0 || weekStart > 6) throw new Error('weekStart doit être un entier de 0 (dimanche) à 6');
     this.months = months;
+    this.calendar = calendar;
     this.weekStart = weekStart;
     this.scale = scale;
     this.originDay = originDay;
@@ -38,12 +39,21 @@ export class Timescale {
     return (end - start + 1) * this.pixelsPerDay;
   }
 
+  // Jour non travaillé : selon le calendrier s'il en définit un, sinon samedi et dimanche.
+  isOff(day) {
+    if (this.calendar && !this.calendar.isDefault) return !this.calendar.isWorking(day);
+    const dow = dayOfWeek(day);
+    return dow === 0 || dow === 6;
+  }
+
   weekendRects() {
     if (this.scale === 'month') return [];
     const rects = [];
     for (let d = this.originDay; d <= this.endDay; d++) {
-      const dow = dayOfWeek(d);
-      if (dow === 0 || dow === 6) rects.push({ x: this.dayToX(d), width: this.pixelsPerDay });
+      if (!this.isOff(d)) continue;
+      const rect = { x: this.dayToX(d), width: this.pixelsPerDay };
+      if (this.calendar?.isHoliday(d)) rect.holiday = this.calendar.holidayName(d) ?? true;
+      rects.push(rect);
     }
     return rects;
   }
@@ -81,8 +91,9 @@ export class Timescale {
     const bottom = [];
     if (this.scale === 'day') {
       for (let d = a; d <= b; d++) {
-        const dow = dayOfWeek(d);
-        bottom.push(cell(String(ymd(d).day), d, d, { weekend: dow === 0 || dow === 6 }));
+        const extra = { weekend: this.isOff(d) };
+        if (this.calendar?.isHoliday(d)) extra.holiday = this.calendar.holidayName(d) ?? true;
+        bottom.push(cell(String(ymd(d).day), d, d, extra));
       }
     } else {
       for (let d = a - ((dayOfWeek(a) - this.weekStart + 7) % 7); d <= b; d += 7) {

@@ -1,6 +1,7 @@
 import { toDay, fromDay } from './dates.js';
 import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
+import { createCalendar } from './calendar.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
 
@@ -9,20 +10,23 @@ export class GanttModel {
   #children = new Map();
   #links = [];
   #linkSeq = 0;
+  #calendar = createCalendar();
 
   constructor(data = {}) {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) {
       throw new GanttError('data.notObject');
     }
     for (const key of Object.keys(data)) {
-      if (key !== 'tasks' && key !== 'links') throw new GanttError('data.unknownKey', { key });
+      if (key !== 'tasks' && key !== 'links' && key !== 'calendar') throw new GanttError('data.unknownKey', { key });
     }
     const { tasks = [], links = [] } = data;
     if (!Array.isArray(tasks)) throw new GanttError('data.tasksNotArray');
     if (!Array.isArray(links)) throw new GanttError('data.linksNotArray');
+    this.#calendar = createCalendar(data.calendar);
     for (const raw of tasks) this.#loadTask(raw);
     this.#buildHierarchy();
     this.#resolveDates();
+    this.#snapLeaves();
     this.#aggregateGroups();
     for (const raw of links) {
       const res = this.addLink(raw);
@@ -95,6 +99,33 @@ export class GanttModel {
       if (t.end === undefined) throw new GanttError('task.endRequired', { id: t.id });
       if (t.end < t.start) throw new GanttError('task.endBeforeStart', { id: t.id });
     }
+  }
+
+  // Ramène début et fin des tâches simples sur des jours ouvrés (début vers l'avant, fin vers l'arrière).
+  #snapLeaves() {
+    const cal = this.#calendar;
+    for (const t of this.#tasks.values()) {
+      if (this.isGroup(t.id)) continue;
+      t.start = cal.nextWorking(t.start);
+      t.end = t.milestone ? t.start : Math.max(t.start, cal.prevWorking(t.end));
+    }
+  }
+
+  get calendar() {
+    return this.#calendar;
+  }
+
+  setCalendar(spec) {
+    let calendar;
+    try {
+      calendar = createCalendar(spec);
+    } catch (e) {
+      return failFrom(e);
+    }
+    this.#calendar = calendar;
+    this.#snapLeaves();
+    this.reschedule();
+    return { ok: true };
   }
 
   #aggregateGroups() {
@@ -304,10 +335,18 @@ export class GanttModel {
   moveTask(id, delta) {
     this.#require(id);
     if (!Number.isInteger(delta)) throw new TypeError('delta doit être un entier');
-    for (const leafId of this.leafIdsUnder(id)) {
-      const leaf = this.#tasks.get(leafId);
-      leaf.start += delta;
-      leaf.end += delta;
+    if (delta !== 0) {
+      // Déplacement en jours calendaires : le début atterrit sur un jour ouvré (dans le sens du déplacement),
+      // puis chaque tâche avance du même nombre de jours ouvrés, durée conservée.
+      const cal = this.#calendar;
+      const from = this.#tasks.get(id).start;
+      const target = delta > 0 ? cal.nextWorking(from + delta) : cal.prevWorking(from + delta);
+      const k = cal.workingDistance(from, target);
+      for (const leafId of this.leafIdsUnder(id)) {
+        const leaf = this.#tasks.get(leafId);
+        leaf.start = cal.addWorkingDays(leaf.start, k);
+        leaf.end = cal.addWorkingDays(leaf.end, k);
+      }
     }
     this.reschedule();
   }
@@ -320,11 +359,13 @@ export class GanttModel {
     if (t.milestone) return fail('resize.milestone');
     const saved = { start: t.start, end: t.end };
     if (edge === 'start') {
-      if (day > t.end) return fail('resize.startAfterEnd');
-      t.start = day;
+      const snapped = this.#calendar.nextWorking(day);
+      if (snapped > t.end) return fail('resize.startAfterEnd');
+      t.start = snapped;
     } else {
-      if (day < t.start) return fail('resize.endBeforeStart');
-      t.end = day;
+      const snapped = this.#calendar.prevWorking(day);
+      if (snapped < t.start) return fail('resize.endBeforeStart');
+      t.end = snapped;
     }
     const planned = computeDates(this).get(id);
     if (planned.start !== t.start || planned.end !== t.end) {
@@ -362,6 +403,10 @@ export class GanttModel {
       start = end = next.start ?? next.end;
     }
     if (end < start) return fail('dates.endBeforeStart');
+    if (!this.isGroup(id)) {
+      start = this.#calendar.nextWorking(start);
+      end = t.milestone ? start : Math.max(start, this.#calendar.prevWorking(end));
+    }
     const saved = { name: t.name, start: t.start, end: t.end };
     if ('name' in next) t.name = next.name;
     if (!this.isGroup(id)) {
@@ -391,11 +436,13 @@ export class GanttModel {
     let e;
     try {
       s = toDay(start);
-      e = end === undefined ? s + 2 : toDay(end);
+      e = end === undefined ? undefined : toDay(end);
     } catch (err) {
       return failFrom(err);
     }
-    if (e < s) return fail('dates.endBeforeStart');
+    if (e !== undefined && e < s) return fail('dates.endBeforeStart');
+    s = this.#calendar.nextWorking(s);
+    e = e === undefined ? this.#calendar.addWorkingDays(s, 2) : Math.max(s, this.#calendar.prevWorking(e));
     if (afterId !== null) {
       const ref = this.#tasks.get(afterId);
       if (!ref) return fail('add.refUnknown', { id: afterId });
@@ -503,7 +550,8 @@ export class GanttModel {
       if (t.className) o.className = t.className;
       return o;
     });
-    return { tasks, links: this.#links.map((x) => ({ ...x })) };
+    const calendar = this.#calendar.toJSON();
+    return { tasks, links: this.#links.map((x) => ({ ...x })), ...(calendar ? { calendar } : {}) };
   }
 
   clone() {

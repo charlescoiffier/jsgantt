@@ -264,9 +264,12 @@ function renderGrid(layout) {
     }));
   }
   for (const w of layout.weekends) {
-    g.append(svgEl('rect', {
-      class: 'gantt-weekend', x: w.x, y: layout.headerHeight, width: w.width, height: layout.height - layout.headerHeight,
-    }));
+    const rect = svgEl('rect', {
+      class: cls('gantt-weekend', w.holiday && 'gantt-holiday'),
+      x: w.x, y: layout.headerHeight, width: w.width, height: layout.height - layout.headerHeight,
+    });
+    if (typeof w.holiday === 'string') rect.append(svgEl('title', {}, w.holiday));
+    g.append(rect);
   }
   for (const x of layout.gridLines) {
     g.append(svgEl('line', { class: 'gantt-gridline', x1: x, x2: x, y1: layout.headerHeight, y2: layout.height }));
@@ -290,7 +293,7 @@ function renderHeader(layout) {
   const addCells = (cells, y) => {
     for (const c of cells) {
       g.append(svgEl('rect', {
-        class: cls('gantt-header-cell', c.weekend && 'gantt-header-cell--weekend'),
+        class: cls('gantt-header-cell', c.weekend && 'gantt-header-cell--weekend', c.holiday && 'gantt-header-cell--holiday'),
         x: c.x, y, width: c.width, height: half,
       }));
       g.append(svgEl('text', {

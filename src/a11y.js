@@ -52,6 +52,8 @@ export function announceChange(model, detail, i18n = FR) {
       return t('a11y.linkRemoved');
     case 'reorder':
       return task ? t('a11y.reordered', { name: name(), level: t('a11y.level', { n: model.ancestorsOf(id).length + 1 }) }) : null;
+    case 'calendar':
+      return t('a11y.calendarChanged');
     case 'undo':
       return t('a11y.undo');
     case 'redo':

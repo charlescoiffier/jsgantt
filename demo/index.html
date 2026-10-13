@@ -66,6 +66,32 @@
     body.theme-todoist .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
     body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 8px; font: inherit; font-size: 13px; }
     body.theme-todoist .toolbar .group-label { color: #808080; }
+
+    /* Modale des paramètres */
+    #settings { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(460px, calc(100vw - 32px)); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+    #settings::backdrop { background: rgba(17,24,39,.45); }
+    #settings form { padding: 18px 22px 16px; }
+    #settings h2 { margin: 0 0 6px; font-size: 17px; }
+    #settings h3 { margin: 14px 0 4px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; }
+    #settings section:first-of-type h3 { border-top: 0; padding-top: 0; }
+    #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 14px; }
+    #settings select { height: 32px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; max-width: 62%; }
+    #settings select:disabled { opacity: .5; }
+    #settings input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; }
+    #settings .hint { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
+    #settings menu { display: flex; justify-content: flex-end; margin: 16px 0 0; padding: 0; }
+    #settings menu button { height: 34px; padding: 0 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings menu button:hover { background: #f3f4f6; }
+    #settings :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    body.dark #settings { background: #111827; color: #e5e7eb; border-color: #374151; }
+    body.dark #settings h3 { border-color: #374151; color: #9ca3af; }
+    body.dark #settings select, body.dark #settings menu button { background: #1f2937; border-color: #374151; }
+    body.dark #settings menu button:hover { background: #273449; }
+    body.dark #settings .hint { color: #9ca3af; }
+    body.theme-todoist #settings { border-radius: 12px; border-color: #ececec; color: #202020; }
+    body.theme-todoist #settings select, body.theme-todoist #settings menu button { border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-todoist #settings menu button:hover { background: #ececec; }
+    body.theme-todoist #settings input[type="checkbox"] { accent-color: #dc4c3e; }
   </style>
 </head>
 <body>
@@ -80,6 +106,7 @@
       <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span data-i18n="undo">Annuler</span></button>
       <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span data-i18n="redo">Rétablir</span></button>
     </div>
+    <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
     <span class="spacer"></span>
     <div class="group" role="group" aria-label="Export" data-i18n-aria="group.export">
       <span class="group-label" data-i18n="export">Exporter</span>
@@ -88,23 +115,56 @@
       <button id="exp-pdf" title="Télécharger en PDF" data-i18n-title="export.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
       <button id="exp-print" title="Imprimer" data-i18n-title="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg><span data-i18n="print">Imprimer</span></button>
     </div>
-    <div class="group" role="group" aria-label="Affichage" data-i18n-aria="group.display">
-      <label class="group-label" for="theme" data-i18n="theme">Thème</label>
-      <select id="theme">
-        <option value="light" data-i18n="theme.light">Défaut</option>
-        <option value="dark" data-i18n="theme.dark">Sombre</option>
-        <option value="todoist">Todoist</option>
-      </select>
-      <label class="group-label" for="lang" data-i18n="lang">Langue</label>
-      <select id="lang">
-        <option value="fr">Français</option>
-        <option value="en">English</option>
-      </select>
-      <button id="toggle-readonly" class="toggle" aria-pressed="false" title="Verrouiller l'édition" data-i18n-title="readonly.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-i18n="readonly">Lecture seule</span></button>
+    <div class="group" role="group" aria-label="Fichier" data-i18n-aria="group.file">
       <label class="import" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span> <input id="imp-json" class="visually-hidden" type="file" accept="application/json"></label>
     </div>
   </div>
   <div id="chart"></div>
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form method="dialog">
+      <h2 id="settings-title" data-i18n="settings.title">Paramètres</h2>
+      <section role="group" aria-labelledby="sg-appearance">
+        <h3 id="sg-appearance" data-i18n="settings.appearance">Apparence</h3>
+        <div class="row"><label for="lang" data-i18n="lang">Langue</label>
+          <select id="lang"><option value="fr">Français</option><option value="en">English</option></select></div>
+        <div class="row"><label for="theme" data-i18n="theme">Thème</label>
+          <select id="theme">
+            <option value="light" data-i18n="theme.light">Défaut</option>
+            <option value="dark" data-i18n="theme.dark">Sombre</option>
+            <option value="todoist">Todoist</option>
+          </select></div>
+        <div class="row"><label for="week-start" data-i18n="settings.weekStart">Début de semaine</label>
+          <select id="week-start"><option value="1" data-i18n="week.mon">Lundi</option><option value="0" data-i18n="week.sun">Dimanche</option></select></div>
+      </section>
+      <section role="group" aria-labelledby="sg-planning">
+        <h3 id="sg-planning" data-i18n="settings.planning">Planification</h3>
+        <div class="row"><label for="cal-days" data-i18n="cal.days">Jours travaillés</label>
+          <select id="cal-days">
+            <option value="all" data-i18n="cal.days.all">Calendaires (7 j/7)</option>
+            <option value="ouvrables" data-i18n="cal.days.ouvrables">Ouvrables (lundi–samedi)</option>
+            <option value="ouvres" data-i18n="cal.days.ouvres">Ouvrés (lundi–vendredi)</option>
+          </select></div>
+        <div class="row"><label for="cal-holidays" data-i18n="cal.holidays">Jours fériés</label>
+          <select id="cal-holidays">
+            <option value="none" data-i18n="hol.none">Aucun</option>
+            <option value="fr" data-i18n="hol.fr">France</option>
+            <option value="us" data-i18n="hol.us">États-Unis</option>
+          </select></div>
+        <div class="row"><label for="cal-lag" data-i18n="cal.lag">Décalage des liens</label>
+          <select id="cal-lag">
+            <option value="working" data-i18n="lag.working">Jours travaillés</option>
+            <option value="calendar" data-i18n="lag.calendar">Jours calendaires</option>
+          </select></div>
+        <p class="hint" data-i18n="cal.lag.hint">Sans jour non travaillé, l'unité du décalage est sans effet.</p>
+      </section>
+      <section role="group" aria-labelledby="sg-editing">
+        <h3 id="sg-editing" data-i18n="settings.editing">Édition</h3>
+        <div class="row"><label for="toggle-readonly" data-i18n="readonly">Lecture seule</label>
+          <input id="toggle-readonly" type="checkbox"></div>
+      </section>
+      <menu><button value="close" data-i18n="close">Fermer</button></menu>
+    </form>
+  </dialog>
   <details class="help">
     <summary data-i18n="help.title">Raccourcis clavier</summary>
     <table>
@@ -122,6 +182,7 @@
 
   <script type="module">
     import { Gantt } from '../src/gantt.js';
+    import { WEEK, frenchHolidays, americanHolidays } from '../src/calendar.js';
 
     const K = (t) => `<kbd>${t}</kbd>`;
     const DEMO = {
@@ -132,6 +193,12 @@
         export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
         print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
         readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier JSON',
+        'group.file': 'Fichier', settings: 'Paramètres', 'settings.title': 'Paramètres', 'settings.appearance': 'Apparence', 'settings.planning': 'Planification',
+        'settings.editing': 'Édition', 'settings.weekStart': 'Début de semaine', 'week.mon': 'Lundi', 'week.sun': 'Dimanche',
+        'cal.days': 'Jours travaillés', 'cal.days.all': 'Calendaires (7 j/7)', 'cal.days.ouvrables': 'Ouvrables (lundi–samedi)', 'cal.days.ouvres': 'Ouvrés (lundi–vendredi)',
+        'cal.holidays': 'Jours fériés', 'hol.none': 'Aucun', 'hol.fr': 'France', 'hol.us': 'États-Unis',
+        'cal.lag': 'Décalage des liens', 'lag.working': 'Jours travaillés', 'lag.calendar': 'Jours calendaires',
+        'cal.lag.hint': 'Sans jour non travaillé, l\'unité du décalage est sans effet.', close: 'Fermer',
         'log.error': 'erreur', 'log.import': 'import',
         'help.title': 'Raccourcis clavier',
         'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
@@ -152,6 +219,12 @@
         export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
         print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
         readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a JSON file',
+        'group.file': 'File', settings: 'Settings', 'settings.title': 'Settings', 'settings.appearance': 'Appearance', 'settings.planning': 'Planning',
+        'settings.editing': 'Editing', 'settings.weekStart': 'Week starts on', 'week.mon': 'Monday', 'week.sun': 'Sunday',
+        'cal.days': 'Working days', 'cal.days.all': 'Calendar days (7/7)', 'cal.days.ouvrables': 'Working days (Mon–Sat)', 'cal.days.ouvres': 'Business days (Mon–Fri)',
+        'cal.holidays': 'Public holidays', 'hol.none': 'None', 'hol.fr': 'France', 'hol.us': 'United States',
+        'cal.lag': 'Link lag unit', 'lag.working': 'Working days', 'lag.calendar': 'Calendar days',
+        'cal.lag.hint': 'Without non-working days, the lag unit has no effect.', close: 'Close',
         'log.error': 'error', 'log.import': 'import',
         'help.title': 'Keyboard shortcuts',
         'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
@@ -255,13 +328,51 @@
       document.body.classList.toggle('theme-todoist', e.target.value === 'todoist');
       gantt.refresh();
     };
-    const roBtn = document.getElementById('toggle-readonly');
-    roBtn.onclick = () => {
-      gantt.readonly = !gantt.readonly;
-      roBtn.setAttribute('aria-pressed', String(gantt.readonly));
+    const $ = (id) => document.getElementById(id);
+    $('toggle-readonly').onchange = (e) => {
+      gantt.readonly = e.target.checked;
       gantt.render();
       syncHistory();
     };
+    $('week-start').onchange = (e) => gantt.setWeekStart(Number(e.target.value));
+
+    // Calendrier : jours travaillés, jours fériés et unité du décalage des liens
+    const YEARS = Array.from({ length: 9 }, (_, i) => 2024 + i);
+    const HOLIDAYS = { none: () => [], fr: () => frenchHolidays(YEARS), us: () => americanHolidays(YEARS) };
+    const DAYS = { all: WEEK.ALL, ouvrables: WEEK.OUVRABLES, ouvres: WEEK.OUVRES };
+    const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+    function applyCalendar() {
+      const days = $('cal-days').value;
+      const hol = $('cal-holidays').value;
+      $('cal-lag').disabled = days === 'all' && hol === 'none';
+      const spec = days === 'all' && hol === 'none' ? null : { workingDays: DAYS[days], holidays: HOLIDAYS[hol](), lagUnit: $('cal-lag').value };
+      if (!gantt.setCalendar(spec).ok) syncCalendarUI();
+    }
+    function syncCalendarUI() {
+      const json = gantt.model.calendar.toJSON();
+      if (!json) {
+        $('cal-days').value = 'all';
+        $('cal-holidays').value = 'none';
+      } else {
+        $('cal-days').value = Object.keys(DAYS).find((k) => sameList(DAYS[k], json.workingDays)) ?? $('cal-days').value;
+        const dates = json.holidays.map((h) => h.date);
+        $('cal-holidays').value = ['none', 'fr', 'us'].find((k) => sameList(HOLIDAYS[k]().map((h) => h.date).sort(), dates)) ?? $('cal-holidays').value;
+        $('cal-lag').value = json.lagUnit;
+      }
+      $('cal-lag').disabled = !json;
+    }
+    for (const id of ['cal-days', 'cal-holidays', 'cal-lag']) $(id).onchange = applyCalendar;
+    gantt.on('change', (d) => {
+      if (d.type === 'undo' || d.type === 'redo') syncCalendarUI();
+    });
+    $('cal-lag').disabled = true;
+
+    // Modale des paramètres
+    const settings = $('settings');
+    $('open-settings').onclick = () => settings.showModal();
+    settings.addEventListener('click', (e) => {
+      if (e.target === settings) settings.close();
+    });
     document.getElementById('imp-json').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;

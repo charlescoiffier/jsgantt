@@ -139,3 +139,31 @@ test('début de semaine configurable', () => {
   assert.deepEqual(mk(1).headerCells().bottom.map((c) => [c.label, c.width]), [['28', 10], ['5', 70], ['12', 60]]); // lundi
   assert.throws(() => new Timescale({ originDay: 0, endDay: 1, weekStart: 7 }), /weekStart/);
 });
+
+test('jours non ouvrés et fériés d\'un calendrier : grisés et signalés', async () => {
+  const { createCalendar, WEEK } = await import('../src/calendar.js');
+  const calendar = createCalendar({ workingDays: WEEK.OUVRES, holidays: [{ date: '2026-10-12', name: 'Férié' }] });
+  const ts = new Timescale({ scale: 'day', colWidths: { day: 20 }, originDay: toDay('2026-10-09'), endDay: toDay('2026-10-13'), calendar });
+  assert.deepEqual(ts.weekendRects(), [
+    { x: 20, width: 20 },
+    { x: 40, width: 20 },
+    { x: 60, width: 20, holiday: 'Férié' },
+  ]);
+  const { bottom } = ts.headerCells();
+  assert.deepEqual(bottom.map((c) => c.weekend), [false, true, true, true, false]);
+  assert.deepEqual(bottom.map((c) => c.holiday ?? false), [false, false, false, 'Férié', false]);
+});
+
+test('calendrier ouvrable : seul le dimanche est grisé ; fériés sans nom signalés aussi', async () => {
+  const { createCalendar, WEEK } = await import('../src/calendar.js');
+  const calendar = createCalendar({ workingDays: WEEK.OUVRABLES, holidays: ['2026-10-13'] });
+  const ts = new Timescale({ scale: 'day', colWidths: { day: 20 }, originDay: toDay('2026-10-10'), endDay: toDay('2026-10-13'), calendar });
+  assert.deepEqual(ts.weekendRects(), [{ x: 20, width: 20 }, { x: 60, width: 20, holiday: true }]);
+});
+
+test('calendrier par défaut : week-ends habituels, comme sans calendrier', async () => {
+  const { createCalendar } = await import('../src/calendar.js');
+  const a = new Timescale({ scale: 'day', colWidths: { day: 20 }, originDay: toDay('2026-10-09'), endDay: toDay('2026-10-12'), calendar: createCalendar() });
+  const b = new Timescale({ scale: 'day', colWidths: { day: 20 }, originDay: toDay('2026-10-09'), endDay: toDay('2026-10-12') });
+  assert.deepEqual(a.weekendRects(), b.weekendRects());
+});

@@ -13,6 +13,8 @@
     .toolbar .group { display: inline-flex; align-items: center; gap: 6px; }
     .toolbar .group-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
     .toolbar .spacer { flex: 1; }
+    .toolbar .import { position: relative; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
     .toolbar button, .toolbar .import, .toolbar select {
       height: 34px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px;
       padding: 0 12px; font: 500 13px/1 system-ui, sans-serif; color: #1f2937; background: #fff;
@@ -25,8 +27,6 @@
     .toolbar button:active:not(:disabled) { background: #e5e7eb; }
     .toolbar button:focus-visible, .toolbar select:focus-visible, .toolbar .import:focus-within { outline: 2px solid #2563eb; outline-offset: 2px; }
     .toolbar button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
-    .toolbar button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
-    .toolbar button.primary:hover:not(:disabled) { background: #1d4ed8; border-color: #1d4ed8; }
     .toolbar button.toggle[aria-pressed="true"] { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
     .toolbar .seg { display: inline-flex; gap: 2px; padding: 3px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; }
     .toolbar .seg button { height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; color: #4b5563; }
@@ -37,8 +37,6 @@
     body.dark .toolbar button, body.dark .toolbar .import, body.dark .toolbar select { background: #1f2937; color: #e5e7eb; border-color: #374151; box-shadow: none; }
     body.dark .toolbar button:hover:not(:disabled), body.dark .toolbar .import:hover { background: #273449; border-color: #4b5563; }
     body.dark .toolbar button:active:not(:disabled) { background: #334155; }
-    body.dark .toolbar button.primary { background: #3b82f6; border-color: #3b82f6; color: #0b1220; }
-    body.dark .toolbar button.primary:hover:not(:disabled) { background: #60a5fa; border-color: #60a5fa; }
     body.dark .toolbar button.toggle[aria-pressed="true"] { background: #1e3a8a; border-color: #3b82f6; color: #dbeafe; }
     body.dark .toolbar .seg { background: #0b1220; border-color: #374151; }
     body.dark .toolbar .seg button { background: transparent; color: #9ca3af; }
@@ -58,15 +56,15 @@
     /* Boutons du thème Todoist */
     body.theme-todoist .toolbar { gap: 4px 8px; }
     body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import, body.theme-todoist .toolbar select {
-      border: 0; background: transparent; color: #202020; border-radius: 8px; padding: 0 12px; font-size: 14px; box-shadow: none; cursor: pointer;
+      border: 0; background: transparent; color: #202020; border-radius: 7px; padding: 0 10px; height: 30px; font-size: 13px; box-shadow: none; cursor: pointer;
     }
     body.theme-todoist .toolbar button:hover:not(:disabled), body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
     body.theme-todoist .toolbar .seg { background: #f1f1f1; border: 0; border-radius: 10px; margin-right: 8px; }
-    body.theme-todoist .toolbar .seg button { color: #666; }
+    body.theme-todoist .toolbar .seg button { color: #666; height: 24px; padding: 0 12px; }
     body.theme-todoist .toolbar .seg button:hover:not(:disabled) { background: transparent; color: #202020; }
     body.theme-todoist .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
     body.theme-todoist .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
-    body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 10px; font: inherit; }
+    body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 8px; font: inherit; font-size: 13px; }
     body.theme-todoist .toolbar .group-label { color: #808080; }
   </style>
 </head>
@@ -87,7 +85,7 @@
       <span class="group-label">Exporter</span>
       <button id="exp-svg" title="Télécharger en SVG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>SVG</button>
       <button id="exp-json" title="Télécharger en JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>JSON</button>
-      <button id="exp-pdf" class="primary" title="Télécharger en PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
+      <button id="exp-pdf" title="Télécharger en PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
       <button id="exp-print" title="Imprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg>Imprimer</button>
     </div>
     <div class="group" role="group" aria-label="Affichage">
@@ -98,7 +96,7 @@
         <option value="todoist">Todoist</option>
       </select>
       <button id="toggle-readonly" class="toggle" aria-pressed="false" title="Verrouiller l'édition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Lecture seule</button>
-      <label class="import" title="Importer un fichier JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Importer <input id="imp-json" type="file" accept="application/json" hidden></label>
+      <label class="import" title="Importer un fichier JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Importer <input id="imp-json" class="visually-hidden" type="file" accept="application/json"></label>
     </div>
   </div>
   <div id="chart"></div>

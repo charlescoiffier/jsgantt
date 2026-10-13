@@ -2,7 +2,7 @@
    Priorités : ajouter la classe p1, p2 ou p3 dans `className` d'une tâche (p4 par défaut). */
 .gantt-root[data-theme="todoist"] {
   --gantt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --gantt-font-size: 14px;
+  --gantt-font-size: 12.5px;
   --gantt-bg: #ffffff;
   --gantt-text: #202020;
   --gantt-text-muted: #808080;
@@ -19,15 +19,15 @@
   --gantt-today-color: #dc4c3e;
   --gantt-selected: #dc4c3e;
   --gantt-invalid: #dc4c3e;
-  --gantt-bar-radius: 11px;
+  --gantt-bar-radius: 9px;
 
-  --gantt-row-height: 40px;
-  --gantt-bar-height: 22px;
-  --gantt-header-height: 44px;
-  --gantt-table-width: 400px;
-  --gantt-date-col-width: 92px;
-  --gantt-indent: 20px;
-  --gantt-link-radius: 8px;
+  --gantt-row-height: 34px;
+  --gantt-bar-height: 18px;
+  --gantt-header-height: 38px;
+  --gantt-table-width: 360px;
+  --gantt-date-col-width: 80px;
+  --gantt-indent: 16px;
+  --gantt-link-radius: 6px;
 }
 
 /* Priorités */
@@ -55,7 +55,7 @@
 .gantt-root[data-theme="todoist"] .gantt-scroll { border-color: #f0f0f0; border-radius: 8px; }
 .gantt-root[data-theme="todoist"] .gantt-weekend { opacity: 1; }
 .gantt-root[data-theme="todoist"] .gantt-header-cell { stroke: none; }
-.gantt-root[data-theme="todoist"] .gantt-header-text { fill: #808080; font-size: 12px; }
+.gantt-root[data-theme="todoist"] .gantt-header-text { fill: #808080; font-size: 10.5px; }
 .gantt-root[data-theme="todoist"] .gantt-header-text--table { fill: #202020; font-weight: 600; }
 
 /* Tableau */

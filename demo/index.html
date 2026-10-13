@@ -46,6 +46,15 @@
     body.dark .toolbar .seg button[aria-pressed="true"] { background: #374151; color: #fff; box-shadow: none; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
+    .help { margin-top: 12px; font-size: 13px; color: #4b5563; }
+    .help summary { cursor: pointer; font-weight: 600; }
+    .help table { border-collapse: collapse; margin-top: 8px; }
+    .help th { text-align: left; padding: 4px 16px 4px 0; vertical-align: top; white-space: nowrap; color: #1f2937; }
+    .help td { padding: 4px 0; }
+    .help kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid #d1d5db; border-bottom-width: 2px; border-radius: 4px; background: #f9fafb; color: #1f2937; }
+    body.dark .help { color: #9ca3af; }
+    body.dark .help th { color: #e5e7eb; }
+    body.dark .help kbd { background: #1f2937; border-color: #374151; color: #e5e7eb; }
     /* Boutons du thème Todoist */
     body.theme-todoist .toolbar { gap: 4px 8px; }
     body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import, body.theme-todoist .toolbar select {
@@ -95,6 +104,19 @@
     </div>
   </div>
   <div id="chart"></div>
+  <details class="help">
+    <summary>Raccourcis clavier</summary>
+    <table>
+      <tr><th>Naviguer</th><td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Début</kbd> <kbd>Fin</kbd> lignes · <kbd>→</kbd> déplier / premier enfant · <kbd>←</kbd> replier / parent</td></tr>
+      <tr><th>Créer</th><td><kbd>Entrée</kbd> tâche en dessous · <kbd>Maj</kbd>+<kbd>Entrée</kbd> sous-tâche · <kbd>F2</kbd> éditer le nom (<kbd>Tab</kbd> : champ suivant)</td></tr>
+      <tr><th>Supprimer</th><td><kbd>Suppr</kbd> tâche sélectionnée (ou lien sélectionné)</td></tr>
+      <tr><th>Dates</th><td><kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> déplacer d'un jour · <kbd>Alt</kbd>+<kbd>PgPréc</kbd><kbd>PgSuiv</kbd> d'une semaine · <kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> fin · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> début</td></tr>
+      <tr><th>Structure</th><td><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> monter / descendre · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>↑</kbd> sortir du parent · <kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>↓</kbd> devenir enfant du frère précédent</td></tr>
+      <tr><th>Progression</th><td><kbd>+</kbd> <kbd>-</kbd> de 10 %</td></tr>
+      <tr><th>Liens</th><td><kbd>L</kbd> mode lien (<kbd>↑</kbd><kbd>↓</kbd> cible, <kbd>1</kbd> FS, <kbd>2</kbd> SS, <kbd>3</kbd> FF, <kbd>4</kbd> SF, <kbd>Entrée</kbd> FS, <kbd>Échap</kbd> annule) · <kbd>Maj</kbd>+<kbd>L</kbd> parcourir les liens de la tâche</td></tr>
+      <tr><th>Historique</th><td><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> annuler · <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Maj</kbd>+<kbd>Z</kbd> ou <kbd>Ctrl</kbd>+<kbd>Y</kbd> rétablir</td></tr>
+    </table>
+  </details>
   <div id="log" aria-live="polite"></div>
 
   <script type="module">

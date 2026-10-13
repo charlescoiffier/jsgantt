@@ -3,6 +3,8 @@ import { Timescale, SCALES } from './timescale.js';
 import { computeLayout, renderSVG, readMetrics } from './renderer.js';
 import { attachInteractions } from './interactions.js';
 import { History } from './history.js';
+import { attachA11y, syncAria } from './a11y.js';
+import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
@@ -35,6 +37,8 @@ export class Gantt {
     this.scroller.addEventListener('scroll', () => this.applySticky(), { passive: true });
     this.refresh();
     this.detach = attachInteractions(this);
+    this.detachA11y = attachA11y(this);
+    this.detachKeyboard = attachKeyboard(this);
     this.onBeforePrint = () => {
       for (const g of this.svg.querySelectorAll('[data-sticky]')) g.removeAttribute('transform');
     };
@@ -45,6 +49,8 @@ export class Gantt {
 
   destroy() {
     this.detach();
+    this.detachKeyboard();
+    this.detachA11y();
     window.removeEventListener('beforeprint', this.onBeforePrint);
     window.removeEventListener('afterprint', this.onAfterPrint);
     this.root.replaceChildren();
@@ -96,6 +102,7 @@ export class Gantt {
     this.scroller.scrollTop = scrollTop;
     this.svg = svg;
     this.applySticky();
+    syncAria(this);
   }
 
   applySticky() {
@@ -135,6 +142,7 @@ export class Gantt {
         if (n.dataset.linkId === linkId) n.classList.add('is-selected');
       }
     }
+    syncAria(this);
     this.emit('select', { id, linkId });
   }
 
@@ -209,6 +217,13 @@ export class Gantt {
     const bottom = row.y + this.layout.rowHeight;
     if (top < scrollTop + this.layout.headerHeight) this.scroller.scrollTop = Math.max(0, top - this.layout.headerHeight);
     else if (bottom > scrollTop + clientHeight) this.scroller.scrollTop = bottom - clientHeight;
+    const bar = this.layout.bars.find((b) => b.id === id);
+    if (bar) {
+      const { scrollLeft, clientWidth } = this.scroller;
+      const left = scrollLeft + this.metrics.tableWidth;
+      if (bar.x < left) this.scroller.scrollLeft = Math.max(0, bar.x - this.metrics.tableWidth - 24);
+      else if (bar.x + bar.width > scrollLeft + clientWidth) this.scroller.scrollLeft = bar.x + bar.width - clientWidth + 24;
+    }
     this.applySticky();
   }
 

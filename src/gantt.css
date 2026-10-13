@@ -188,3 +188,17 @@
   .gantt-svg { max-width: 100%; height: auto; }
   .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit { display: none; }
 }
+
+/* Clavier et accessibilité */
+.gantt-scroll:focus-visible { outline: 2px solid var(--gantt-selected); outline-offset: -2px; }
+.gantt-scroll:focus-visible .gantt-table-row.is-selected .gantt-table-rowbg { stroke: var(--gantt-selected); stroke-width: 2; }
+.gantt-task.is-link-source .gantt-bar { stroke: var(--gantt-selected); stroke-width: 2; stroke-dasharray: 4 2; }
+.gantt-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (forced-colors: active) {
+  .gantt-bar, .gantt-group-pill { stroke: CanvasText; stroke-width: 1; }
+  .gantt-progress, .gantt-group-pill-progress { fill: Highlight; }
+  .gantt-link-path { stroke: CanvasText; }
+  .gantt-arrow { fill: CanvasText; }
+  .gantt-today { stroke: Highlight; }
+  .gantt-task.is-selected .gantt-bar, .gantt-link.is-selected .gantt-link-path { stroke: Highlight; stroke-width: 3; }
+}

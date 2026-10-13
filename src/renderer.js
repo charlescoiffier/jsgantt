@@ -1,4 +1,5 @@
 import { fromDay } from './dates.js';
+import { describeTask } from './a11y.js';
 
 export const MIN_BAR_WIDTH = 4;
 
@@ -116,6 +117,8 @@ export function computeLayout(model, ts, metrics, state = {}) {
     });
     tableRows.push({
       id,
+      index: i,
+      label: describeTask(model, id, depth),
       y: rowTop,
       depth,
       name: t.name,
@@ -234,7 +237,7 @@ function renderDefs(uid, layout) {
 }
 
 function renderGrid(layout) {
-  const g = svgEl('g', { class: 'gantt-grid' });
+  const g = svgEl('g', { class: 'gantt-grid', 'aria-hidden': 'true' });
   const { tableWidth } = layout.metrics;
   for (const row of layout.rows) {
     g.append(svgEl('rect', {
@@ -266,7 +269,7 @@ function renderGrid(layout) {
 }
 
 function renderHeader(layout) {
-  const g = svgEl('g', { class: 'gantt-header', 'data-sticky': 'y' });
+  const g = svgEl('g', { class: 'gantt-header', 'data-sticky': 'y', 'aria-hidden': 'true' });
   const { tableWidth } = layout.metrics;
   const half = layout.headerHeight / 2;
   g.append(svgEl('rect', {
@@ -289,7 +292,7 @@ function renderHeader(layout) {
 }
 
 function renderLinks(layout, uid) {
-  const g = svgEl('g', { class: 'gantt-links' });
+  const g = svgEl('g', { class: 'gantt-links', 'aria-hidden': 'true' });
   for (const link of layout.links) {
     const group = svgEl('g', {
       class: cls('gantt-link', `gantt-link--${link.type.toLowerCase()}`, link.selected && 'is-selected'),
@@ -323,7 +326,7 @@ function barShape(bar) {
 }
 
 function renderBars(layout, { readonly, dragId }) {
-  const g = svgEl('g', { class: 'gantt-bars' });
+  const g = svgEl('g', { class: 'gantt-bars', 'aria-hidden': 'true' });
   for (const bar of layout.bars) {
     const group = svgEl('g', {
       class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
@@ -388,7 +391,7 @@ const ACTION_ICONS = {
 };
 
 function renderRowActions(row, table, rowHeight) {
-  const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip' });
+  const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
   const x0 = table.nameW - 3 * w - 4;
   g.append(svgEl('rect', { class: 'gantt-action-bg', x: x0 - 4, y: row.y + 3, width: 3 * w + 8, height: rowHeight - 6 }));
@@ -423,6 +426,12 @@ function renderTable(layout, uid, readonly) {
         row.selected && 'is-selected'),
       'data-id': row.id,
       'data-selectable': true,
+      id: `${uid}-row-${row.index}`,
+      role: 'row',
+      'aria-level': row.depth + 1,
+      'aria-expanded': row.group ? String(!row.collapsed) : undefined,
+      'aria-selected': String(row.selected),
+      'aria-label': row.label,
     });
     rowGroup.append(svgEl('rect', { class: 'gantt-table-rowbg', x: 0, y: row.y, width: table.width, height: layout.rowHeight }));
     const cx = 8 + row.depth * table.indent;
@@ -445,7 +454,7 @@ function renderTable(layout, uid, readonly) {
       }));
       rowGroup.append(svgEl('text', {
         class: cls('gantt-table-text', role === 'cell-name' ? 'gantt-table-text--name' : 'gantt-table-text--date'),
-        x: tx, y: cy, dy: '0.35em',
+        x: tx, y: cy, dy: '0.35em', role: 'gridcell',
         'clip-path': role === 'cell-name' ? `url(#${uid}-clip-name)` : undefined,
       }, text));
     }
@@ -497,8 +506,7 @@ export function renderSVG(layout, { uid = 'g0', readonly = false, dragId = null 
     width: layout.width,
     height: layout.height,
     viewBox: `0 0 ${layout.width} ${layout.height}`,
-    role: 'group',
-    'aria-label': 'Diagramme de Gantt',
+    role: 'presentation',
   });
   svg.append(
     renderDefs(uid, layout),

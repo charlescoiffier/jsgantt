@@ -1,6 +1,7 @@
 import { SCALES } from './timescale.js';
 import { svgEl } from './renderer.js';
 import { fromDay } from './dates.js';
+import { neighborAfterRemoval } from './keynav.js';
 
 const DRAG_THRESHOLD = 3;
 
@@ -207,7 +208,12 @@ export function attachInteractions(g) {
         g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
       } else if (g.state.selectedId) {
         e.preventDefault();
-        g.removeTask(g.state.selectedId);
+        const removed = g.state.selectedId;
+        const neighbor = neighborAfterRemoval(g.model, removed);
+        if (g.removeTask(removed).ok && neighbor) {
+          g.select(neighbor, null);
+          g.reveal(neighbor);
+        }
       }
     }
   }
@@ -371,24 +377,34 @@ export function attachInteractions(g) {
     };
     root.addEventListener('scroll', follow, { passive: true });
     let done = false;
-    const finish = (commit) => {
+    const finish = (commit, { refocus = false, next = null } = {}) => {
       if (done) return;
       done = true;
       root.removeEventListener('scroll', follow);
       const value = input.value.trim();
       input.remove();
-      if (!commit) return;
-      if (field === 'name') g.commit('rename', { id }, (m) => m.updateTask(id, { name: value }));
-      else g.commit('dates', { id }, (m) => m.updateTask(id, { [field]: value }));
+      if (commit) {
+        if (field === 'name') g.commit('rename', { id }, (m) => m.updateTask(id, { name: value }));
+        else g.commit('dates', { id }, (m) => m.updateTask(id, { [field]: value }));
+      }
+      if (next) openEditor(id, next);
+      else if (refocus) root.focus({ preventScroll: true });
     };
     input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') finish(true);
-      else if (ev.key === 'Escape') finish(false);
+      if (ev.key === 'Enter') finish(true, { refocus: true });
+      else if (ev.key === 'Escape') finish(false, { refocus: true });
+      else if (ev.key === 'Tab') {
+        ev.preventDefault();
+        const order = ['name', 'start', 'end'];
+        const next = order[order.indexOf(field) + (ev.shiftKey ? -1 : 1)] ?? null;
+        finish(true, { refocus: !next, next });
+      }
     });
     input.addEventListener('blur', () => finish(true));
   }
 
   g.openEditor = openEditor;
+  g.isDragging = () => drag !== null;
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
@@ -399,6 +415,7 @@ export function attachInteractions(g) {
 
   return () => {
     delete g.openEditor;
+    delete g.isDragging;
     root.removeEventListener('pointerdown', onPointerDown);
     root.removeEventListener('pointermove', onPointerMove);
     root.removeEventListener('pointerup', onPointerUp);

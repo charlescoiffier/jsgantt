@@ -64,6 +64,19 @@ export function attachInteractions(g) {
         g.select(id, null);
         if (!g.readonly) startDrag(role, id, e);
         break;
+      case 'anchor-start':
+      case 'anchor-end':
+        if (g.readonly) break;
+        g.select(id, null);
+        drag = {
+          kind: 'link',
+          fromId: id,
+          fromEdge: role === 'anchor-start' ? 'start' : 'end',
+          target: null,
+          pointerId: e.pointerId,
+        };
+        root.setPointerCapture(e.pointerId);
+        break;
       case 'cell-name':
       case 'cell-start':
       case 'cell-end':
@@ -156,9 +169,89 @@ export function attachInteractions(g) {
     if (next !== g.scale) g.setScale(next);
   }
 
-  // Remplacés à la Task 9 (création de liens et édition en ligne).
-  function moveLink() {}
-  function finishLink() {}
+  const LINK_TYPE = { 'end>start': 'FS', 'start>start': 'SS', 'end>end': 'FF', 'start>end': 'SF' };
+
+  function moveLink(e) {
+    const p = local(e);
+    const from = g.layout.bars.find((b) => b.id === drag.fromId);
+    const x1 = drag.fromEdge === 'start' ? from.x : from.x + from.width;
+    const y1 = from.y + from.height / 2;
+    g.svg.querySelector('.gantt-overlay').replaceChildren(
+      svgEl('line', { class: 'gantt-link-draft', x1, y1, x2: p.x, y2: p.y }),
+    );
+    for (const n of g.svg.querySelectorAll('.is-invalid, .is-target')) n.classList.remove('is-invalid', 'is-target');
+    const hovered = document.elementFromPoint(e.clientX, e.clientY);
+    const under = hovered?.closest('g.gantt-task[data-id]');
+    drag.target = null;
+    if (!under || under.dataset.id === drag.fromId) return;
+    const bar = g.layout.bars.find((b) => b.id === under.dataset.id);
+    const overAnchor = hovered.closest('[data-role^="anchor-"]');
+    const toEdge = overAnchor
+      ? overAnchor.dataset.role.slice('anchor-'.length)
+      : p.x < bar.x + bar.width / 2 ? 'start' : 'end';
+    const type = LINK_TYPE[`${drag.fromEdge}>${toEdge}`];
+    const reason = g.model.checkLink({ from: drag.fromId, to: bar.id, type, lag: 0 });
+    under.classList.add(reason ? 'is-invalid' : 'is-target');
+    drag.target = { id: bar.id, type, reason };
+  }
+
+  function finishLink(d) {
+    const target = d.target;
+    if (!target) {
+      g.render();
+      return;
+    }
+    if (target.reason) {
+      g.emit('invalid', { reason: target.reason });
+      g.render();
+      return;
+    }
+    g.commit('link', { from: d.fromId, to: target.id, linkType: target.type }, (m) =>
+      m.addLink({ from: d.fromId, to: target.id, type: target.type, lag: 0 }));
+  }
+
+  function onDblClick(e) {
+    if (g.readonly) return;
+    const hit = e.target.closest?.('[data-role^="cell-"]');
+    if (!hit) return;
+    const id = hit.dataset.id;
+    const field = hit.dataset.role.slice('cell-'.length);
+    if (field !== 'name' && g.model.isGroup(id)) {
+      g.emit('invalid', { reason: 'les dates d\'un groupe sont calculées' });
+      return;
+    }
+    const task = g.model.getTask(id);
+    const rect = hit.getBoundingClientRect();
+    const host = g.root.getBoundingClientRect();
+    const input = document.createElement('input');
+    input.className = 'gantt-input';
+    input.value = field === 'name' ? task.name : fromDay(task[field]);
+    Object.assign(input.style, {
+      position: 'absolute',
+      left: `${rect.left - host.left}px`,
+      top: `${rect.top - host.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
+    g.root.append(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = (commit) => {
+      if (done) return;
+      done = true;
+      const value = input.value.trim();
+      input.remove();
+      if (!commit) return;
+      if (field === 'name') g.commit('rename', { id }, (m) => m.updateTask(id, { name: value }));
+      else g.commit('dates', { id }, (m) => m.updateTask(id, { [field]: value }));
+    };
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') finish(true);
+      else if (ev.key === 'Escape') finish(false);
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
 
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
@@ -166,6 +259,7 @@ export function attachInteractions(g) {
   root.addEventListener('pointercancel', onPointerUp);
   root.addEventListener('keydown', onKeyDown);
   root.addEventListener('wheel', onWheel, { passive: false });
+  root.addEventListener('dblclick', onDblClick);
 
   return () => {
     root.removeEventListener('pointerdown', onPointerDown);
@@ -174,5 +268,6 @@ export function attachInteractions(g) {
     root.removeEventListener('pointercancel', onPointerUp);
     root.removeEventListener('keydown', onKeyDown);
     root.removeEventListener('wheel', onWheel);
+    root.removeEventListener('dblclick', onDblClick);
   };
 }

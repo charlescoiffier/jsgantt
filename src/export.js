@@ -8,7 +8,7 @@ const DEFAULT_PDF_LIBS = {
   svg2pdf: 'https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js',
 };
 
-export function buildStandaloneSVG(svg) {
+function inlineStyles(svg) {
   const clone = svg.cloneNode(true);
   const originals = [svg, ...svg.querySelectorAll('*')];
   const clones = [clone, ...clone.querySelectorAll('*')];
@@ -35,10 +35,31 @@ export function buildStandaloneSVG(svg) {
     }
   });
   for (const node of toRemove) node.remove();
-  for (const g of clone.querySelectorAll('[data-sticky]')) g.removeAttribute('transform');
+  return clone;
+}
+
+// `parts` : { main, header, table, corner } (couches du diagramme) ou un svg unique.
+export function buildStandaloneSVG(parts) {
+  const list = parts instanceof Element ? [parts] : [parts.main, parts.header, parts.table, parts.corner];
+  const clones = list.map(inlineStyles);
+  const clone = clones[0];
+  let defs = clone.querySelector('defs');
+  for (const extra of clones.slice(1)) {
+    for (const node of [...extra.childNodes]) {
+      if (node.nodeName === 'defs') {
+        if (!defs) {
+          defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+          clone.insertBefore(defs, clone.firstChild);
+        }
+        defs.append(...node.childNodes);
+      } else {
+        clone.append(node);
+      }
+    }
+  }
   clone.querySelector('.gantt-overlay')?.replaceChildren();
 
-  const bg = getComputedStyle(svg).backgroundColor;
+  const bg = getComputedStyle(list[0]).backgroundColor;
   if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('width', clone.getAttribute('width'));
@@ -72,7 +93,7 @@ function loadScript(url) {
   });
 }
 
-export async function exportPDFBlob(svg, libs = {}) {
+export async function exportPDFBlob(parts, libs = {}) {
   const urls = { ...DEFAULT_PDF_LIBS, ...libs };
   try {
     if (!window.jspdf) await loadScript(urls.jspdf);
@@ -81,7 +102,7 @@ export async function exportPDFBlob(svg, libs = {}) {
     throw new Error(`Export PDF indisponible : ${e.message}`);
   }
   const { jsPDF } = window.jspdf;
-  const clone = buildStandaloneSVG(svg);
+  const clone = buildStandaloneSVG(parts);
   const w = Number(clone.getAttribute('width'));
   const h = Number(clone.getAttribute('height'));
   const host = document.createElement('div');

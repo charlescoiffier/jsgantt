@@ -15,11 +15,11 @@ export function attachKeyboard(g) {
   }
 
   function markLinkMode() {
-    for (const n of g.svg.querySelectorAll('.is-link-source, .is-target, .is-invalid')) {
+    for (const n of g.canvas.querySelectorAll('.is-link-source, .is-target, .is-invalid')) {
       n.classList.remove('is-link-source', 'is-target', 'is-invalid');
     }
     if (!linkMode) return;
-    for (const n of g.svg.querySelectorAll('g.gantt-task')) {
+    for (const n of g.canvas.querySelectorAll('g.gantt-task')) {
       if (n.dataset.id === linkMode.fromId) n.classList.add('is-link-source');
       if (n.dataset.id === linkMode.targetId) {
         const reason = g.model.checkLink({ from: linkMode.fromId, to: linkMode.targetId, type: 'FS', lag: 0 });

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>jsgantt — démo</title>
   <link rel="stylesheet" href="../src/gantt.css">
+  <link rel="stylesheet" href="../src/themes/todoist.css">
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
     body.dark { background: #111827; color: #e5e7eb; }
@@ -29,7 +30,13 @@
     <button id="exp-json">Export JSON</button>
     <button id="exp-pdf">Export PDF</button>
     <button id="exp-print">Imprimer</button>
-    <button id="toggle-theme" aria-pressed="false">Thème sombre</button>
+    <label>Thème
+      <select id="theme">
+        <option value="light">Défaut</option>
+        <option value="dark">Sombre</option>
+        <option value="todoist">Todoist</option>
+      </select>
+    </label>
     <button id="toggle-readonly" aria-pressed="false">Lecture seule</button>
     <label class="import">Import JSON <input id="imp-json" type="file" accept="application/json" hidden></label>
   </div>
@@ -41,12 +48,12 @@
 
     const tasks = [
       { id: 'p1', name: 'Conception' },
-      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1 },
-      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6 },
+      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3' },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1' },
       { id: 'p2', name: 'Développement' },
-      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3 },
+      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2' },
       { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04' },
-      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06' },
+      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1' },
       { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06' },
       { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
       { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04' },
@@ -94,12 +101,9 @@
     };
 
     const chart = document.getElementById('chart');
-    const themeBtn = document.getElementById('toggle-theme');
-    themeBtn.onclick = () => {
-      const dark = chart.dataset.theme !== 'dark';
-      chart.dataset.theme = dark ? 'dark' : 'light';
-      document.body.classList.toggle('dark', dark);
-      themeBtn.setAttribute('aria-pressed', String(dark));
+    document.getElementById('theme').onchange = (e) => {
+      chart.dataset.theme = e.target.value;
+      document.body.classList.toggle('dark', e.target.value === 'dark');
       gantt.refresh();
     };
     const roBtn = document.getElementById('toggle-readonly');

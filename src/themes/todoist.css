@@ -1,0 +1,59 @@
+/* Thème « Todoist » : à charger après gantt.css, s'active avec data-theme="todoist" sur l'élément racine.
+   Priorités : ajouter la classe p1, p2 ou p3 dans `className` d'une tâche (p4 par défaut). */
+.gantt-root[data-theme="todoist"] {
+  --gantt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gantt-font-size: 14px;
+  --gantt-bg: #ffffff;
+  --gantt-text: #202020;
+  --gantt-text-muted: #808080;
+  --gantt-border: #f0f0f0;
+  --gantt-row-alt: #fafafa;
+  --gantt-weekend: #fafafa;
+  --gantt-header-bg: #ffffff;
+  --gantt-bar-bg: #e8e8e8;
+  --gantt-progress-bg: #999999;
+  --gantt-group-bg: #b8b8b8;
+  --gantt-milestone-bg: #dc4c3e;
+  --gantt-link-color: #c4c4c4;
+  --gantt-link-width: 1.5px;
+  --gantt-link-selected: #dc4c3e;
+  --gantt-today-color: #dc4c3e;
+  --gantt-selected: #dc4c3e;
+  --gantt-invalid: #dc4c3e;
+  --gantt-bar-radius: 11px;
+
+  --gantt-row-height: 40px;
+  --gantt-bar-height: 22px;
+  --gantt-header-height: 44px;
+  --gantt-table-width: 400px;
+  --gantt-date-col-width: 92px;
+  --gantt-indent: 20px;
+  --gantt-link-radius: 8px;
+}
+
+/* Priorités */
+.gantt-root[data-theme="todoist"] .gantt-task.p1 { --gantt-bar-bg: #fbd9d6; --gantt-progress-bg: #d1453b; }
+.gantt-root[data-theme="todoist"] .gantt-task.p2 { --gantt-bar-bg: #ffe6c2; --gantt-progress-bg: #eb8909; }
+.gantt-root[data-theme="todoist"] .gantt-task.p3 { --gantt-bar-bg: #d3e0ff; --gantt-progress-bg: #246fe0; }
+
+/* Barres en pilule, sans contour */
+.gantt-root[data-theme="todoist"] .gantt-bar { stroke: none; }
+.gantt-root[data-theme="todoist"] .gantt-progress { opacity: 1; }
+.gantt-root[data-theme="todoist"] .gantt-task.is-selected .gantt-bar { stroke: #dc4c3e; stroke-width: 2; }
+.gantt-root[data-theme="todoist"] .gantt-label { fill: var(--gantt-text); }
+
+/* Grille et en-tête épurés */
+.gantt-root[data-theme="todoist"] .gantt-scroll { border-color: #f0f0f0; border-radius: 8px; }
+.gantt-root[data-theme="todoist"] .gantt-weekend { opacity: 1; }
+.gantt-root[data-theme="todoist"] .gantt-header-cell { stroke: none; }
+.gantt-root[data-theme="todoist"] .gantt-header-text { fill: #808080; font-size: 12px; }
+.gantt-root[data-theme="todoist"] .gantt-header-text--table { fill: #202020; font-weight: 600; }
+
+/* Tableau */
+.gantt-root[data-theme="todoist"] .gantt-table-row:hover .gantt-table-rowbg { fill: #f5f5f5; }
+.gantt-root[data-theme="todoist"] .gantt-table-row.is-selected .gantt-table-rowbg { fill: #fdf0ef; }
+.gantt-root[data-theme="todoist"] .gantt-table-row--group .gantt-table-text--name { font-weight: 700; }
+
+/* Liens : arrondis, sans pointillés */
+.gantt-root[data-theme="todoist"] .gantt-link--ss .gantt-link-path,
+.gantt-root[data-theme="todoist"] .gantt-link--sf .gantt-link-path { stroke-dasharray: none; }

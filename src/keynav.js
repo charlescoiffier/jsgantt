@@ -75,3 +75,8 @@ const LINK_KEYS = { 1: 'FS', 2: 'SS', 3: 'FF', 4: 'SF', Enter: 'FS' };
 export function linkTypeForKey(key) {
   return LINK_KEYS[key] ?? null;
 }
+
+// Nouveau jour pour le début ou la fin d'une tâche, `delta` jours travaillés plus loin (jours calendaires sans calendrier).
+export function edgeStep(model, id, edge, delta) {
+  return model.calendar.addWorkingDays(model.getTask(id)[edge], delta);
+}

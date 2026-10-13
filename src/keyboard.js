@@ -1,4 +1,4 @@
-import { rowNav, treeKey, structureMove, cycleLinks, linkTypeForKey } from './keynav.js';
+import { rowNav, treeKey, structureMove, cycleLinks, linkTypeForKey, edgeStep } from './keynav.js';
 
 const NAV_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape'];
 
@@ -66,14 +66,13 @@ export function attachKeyboard(g) {
   }
 
   function shiftDates(id, kind, delta) {
-    const t = g.model.getTask(id);
     if (g.model.isGroup(id) && kind !== 'move') {
       g.refuse('dates.group');
       return;
     }
     if (kind === 'move') g.commit('move', { id }, (m) => m.moveTask(id, delta));
-    else if (kind === 'end') g.commit('resize', { id }, (m) => m.resizeTask(id, 'end', t.end + delta));
-    else g.commit('resize', { id }, (m) => m.resizeTask(id, 'start', t.start + delta));
+    else if (kind === 'end') g.commit('resize', { id }, (m) => m.resizeTask(id, 'end', edgeStep(m, id, 'end', delta)));
+    else g.commit('resize', { id }, (m) => m.resizeTask(id, 'start', edgeStep(m, id, 'start', delta)));
     g.reveal(id);
   }
 

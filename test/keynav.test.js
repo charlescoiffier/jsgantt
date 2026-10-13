@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GanttModel } from '../src/model.js';
-import { rowNav, treeKey, neighborAfterRemoval, structureMove, cycleLinks, linkTypeForKey } from '../src/keynav.js';
+import { rowNav, treeKey, neighborAfterRemoval, structureMove, cycleLinks, linkTypeForKey, edgeStep } from '../src/keynav.js';
+import { WEEK } from '../src/calendar.js';
+import { fromDay } from '../src/dates.js';
 import { t, l } from './helpers.js';
 
 const model = () =>
@@ -86,4 +88,22 @@ test('linkTypeForKey', () => {
   assert.equal(linkTypeForKey('4'), 'SF');
   assert.equal(linkTypeForKey('Enter'), 'FS');
   assert.equal(linkTypeForKey('5'), null);
+});
+
+test('edgeStep : avance la fin ou le début d\'un jour travaillé, week-ends et fériés compris', () => {
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-09'), t('b', '2026-10-12', '2026-10-14')],
+    calendar: { workingDays: WEEK.OUVRES, holidays: ['2026-10-12'] },
+  });
+  // a : lundi 5 -> vendredi 9 ; b : lundi 12 (férié, ramené au mardi 13) -> mercredi 14
+  assert.equal(fromDay(edgeStep(m, 'a', 'end', 1)), '2026-10-13'); // vendredi + 1 jour travaillé : le lundi 12 est férié -> mardi 13
+  assert.equal(fromDay(edgeStep(m, 'a', 'end', -1)), '2026-10-08');
+  assert.equal(fromDay(edgeStep(m, 'a', 'start', -1)), '2026-10-02'); // lundi - 1 jour travaillé = vendredi précédent
+  assert.equal(fromDay(edgeStep(m, 'a', 'start', 1)), '2026-10-06');
+});
+
+test('edgeStep : sans calendrier, un jour calendaire', () => {
+  const m = new GanttModel({ tasks: [t('a', '2026-10-09', '2026-10-09')] });
+  assert.equal(fromDay(edgeStep(m, 'a', 'end', 1)), '2026-10-10');
+  assert.equal(fromDay(edgeStep(m, 'a', 'start', -1)), '2026-10-08');
 });

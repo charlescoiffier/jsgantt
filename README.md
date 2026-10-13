@@ -48,7 +48,7 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart });
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -57,6 +57,8 @@ g.moveTaskTo(id, { parentId, beforeId }); // réordonne ou change de parent
 // ces trois méthodes renvoient { ok, … } ; refusées en lecture seule ou si le résultat est invalide
 g.setScale('month');
 g.setLocale('en');        // change la langue à chaud (voir « Localisation »)
+g.setCalendar({ workingDays: [1, 2, 3, 4, 5], holidays: [], lagUnit: 'working' }); // ou null : 7 jours sur 7 ; replanifie, annulable
+g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -94,7 +96,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -125,6 +127,30 @@ Thème sombre d'exemple : `data-theme="dark"` sur l'élément racine, puis `gant
 
 Thème « Todoist » : charger `src/themes/todoist.css` après `gantt.css`, puis `data-theme="todoist"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (lignes de 40 px, barres en pilule). Les priorités se posent avec la classe `p1`, `p2` ou `p3` dans le `className` d'une tâche (`p4`, gris, par défaut). Les groupes y sont dessinés comme une pilule fine (le rendu produit aussi cette forme, masquée par défaut : classes `gantt-group-pill` et `gantt-group-pill-progress`).
 Après un changement de variable de géométrie, appeler `gantt.refresh()`.
+
+## Calendrier : jours ouvrés, ouvrables et fériés
+
+Sans calendrier, tous les jours comptent (comportement par défaut). Un calendrier se donne à la création, avec `setCalendar` ou dans les données (`{ tasks, links, calendar }`, donc exporté et importé avec le JSON).
+
+```js
+import { WEEK, frenchHolidays, americanHolidays } from './src/calendar.js';
+
+new Gantt(el, {
+  calendar: {
+    workingDays: WEEK.OUVRES,   // WEEK.OUVRES : lundi–vendredi · WEEK.OUVRABLES : lundi–samedi · WEEK.ALL : 7 j/7 · ou [0..6] (0 = dimanche)
+    holidays: [...frenchHolidays([2026, 2027]), { date: '2026-12-31', name: 'Réveillon' }], // 'AAAA-MM-JJ' ou { date, name? }
+    lagUnit: 'working',         // unité du décalage (lag) des liens : 'working' (défaut) ou 'calendar'
+  },
+});
+```
+
+- **Durée :** une tâche dure un nombre de jours travaillés ; son début et sa fin tombent toujours sur un jour travaillé. Une date saisie, importée ou obtenue en déplaçant une barre sur un jour non travaillé est ramenée au jour travaillé le plus proche (début vers l'avant, fin vers l'arrière ; un déplacement suit le sens du geste). Une barre qui traverse un week-end reste continue.
+- **Liens :** FS, SS, FF et SF gardent leurs formules, mais le « +1 jour » se compte en jours travaillés : un lien FS (décalage 0) fait démarrer la tâche suivante le prochain jour travaillé. Le décalage (`lag`) se compte en jours travaillés avec `lagUnit: 'working'`, en jours calendaires avec `'calendar'` (le résultat est alors ramené sur un jour travaillé). Les groupes décalés gardent leur structure interne.
+- **Affichage :** les jours non travaillés sont grisés, les jours fériés ont leur teinte (`--gantt-holiday`, classe `gantt-holiday`) et une infobulle avec leur nom. Sans calendrier, seuls les samedis et dimanches sont grisés.
+- **Jours fériés :** `frenchHolidays(année ou [années])` (11 jours, Pâques et dérivés calculés) et `americanHolidays(année ou [années])` (jours fériés fédéraux ; un férié à date fixe un samedi est reporté au vendredi, un dimanche au lundi, nom suffixé « (observed) »).
+- **Remarque :** pour les calendriers ouvrés ou ouvrables, `setCalendar` ramène les dates existantes sur des jours travaillés ; une tâche qui ne couvrait que des jours non travaillés se réduit à un jour.
+
+Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, début de semaine, jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis), unité du décalage des liens et lecture seule.
 
 ## Localisation
 

@@ -39,7 +39,7 @@ export class Gantt {
     this.pdfLibs = options.pdfLibs ?? {};
     this.history = new History(options.historyLimit ?? 100);
     try {
-      this.model = new GanttModel({ tasks: options.tasks, links: options.links });
+      this.model = new GanttModel({ tasks: options.tasks, links: options.links, calendar: options.calendar });
     } catch (e) {
       throw this.#localizeError(e);
     }
@@ -99,6 +99,7 @@ export class Gantt {
       endDay,
       months: this.i18n.months,
       weekStart: this.weekStart,
+      calendar: this.model.calendar,
     });
   }
 
@@ -197,6 +198,18 @@ export class Gantt {
 
   refuse(code, params = {}) {
     this.emit('invalid', { reason: this.i18n.t(code, params), code });
+  }
+
+  // Calendrier : { workingDays, holidays, lagUnit } ou null (7 jours sur 7). Replanifie ; annulable.
+  setCalendar(spec) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('calendar', {}, (m) => m.setCalendar(spec));
+  }
+
+  setWeekStart(day) {
+    if (!Number.isInteger(day) || day < 0 || day > 6) throw new Error('weekStart doit être un entier de 0 (dimanche) à 6');
+    this.weekStart = day;
+    this.refresh();
   }
 
   setLocale(locale) {

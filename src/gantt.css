@@ -8,6 +8,7 @@
   --gantt-border: #e5e7eb;
   --gantt-row-alt: #f9fafb;
   --gantt-weekend: #f3f4f6;
+  --gantt-holiday: #fde8e8;
   --gantt-header-bg: #f3f4f6;
   --gantt-bar-bg: #93c5fd;
   --gantt-bar-stroke: #3b82f6;
@@ -71,6 +72,7 @@
 .gantt-row { fill: var(--gantt-bg); }
 .gantt-row--alt { fill: var(--gantt-row-alt); }
 .gantt-weekend { fill: var(--gantt-weekend); opacity: 0.8; }
+.gantt-weekend.gantt-holiday { fill: var(--gantt-holiday); opacity: 1; }
 .gantt-gridline { stroke: var(--gantt-border); stroke-width: 1; }
 .gantt-today { stroke: var(--gantt-today-color); stroke-width: 1.5; stroke-dasharray: 4 3; }
 
@@ -78,6 +80,7 @@
 .gantt-header-bg { fill: var(--gantt-header-bg); }
 .gantt-header-cell { fill: var(--gantt-header-bg); stroke: var(--gantt-border); stroke-width: 1; }
 .gantt-header-cell--weekend { fill: var(--gantt-weekend); }
+.gantt-header-cell--holiday { fill: var(--gantt-holiday); }
 .gantt-header-text { fill: var(--gantt-text-muted); font-size: 11px; pointer-events: none; }
 .gantt-header-text--table { fill: var(--gantt-text); font-weight: 600; }
 
@@ -180,6 +183,7 @@
   --gantt-border: #374151;
   --gantt-row-alt: #1f2937;
   --gantt-weekend: #1f2937;
+  --gantt-holiday: #3a2530;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;
   --gantt-bar-stroke: #60a5fa;

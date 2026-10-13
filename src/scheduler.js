@@ -16,6 +16,7 @@ export function computeDates(model) {
     return { start, end };
   };
 
+  const cal = model.calendar;
   const links = model.links;
   const limit = (model.tasks.length + 1) * (links.length + 1) + 10;
   for (let pass = 0; ; pass++) {
@@ -25,28 +26,36 @@ export function computeDates(model) {
       const a = span(link.from);
       const b = span(link.to);
       const lag = link.lag ?? 0;
-      let delta;
+      // Jour de référence de A, puis décalage (lag) en jours ouvrés ou calendaires, ramené sur un jour ouvré.
+      let base;
+      let current;
       switch (link.type) {
         case 'FS':
-          delta = a.end + 1 + lag - b.start;
+          base = cal.addWorkingDays(a.end, 1);
+          current = b.start;
           break;
         case 'SS':
-          delta = a.start + lag - b.start;
+          base = a.start;
+          current = b.start;
           break;
         case 'FF':
-          delta = a.end + lag - b.end;
+          base = a.end;
+          current = b.end;
           break;
         case 'SF':
-          delta = a.start - 1 + lag - b.end;
+          base = cal.addWorkingDays(a.start, -1);
+          current = b.end;
           break;
         default:
           throw new Error(`Type de lien inconnu : "${link.type}"`);
       }
-      if (delta > 0) {
+      const target = cal.lagUnit === 'working' ? cal.addWorkingDays(base, lag) : cal.nextWorking(base + lag);
+      if (current < target) {
+        const k = cal.workingDistance(current, target);
         for (const leaf of leavesOf.get(link.to)) {
           const c = cur.get(leaf);
-          c.start += delta;
-          c.end += delta;
+          c.start = cal.addWorkingDays(c.start, k);
+          c.end = cal.addWorkingDays(c.end, k);
         }
         changed = true;
       }

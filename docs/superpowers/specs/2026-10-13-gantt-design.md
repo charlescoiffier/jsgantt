@@ -77,7 +77,7 @@ Les fins étant incluses, un lien FS de décalage 0 fait démarrer B le lendemai
 
 ## 5. Rendu SVG et thème CSS
 
-Couches `<g>` dans l'ordre de dessin : `gantt-grid`, `gantt-header`, `gantt-table`, `gantt-links`, `gantt-bars`, `gantt-overlay`.
+Couches `<g>` dans l'ordre de dessin : `gantt-grid`, `gantt-links`, `gantt-bars`, `gantt-header` (collant en haut), `gantt-table` (collant à gauche, opaque, dessiné au-dessus de la timeline), `gantt-corner` (collant en haut à gauche), `gantt-overlay`. Les groupes collants suivent le défilement du conteneur par un `transform` mis à jour au `scroll` (retiré à l'export).
 
 - Classes (contrat public du thème) : `gantt-row`, `gantt-row--alt`, `gantt-bar`, `gantt-bar--group`, `gantt-bar--milestone`, `gantt-progress`, `gantt-label`, `gantt-handle`, `gantt-link`, `gantt-link--fs|ss|ff|sf`, `gantt-today`, `gantt-weekend`. États : `is-selected`, `is-collapsed`, `is-dragging`, `is-invalid`. Chaque tâche porte `data-id` et son `className` libre.
 - Variables CSS : couleurs, polices, traits, rayons (`--gantt-bar-bg`, `--gantt-bar-radius`, `--gantt-link-color`, `--gantt-font`…).

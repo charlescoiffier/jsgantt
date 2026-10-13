@@ -1,0 +1,132 @@
+.gantt-root {
+  /* --- Thème (couleurs, typographie) --- */
+  --gantt-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gantt-font-size: 12px;
+  --gantt-bg: #ffffff;
+  --gantt-text: #1f2937;
+  --gantt-text-muted: #6b7280;
+  --gantt-border: #e5e7eb;
+  --gantt-row-alt: #f9fafb;
+  --gantt-weekend: #f3f4f6;
+  --gantt-header-bg: #f3f4f6;
+  --gantt-bar-bg: #93c5fd;
+  --gantt-bar-stroke: #3b82f6;
+  --gantt-progress-bg: #3b82f6;
+  --gantt-group-bg: #374151;
+  --gantt-milestone-bg: #f59e0b;
+  --gantt-link-color: #6b7280;
+  --gantt-link-width: 1.5px;
+  --gantt-link-selected: #ef4444;
+  --gantt-today-color: #ef4444;
+  --gantt-selected: #2563eb;
+  --gantt-invalid: #ef4444;
+  --gantt-bar-radius: 4px;
+
+  /* --- Géométrie (lue par le JS) --- */
+  --gantt-row-height: 32px;
+  --gantt-bar-height: 18px;
+  --gantt-header-height: 48px;
+  --gantt-table-width: 360px;
+  --gantt-date-col-width: 84px;
+  --gantt-indent: 16px;
+  --gantt-link-gap: 10px;
+  --gantt-link-radius: 6px;
+  --gantt-col-width-day: 28px;
+  --gantt-col-width-week: 84px;
+  --gantt-col-width-month: 120px;
+
+  position: relative;
+  font-family: var(--gantt-font);
+  font-size: var(--gantt-font-size);
+  color: var(--gantt-text);
+}
+
+.gantt-scroll {
+  overflow: auto;
+  max-height: var(--gantt-max-height, none);
+  background: var(--gantt-bg);
+  border: 1px solid var(--gantt-border);
+  outline: none;
+}
+
+.gantt-svg {
+  display: block;
+  background: var(--gantt-bg);
+  font-family: var(--gantt-font);
+  font-size: var(--gantt-font-size);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Grille */
+.gantt-row { fill: var(--gantt-bg); }
+.gantt-row--alt { fill: var(--gantt-row-alt); }
+.gantt-weekend { fill: var(--gantt-weekend); opacity: 0.8; }
+.gantt-gridline { stroke: var(--gantt-border); stroke-width: 1; }
+.gantt-today { stroke: var(--gantt-today-color); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+/* En-tête */
+.gantt-header-bg { fill: var(--gantt-header-bg); }
+.gantt-header-cell { fill: var(--gantt-header-bg); stroke: var(--gantt-border); stroke-width: 1; }
+.gantt-header-cell--weekend { fill: var(--gantt-weekend); }
+.gantt-header-text { fill: var(--gantt-text-muted); font-size: 11px; pointer-events: none; }
+.gantt-header-text--table { fill: var(--gantt-text); font-weight: 600; }
+
+/* Barres */
+.gantt-task { touch-action: none; }
+.gantt-bar { fill: var(--gantt-bar-bg); stroke: var(--gantt-bar-stroke); stroke-width: 1; rx: var(--gantt-bar-radius); ry: var(--gantt-bar-radius); cursor: grab; }
+.gantt-bar--group { fill: var(--gantt-group-bg); stroke: var(--gantt-group-bg); }
+.gantt-bar--milestone { fill: var(--gantt-milestone-bg); stroke: var(--gantt-milestone-bg); }
+.gantt-progress { fill: var(--gantt-progress-bg); opacity: 0.85; rx: var(--gantt-bar-radius); ry: var(--gantt-bar-radius); }
+.gantt-label { fill: var(--gantt-text); pointer-events: none; }
+.gantt-task.is-selected .gantt-bar { stroke: var(--gantt-selected); stroke-width: 2; }
+.gantt-task.is-dragging .gantt-bar { opacity: 0.7; }
+.gantt-task.is-invalid .gantt-bar { stroke: var(--gantt-invalid); stroke-width: 2; }
+.gantt-task.is-target .gantt-bar { stroke: var(--gantt-selected); stroke-width: 3; }
+
+/* Poignées et ancres (visibles au survol) */
+.gantt-handle { fill: transparent; cursor: ew-resize; }
+.gantt-handle--progress { fill: var(--gantt-progress-bg); cursor: pointer; opacity: 0; }
+.gantt-task:hover .gantt-handle--progress,
+.gantt-task.is-selected .gantt-handle--progress { opacity: 1; }
+.gantt-anchor { fill: var(--gantt-bg); stroke: var(--gantt-selected); stroke-width: 1.5; cursor: crosshair; opacity: 0; }
+.gantt-task:hover .gantt-anchor,
+.gantt-task.is-selected .gantt-anchor { opacity: 1; }
+
+/* Liens */
+.gantt-link-path { fill: none; stroke: var(--gantt-link-color); stroke-width: var(--gantt-link-width); stroke-linejoin: round; }
+.gantt-link-hit { fill: none; stroke: transparent; stroke-width: 10; cursor: pointer; pointer-events: stroke; }
+.gantt-arrow { fill: var(--gantt-link-color); }
+.gantt-link.is-selected .gantt-link-path { stroke: var(--gantt-link-selected); stroke-width: 2.5; }
+.gantt-link--ss .gantt-link-path,
+.gantt-link--sf .gantt-link-path { stroke-dasharray: 5 3; }
+.gantt-link-draft { stroke: var(--gantt-selected); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+
+/* Tableau (collant à gauche) */
+.gantt-table-bg { fill: var(--gantt-bg); }
+.gantt-table-rowbg { fill: var(--gantt-bg); }
+.gantt-table-row--alt .gantt-table-rowbg { fill: var(--gantt-row-alt); }
+.gantt-table-row.is-selected .gantt-table-rowbg { fill: color-mix(in srgb, var(--gantt-selected) 14%, var(--gantt-bg)); }
+.gantt-table-text { fill: var(--gantt-text); pointer-events: none; }
+.gantt-table-text--date { fill: var(--gantt-text-muted); }
+.gantt-table-row--group .gantt-table-text--name { font-weight: 600; }
+.gantt-chevron { fill: var(--gantt-text-muted); }
+.gantt-chevron-hit { fill: transparent; cursor: pointer; }
+.gantt-cell { fill: transparent; }
+.gantt-table-edge { stroke: var(--gantt-border); stroke-width: 1; }
+
+/* Surcouche (infobulle de glisser) */
+.gantt-overlay { pointer-events: none; }
+.gantt-tip-bg { fill: var(--gantt-text); opacity: 0.9; rx: 3px; ry: 3px; }
+.gantt-tip-text { fill: var(--gantt-bg); font-size: 11px; }
+
+/* Édition en ligne */
+.gantt-input {
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0 6px;
+  border: 2px solid var(--gantt-selected);
+  background: var(--gantt-bg);
+  color: var(--gantt-text);
+  z-index: 2;
+}

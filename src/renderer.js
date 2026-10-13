@@ -168,3 +168,268 @@ export function computeLayout(model, ts, metrics, state = {}) {
     table: { width: tableWidth, nameW: tableWidth - 2 * dateColWidth, dateColWidth, indent, rows: tableRows },
   };
 }
+
+const NS = 'http://www.w3.org/2000/svg';
+
+export function svgEl(name, attrs = {}, text) {
+  const e = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? '' : String(v));
+  }
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+const cls = (...names) => names.filter(Boolean).join(' ');
+
+export function readMetrics(el) {
+  const cs = getComputedStyle(el);
+  const num = (name, fallback) => {
+    const v = parseFloat(cs.getPropertyValue(name));
+    return Number.isFinite(v) ? v : fallback;
+  };
+  return {
+    rowHeight: num('--gantt-row-height', 32),
+    barHeight: num('--gantt-bar-height', 18),
+    headerHeight: num('--gantt-header-height', 48),
+    tableWidth: num('--gantt-table-width', 360),
+    dateColWidth: num('--gantt-date-col-width', 84),
+    indent: num('--gantt-indent', 16),
+    linkGap: num('--gantt-link-gap', 10),
+    linkRadius: num('--gantt-link-radius', 6),
+    colWidths: {
+      day: num('--gantt-col-width-day', 28),
+      week: num('--gantt-col-width-week', 84),
+      month: num('--gantt-col-width-month', 120),
+    },
+  };
+}
+
+function renderDefs(uid, layout) {
+  const defs = svgEl('defs');
+  const marker = svgEl('marker', {
+    id: `${uid}-arrow`,
+    markerWidth: 8,
+    markerHeight: 8,
+    refX: 7,
+    refY: 4,
+    orient: 'auto',
+    markerUnits: 'userSpaceOnUse',
+  });
+  marker.append(svgEl('path', { class: 'gantt-arrow', d: 'M0,0 L8,4 L0,8 z' }));
+  const clip = svgEl('clipPath', { id: `${uid}-clip-name` });
+  clip.append(svgEl('rect', { x: 0, y: 0, width: Math.max(layout.table.nameW - 4, 0), height: layout.height }));
+  defs.append(marker, clip);
+  return defs;
+}
+
+function renderGrid(layout) {
+  const g = svgEl('g', { class: 'gantt-grid' });
+  const { tableWidth } = layout.metrics;
+  for (const row of layout.rows) {
+    g.append(svgEl('rect', {
+      class: cls('gantt-row', row.alt && 'gantt-row--alt'),
+      x: 0, y: row.y, width: layout.width, height: layout.rowHeight,
+    }));
+  }
+  for (const w of layout.weekends) {
+    g.append(svgEl('rect', {
+      class: 'gantt-weekend', x: w.x, y: layout.headerHeight, width: w.width, height: layout.height - layout.headerHeight,
+    }));
+  }
+  for (const x of layout.gridLines) {
+    g.append(svgEl('line', { class: 'gantt-gridline', x1: x, x2: x, y1: layout.headerHeight, y2: layout.height }));
+  }
+  if (layout.today) {
+    g.append(svgEl('line', {
+      class: 'gantt-today', x1: layout.today.x, x2: layout.today.x, y1: layout.headerHeight, y2: layout.height,
+    }));
+  }
+  g.append(svgEl('line', { class: 'gantt-gridline', x1: tableWidth, x2: tableWidth, y1: 0, y2: layout.height }));
+  return g;
+}
+
+function renderHeader(layout) {
+  const g = svgEl('g', { class: 'gantt-header', 'data-sticky': 'y' });
+  const { tableWidth } = layout.metrics;
+  const half = layout.headerHeight / 2;
+  g.append(svgEl('rect', {
+    class: 'gantt-header-bg', x: tableWidth, y: 0, width: layout.width - tableWidth, height: layout.headerHeight,
+  }));
+  const addCells = (cells, y) => {
+    for (const c of cells) {
+      g.append(svgEl('rect', {
+        class: cls('gantt-header-cell', c.weekend && 'gantt-header-cell--weekend'),
+        x: c.x, y, width: c.width, height: half,
+      }));
+      g.append(svgEl('text', {
+        class: 'gantt-header-text', x: c.x + c.width / 2, y: y + half / 2, dy: '0.35em', 'text-anchor': 'middle',
+      }, c.label));
+    }
+  };
+  addCells(layout.header.top, 0);
+  addCells(layout.header.bottom, half);
+  return g;
+}
+
+function renderLinks(layout, uid) {
+  const g = svgEl('g', { class: 'gantt-links' });
+  for (const link of layout.links) {
+    const group = svgEl('g', {
+      class: cls('gantt-link', `gantt-link--${link.type.toLowerCase()}`, link.selected && 'is-selected'),
+      'data-link-id': link.id,
+    });
+    group.append(svgEl('path', {
+      class: 'gantt-link-hit', d: link.d, 'data-role': 'link', 'data-link-id': link.id, 'data-export': 'skip',
+    }));
+    group.append(svgEl('path', {
+      class: 'gantt-link-path', d: link.d, 'marker-end': `url(#${uid}-arrow)`,
+    }));
+    g.append(group);
+  }
+  return g;
+}
+
+function barShape(bar) {
+  const { x, y, width: w, height: h } = bar;
+  if (bar.kind === 'group') {
+    const pts = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x + w - 6},${y + h * 0.55} ${x + 6},${y + h * 0.55} ${x},${y + h}`;
+    return svgEl('polygon', { class: 'gantt-bar gantt-bar--group', points: pts, 'data-role': 'bar', 'data-id': bar.id });
+  }
+  if (bar.kind === 'milestone') {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const pts = `${cx},${y} ${x + w},${cy} ${cx},${y + h} ${x},${cy}`;
+    return svgEl('polygon', { class: 'gantt-bar gantt-bar--milestone', points: pts, 'data-role': 'bar', 'data-id': bar.id });
+  }
+  return svgEl('rect', { class: 'gantt-bar', x, y, width: w, height: h, 'data-role': 'bar', 'data-id': bar.id });
+}
+
+function renderBars(layout, { readonly, dragId }) {
+  const g = svgEl('g', { class: 'gantt-bars' });
+  for (const bar of layout.bars) {
+    const group = svgEl('g', {
+      class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
+        bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging'),
+      'data-id': bar.id,
+      'data-selectable': true,
+      role: 'img',
+      'aria-label': bar.label,
+    });
+    group.append(barShape(bar));
+    if (bar.kind === 'task' && bar.progressWidth > 0) {
+      group.append(svgEl('rect', {
+        class: 'gantt-progress', x: bar.x, y: bar.y, width: bar.progressWidth, height: bar.height, 'pointer-events': 'none',
+      }));
+    }
+    group.append(svgEl('text', {
+      class: 'gantt-label', x: bar.x + bar.width + 18, y: bar.y + bar.height / 2, dy: '0.35em',
+    }, bar.name));
+    if (!readonly) {
+      const cy = bar.y + bar.height / 2;
+      const skip = { 'data-export': 'skip', 'data-id': bar.id };
+      if (bar.kind === 'task') {
+        group.append(svgEl('rect', {
+          class: 'gantt-handle', x: bar.x, y: bar.y, width: 6, height: bar.height, 'data-role': 'handle-start', ...skip,
+        }));
+        group.append(svgEl('rect', {
+          class: 'gantt-handle', x: bar.x + bar.width - 6, y: bar.y, width: 6, height: bar.height,
+          'data-role': 'handle-end', ...skip,
+        }));
+        group.append(svgEl('polygon', {
+          class: 'gantt-handle gantt-handle--progress',
+          points: `${bar.x + bar.progressWidth - 5},${bar.y + bar.height + 5} ${bar.x + bar.progressWidth + 5},${bar.y + bar.height + 5} ${bar.x + bar.progressWidth},${bar.y + bar.height - 1}`,
+          'data-role': 'handle-progress', ...skip,
+        }));
+      }
+      group.append(svgEl('circle', { class: 'gantt-anchor', cx: bar.x - 8, cy, r: 4, 'data-role': 'anchor-start', ...skip }));
+      group.append(svgEl('circle', {
+        class: 'gantt-anchor', cx: bar.x + bar.width + 8, cy, r: 4, 'data-role': 'anchor-end', ...skip,
+      }));
+    }
+    g.append(group);
+  }
+  return g;
+}
+
+function renderTable(layout, uid) {
+  const { table } = layout;
+  const g = svgEl('g', { class: 'gantt-table', 'data-sticky': 'x' });
+  g.append(svgEl('rect', { class: 'gantt-table-bg', x: 0, y: 0, width: table.width, height: layout.height }));
+  const colX = [0, table.nameW, table.nameW + table.dateColWidth];
+  for (const row of table.rows) {
+    const rowGroup = svgEl('g', {
+      class: cls('gantt-table-row', row.alt && 'gantt-table-row--alt', row.group && 'gantt-table-row--group',
+        row.selected && 'is-selected'),
+      'data-id': row.id,
+      'data-selectable': true,
+    });
+    rowGroup.append(svgEl('rect', { class: 'gantt-table-rowbg', x: 0, y: row.y, width: table.width, height: layout.rowHeight }));
+    const cx = 8 + row.depth * table.indent;
+    const cy = row.y + layout.rowHeight / 2;
+    if (row.group) {
+      const pts = row.collapsed
+        ? `${cx},${cy - 4} ${cx + 6},${cy} ${cx},${cy + 4}`
+        : `${cx - 1},${cy - 3} ${cx + 7},${cy - 3} ${cx + 3},${cy + 4}`;
+      rowGroup.append(svgEl('polygon', { class: 'gantt-chevron', points: pts, 'pointer-events': 'none' }));
+      rowGroup.append(svgEl('rect', {
+        class: 'gantt-chevron-hit', x: cx - 6, y: row.y, width: 20, height: layout.rowHeight,
+        'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
+      }));
+    }
+    const cells = [
+      ['cell-name', colX[0], table.nameW, row.name, cx + 16],
+      ['cell-start', colX[1], table.dateColWidth, row.startLabel, colX[1] + 8],
+      ['cell-end', colX[2], table.dateColWidth, row.endLabel, colX[2] + 8],
+    ];
+    for (const [role, x, w, text, tx] of cells) {
+      rowGroup.append(svgEl('rect', {
+        class: 'gantt-cell', x, y: row.y, width: w, height: layout.rowHeight, 'data-role': role, 'data-id': row.id,
+        'data-export': 'skip',
+      }));
+      rowGroup.append(svgEl('text', {
+        class: cls('gantt-table-text', role === 'cell-name' ? 'gantt-table-text--name' : 'gantt-table-text--date'),
+        x: tx, y: cy, dy: '0.35em',
+        'clip-path': role === 'cell-name' ? `url(#${uid}-clip-name)` : undefined,
+      }, text));
+    }
+    g.append(rowGroup);
+  }
+  g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.height }));
+  return g;
+}
+
+function renderCorner(layout) {
+  const { table } = layout;
+  const g = svgEl('g', { class: 'gantt-corner', 'data-sticky': 'xy' });
+  g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
+  const titles = [['Nom', 8], ['Début', table.nameW + 8], ['Fin', table.nameW + table.dateColWidth + 8]];
+  for (const [label, x] of titles) {
+    g.append(svgEl('text', { class: 'gantt-header-text gantt-header-text--table', x, y: layout.headerHeight / 2, dy: '0.35em' }, label));
+  }
+  g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.headerHeight }));
+  return g;
+}
+
+export function renderSVG(layout, { uid = 'g0', readonly = false, dragId = null } = {}) {
+  const svg = svgEl('svg', {
+    class: 'gantt-svg',
+    xmlns: NS,
+    width: layout.width,
+    height: layout.height,
+    viewBox: `0 0 ${layout.width} ${layout.height}`,
+    role: 'group',
+    'aria-label': 'Diagramme de Gantt',
+  });
+  svg.append(
+    renderDefs(uid, layout),
+    renderGrid(layout),
+    renderLinks(layout, uid),
+    renderBars(layout, { readonly, dragId }),
+    renderHeader(layout),
+    renderTable(layout, uid),
+    renderCorner(layout),
+    svgEl('g', { class: 'gantt-overlay' }),
+  );
+  return svg;
+}

@@ -1,4 +1,5 @@
 import { toDay, fromDay } from './dates.js';
+import { computeDates } from './scheduler.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
 
@@ -20,6 +21,7 @@ export class GanttModel {
       const res = this.addLink(raw);
       if (!res.ok) throw new Error(`Lien ${raw?.id ?? `${raw?.from}→${raw?.to}`} invalide : ${res.reason}`);
     }
+    this.reschedule();
   }
 
   #loadTask(raw) {
@@ -241,6 +243,7 @@ export class GanttModel {
     }
     const stored = { id, ...norm };
     this.#links.push(stored);
+    this.reschedule();
     return { ok: true, link: stored };
   }
 
@@ -249,6 +252,15 @@ export class GanttModel {
     if (i === -1) return false;
     this.#links.splice(i, 1);
     return true;
+  }
+
+  reschedule() {
+    for (const [id, d] of computeDates(this)) {
+      const t = this.#tasks.get(id);
+      t.start = d.start;
+      t.end = d.end;
+    }
+    this.#aggregateGroups();
   }
 
   getData() {

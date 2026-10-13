@@ -46,8 +46,9 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs });
-g.on('change' | 'select' | 'invalid' | 'scale', handler); // retourne une fonction de désabonnement
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit });
+g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
+g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.setScale('month');
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
@@ -58,9 +59,14 @@ g.print();
 g.destroy();
 ```
 
+## Événements
+
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason`), `scale`, `history` (`canUndo`, `canRedo`).
+L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
+
 ## Interactions
 
-Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
+Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + `Z` annule, `Ctrl`/`Cmd` + `Maj` + `Z` ou `Ctrl` + `Y` rétablit (le repli d'un groupe n'est pas annulable) ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
 
 ## Styles
 

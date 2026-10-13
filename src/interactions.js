@@ -47,6 +47,7 @@ export function attachInteractions(g) {
     }
     const role = hit.dataset.role;
     const id = hit.dataset.id;
+    g.root.querySelector('.gantt-input')?.blur(); // valide l'édition en cours avant de copier le modèle
     switch (role) {
       case 'chevron':
         g.commit('collapse', { id }, (m) => m.toggleCollapsed(id));
@@ -144,7 +145,33 @@ export function attachInteractions(g) {
     g.commit(type, { id: d.id }, d.mutate);
   }
 
+  function onPointerCancel(e) {
+    if (!drag) return;
+    drag = null;
+    try {
+      root.releasePointerCapture(e.pointerId);
+    } catch {
+      /* capture déjà relâchée */
+    }
+    g.render();
+  }
+
   function onKeyDown(e) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && !e.altKey && !drag) {
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) g.redo();
+        else g.undo();
+        return;
+      }
+      if (key === 'y') {
+        e.preventDefault();
+        g.redo();
+        return;
+      }
+    }
     if (e.key === 'Escape' && drag) {
       drag = null;
       g.render();
@@ -154,7 +181,7 @@ export function attachInteractions(g) {
       e.preventDefault();
       const id = g.state.selectedLinkId;
       g.state.selectedLinkId = null;
-      g.commit('unlink', { id }, (m) => ({ ok: m.removeLink(id) }));
+      g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
     }
   }
 
@@ -236,10 +263,17 @@ export function attachInteractions(g) {
     g.root.append(input);
     input.focus();
     input.select();
+    const top0 = rect.top - host.top;
+    const scroll0 = root.scrollTop;
+    const follow = () => {
+      input.style.top = `${top0 - (root.scrollTop - scroll0)}px`;
+    };
+    root.addEventListener('scroll', follow, { passive: true });
     let done = false;
     const finish = (commit) => {
       if (done) return;
       done = true;
+      root.removeEventListener('scroll', follow);
       const value = input.value.trim();
       input.remove();
       if (!commit) return;
@@ -256,7 +290,7 @@ export function attachInteractions(g) {
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
-  root.addEventListener('pointercancel', onPointerUp);
+  root.addEventListener('pointercancel', onPointerCancel);
   root.addEventListener('keydown', onKeyDown);
   root.addEventListener('wheel', onWheel, { passive: false });
   root.addEventListener('dblclick', onDblClick);
@@ -265,7 +299,7 @@ export function attachInteractions(g) {
     root.removeEventListener('pointerdown', onPointerDown);
     root.removeEventListener('pointermove', onPointerMove);
     root.removeEventListener('pointerup', onPointerUp);
-    root.removeEventListener('pointercancel', onPointerUp);
+    root.removeEventListener('pointercancel', onPointerCancel);
     root.removeEventListener('keydown', onKeyDown);
     root.removeEventListener('wheel', onWheel);
     root.removeEventListener('dblclick', onDblClick);

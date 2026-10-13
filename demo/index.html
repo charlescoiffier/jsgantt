@@ -9,54 +9,90 @@
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
     body.dark { background: #111827; color: #e5e7eb; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .toolbar button { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
-    body.dark .toolbar button { background: #1f2937; color: #e5e7eb; border-color: #374151; }
-    .toolbar button[aria-pressed="true"] { border-color: #2563eb; background: #dbeafe; color: #1e3a8a; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 14px; align-items: center; }
+    .toolbar .group { display: inline-flex; align-items: center; gap: 6px; }
+    .toolbar .group-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
+    .toolbar .spacer { flex: 1; }
+    .toolbar button, .toolbar .import, .toolbar select {
+      height: 34px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px;
+      padding: 0 12px; font: 500 13px/1 system-ui, sans-serif; color: #1f2937; background: #fff;
+      border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,.04);
+      transition: background .12s, border-color .12s, box-shadow .12s;
+    }
+    .toolbar select { padding: 0 8px; }
+    .toolbar svg { width: 16px; height: 16px; flex: none; }
+    .toolbar button:hover:not(:disabled), .toolbar .import:hover { background: #f3f4f6; border-color: #c4c9d1; }
+    .toolbar button:active:not(:disabled) { background: #e5e7eb; }
+    .toolbar button:focus-visible, .toolbar select:focus-visible, .toolbar .import:focus-within { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .toolbar button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    .toolbar button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .toolbar button.primary:hover:not(:disabled) { background: #1d4ed8; border-color: #1d4ed8; }
+    .toolbar button.toggle[aria-pressed="true"] { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+    .toolbar .seg { display: inline-flex; gap: 2px; padding: 3px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .toolbar .seg button { height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; color: #4b5563; }
+    .toolbar .seg button:hover:not(:disabled) { background: #e5e7eb; }
+    .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.04); }
+    /* Sombre */
+    body.dark .toolbar .group-label { color: #9ca3af; }
+    body.dark .toolbar button, body.dark .toolbar .import, body.dark .toolbar select { background: #1f2937; color: #e5e7eb; border-color: #374151; box-shadow: none; }
+    body.dark .toolbar button:hover:not(:disabled), body.dark .toolbar .import:hover { background: #273449; border-color: #4b5563; }
+    body.dark .toolbar button:active:not(:disabled) { background: #334155; }
+    body.dark .toolbar button.primary { background: #3b82f6; border-color: #3b82f6; color: #0b1220; }
+    body.dark .toolbar button.primary:hover:not(:disabled) { background: #60a5fa; border-color: #60a5fa; }
+    body.dark .toolbar button.toggle[aria-pressed="true"] { background: #1e3a8a; border-color: #3b82f6; color: #dbeafe; }
+    body.dark .toolbar .seg { background: #0b1220; border-color: #374151; }
+    body.dark .toolbar .seg button { background: transparent; color: #9ca3af; }
+    body.dark .toolbar .seg button:hover:not(:disabled) { background: #1f2937; color: #e5e7eb; }
+    body.dark .toolbar .seg button[aria-pressed="true"] { background: #374151; color: #fff; box-shadow: none; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
-    .toolbar .seg { display: contents; }
     /* Boutons du thème Todoist */
-    body.theme-todoist .toolbar { gap: 4px; }
-    body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import {
-      border: 0; background: transparent; color: #202020; border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer;
+    body.theme-todoist .toolbar { gap: 4px 8px; }
+    body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import, body.theme-todoist .toolbar select {
+      border: 0; background: transparent; color: #202020; border-radius: 8px; padding: 0 12px; font-size: 14px; box-shadow: none; cursor: pointer;
     }
-    body.theme-todoist .toolbar button:hover, body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
-    body.theme-todoist .toolbar .seg { display: inline-flex; background: #f1f1f1; border-radius: 10px; padding: 3px; margin-right: 8px; }
-    body.theme-todoist .toolbar .seg button { padding: 5px 14px; color: #666; }
-    body.theme-todoist .toolbar .seg button:hover { background: transparent; color: #202020; }
+    body.theme-todoist .toolbar button:hover:not(:disabled), body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
+    body.theme-todoist .toolbar .seg { background: #f1f1f1; border: 0; border-radius: 10px; margin-right: 8px; }
+    body.theme-todoist .toolbar .seg button { color: #666; }
+    body.theme-todoist .toolbar .seg button:hover:not(:disabled) { background: transparent; color: #202020; }
     body.theme-todoist .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
     body.theme-todoist .toolbar button.primary { background: #dc4c3e; color: #fff; font-weight: 600; }
-    body.theme-todoist .toolbar button.primary:hover { background: #c3392c; }
-    body.theme-todoist .toolbar button[aria-pressed="true"]:not(.seg button) { background: #fdf0ef; color: #dc4c3e; }
-    body.theme-todoist .toolbar select { border: 0; background: #f5f5f5; border-radius: 8px; padding: 7px 10px; font: inherit; color: #202020; }
-    body.theme-todoist .toolbar label { color: #808080; font-size: 13px; }
-    body.dark .toolbar .import { background: #1f2937; color: #e5e7eb; border-color: #374151; }
-    .toolbar .import { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; }
+    body.theme-todoist .toolbar button.primary:hover:not(:disabled) { background: #c3392c; }
+    body.theme-todoist .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
+    body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 10px; font: inherit; }
+    body.theme-todoist .toolbar .group-label { color: #808080; }
   </style>
 </head>
 <body>
   <h1>jsgantt</h1>
-  <div class="toolbar" id="toolbar">
-    <div class="seg">
+  <div class="toolbar" id="toolbar" role="toolbar" aria-label="Actions du diagramme">
+    <div class="seg" role="group" aria-label="Échelle">
       <button data-scale="day" aria-pressed="false">Jour</button>
       <button data-scale="week" aria-pressed="true">Semaine</button>
       <button data-scale="month" aria-pressed="false">Mois</button>
     </div>
-    <span style="flex:1"></span>
-    <button id="exp-svg">Export SVG</button>
-    <button id="exp-json">Export JSON</button>
-    <button id="exp-pdf" class="primary">Export PDF</button>
-    <button id="exp-print">Imprimer</button>
-    <label>Thème
+    <div class="group" role="group" aria-label="Historique">
+      <button id="undo" disabled title="Annuler (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Annuler</button>
+      <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Rétablir</button>
+    </div>
+    <span class="spacer"></span>
+    <div class="group" role="group" aria-label="Export">
+      <span class="group-label">Exporter</span>
+      <button id="exp-svg" title="Télécharger en SVG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>SVG</button>
+      <button id="exp-json" title="Télécharger en JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>JSON</button>
+      <button id="exp-pdf" class="primary" title="Télécharger en PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>PDF</button>
+      <button id="exp-print" title="Imprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/></svg>Imprimer</button>
+    </div>
+    <div class="group" role="group" aria-label="Affichage">
+      <label class="group-label" for="theme">Thème</label>
       <select id="theme">
         <option value="light">Défaut</option>
         <option value="dark">Sombre</option>
         <option value="todoist">Todoist</option>
       </select>
-    </label>
-    <button id="toggle-readonly" aria-pressed="false">Lecture seule</button>
-    <label class="import">Import JSON <input id="imp-json" type="file" accept="application/json" hidden></label>
+      <button id="toggle-readonly" class="toggle" aria-pressed="false" title="Verrouiller l'édition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Lecture seule</button>
+      <label class="import" title="Importer un fichier JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Importer <input id="imp-json" type="file" accept="application/json" hidden></label>
+    </div>
   </div>
   <div id="chart"></div>
   <div id="log" aria-live="polite"></div>
@@ -95,6 +131,16 @@
     };
     for (const name of ['change', 'select', 'invalid', 'scale']) gantt.on(name, (d) => write(name, d));
 
+    const undoBtn = document.getElementById('undo');
+    const redoBtn = document.getElementById('redo');
+    const syncHistory = () => {
+      undoBtn.disabled = !gantt.canUndo;
+      redoBtn.disabled = !gantt.canRedo;
+    };
+    gantt.on('history', syncHistory);
+    undoBtn.onclick = () => gantt.undo();
+    redoBtn.onclick = () => gantt.redo();
+
     const toolbar = document.getElementById('toolbar');
     toolbar.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-scale]');
@@ -130,6 +176,7 @@
       gantt.readonly = !gantt.readonly;
       roBtn.setAttribute('aria-pressed', String(gantt.readonly));
       gantt.render();
+      syncHistory();
     };
     document.getElementById('imp-json').onchange = async (e) => {
       const file = e.target.files[0];

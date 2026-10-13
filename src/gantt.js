@@ -2,6 +2,7 @@ import { GanttModel } from './model.js';
 import { Timescale, SCALES } from './timescale.js';
 import { computeLayout, renderSVG, readMetrics } from './renderer.js';
 import { attachInteractions } from './interactions.js';
+import { History } from './history.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -27,6 +28,7 @@ export class Gantt {
     this.readonly = options.readonly === true;
     this.scale = scale;
     this.pdfLibs = options.pdfLibs ?? {};
+    this.history = new History(options.historyLimit ?? 100);
     this.model = new GanttModel({ tasks: options.tasks, links: options.links });
     this.state = { selectedId: null, selectedLinkId: null };
     this.scroller.addEventListener('scroll', () => this.applySticky(), { passive: true });
@@ -84,6 +86,7 @@ export class Gantt {
   }
 
   render({ model = this.model, dragId = null } = {}) {
+    this.root.classList.toggle('is-readonly', this.readonly);
     this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay() });
     const svg = renderSVG(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
@@ -135,15 +138,65 @@ export class Gantt {
   }
 
   commit(type, detail, mutate) {
+    const before = this.model.getData();
     const result = mutate(this.model);
     if (result && result.ok === false) {
       this.emit('invalid', { reason: result.reason });
       this.render();
       return result;
     }
-    this.emit('change', { type, ...detail });
+    // Le repli est un état d'affichage : il n'entre pas dans l'historique.
+    if (type !== 'collapse') this.#record(before);
+    const extra = result?.link ? { linkId: result.link.id } : {};
+    this.emit('change', { type, ...detail, ...extra });
     this.refresh();
     return result ?? { ok: true };
+  }
+
+  #record(before) {
+    if (this.history.push(before, this.model.getData())) this.#emitHistory();
+  }
+
+  #emitHistory() {
+    this.emit('history', { canUndo: this.canUndo, canRedo: this.canRedo });
+  }
+
+  get canUndo() {
+    return !this.readonly && this.history.canUndo;
+  }
+
+  get canRedo() {
+    return !this.readonly && this.history.canRedo;
+  }
+
+  undo() {
+    if (!this.canUndo) return false;
+    this.#restore(this.history.undo(this.model.getData()), 'undo');
+    return true;
+  }
+
+  redo() {
+    if (!this.canRedo) return false;
+    this.#restore(this.history.redo(this.model.getData()), 'redo');
+    return true;
+  }
+
+  #restore(snapshot, type) {
+    // Les groupes gardent leur état replié actuel.
+    const collapsed = new Map(this.model.tasks.map((t) => [t.id, t.collapsed]));
+    for (const t of snapshot.tasks) {
+      if (!collapsed.has(t.id)) continue;
+      if (collapsed.get(t.id)) t.collapsed = true;
+      else delete t.collapsed;
+    }
+    this.model = new GanttModel(snapshot);
+    if (this.state.selectedId && !this.model.getTask(this.state.selectedId)) this.state.selectedId = null;
+    if (this.state.selectedLinkId && !this.model.links.some((l) => l.id === this.state.selectedLinkId)) {
+      this.state.selectedLinkId = null;
+    }
+    this.emit('change', { type });
+    this.refresh();
+    this.#emitHistory();
   }
 
   exportJSON(filename = 'gantt.json') {
@@ -176,6 +229,8 @@ export class Gantt {
     const model = new GanttModel(data); // lève avant de toucher à l'état courant
     this.model = model;
     this.state = { selectedId: null, selectedLinkId: null };
+    this.history.clear();
+    this.#emitHistory();
     this.refresh();
   }
 }

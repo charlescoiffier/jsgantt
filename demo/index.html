@@ -44,6 +44,8 @@
       <button data-scale="month" aria-pressed="false">Mois</button>
     </div>
     <span style="flex:1"></span>
+    <button id="undo" disabled>Annuler</button>
+    <button id="redo" disabled>Rétablir</button>
     <button id="exp-svg">Export SVG</button>
     <button id="exp-json">Export JSON</button>
     <button id="exp-pdf" class="primary">Export PDF</button>
@@ -95,6 +97,16 @@
     };
     for (const name of ['change', 'select', 'invalid', 'scale']) gantt.on(name, (d) => write(name, d));
 
+    const undoBtn = document.getElementById('undo');
+    const redoBtn = document.getElementById('redo');
+    const syncHistory = () => {
+      undoBtn.disabled = !gantt.canUndo;
+      redoBtn.disabled = !gantt.canRedo;
+    };
+    gantt.on('history', syncHistory);
+    undoBtn.onclick = () => gantt.undo();
+    redoBtn.onclick = () => gantt.redo();
+
     const toolbar = document.getElementById('toolbar');
     toolbar.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-scale]');
@@ -130,6 +142,7 @@
       gantt.readonly = !gantt.readonly;
       roBtn.setAttribute('aria-pressed', String(gantt.readonly));
       gantt.render();
+      syncHistory();
     };
     document.getElementById('imp-json').onchange = async (e) => {
       const file = e.target.files[0];

@@ -88,6 +88,10 @@
 .gantt-group-pill, .gantt-group-pill-progress { display: none; }
 .gantt-task.is-selected .gantt-group-pill { stroke: var(--gantt-selected); stroke-width: 2; }
 
+/* Lecture seule : aucun curseur d'édition */
+.gantt-root.is-readonly .gantt-bar,
+.gantt-root.is-readonly .gantt-group-pill { cursor: default !important; }
+
 /* Poignées et ancres (visibles au survol) */
 .gantt-handle { fill: transparent; cursor: ew-resize; }
 .gantt-handle--progress { fill: var(--gantt-progress-bg); cursor: pointer; opacity: 0; }

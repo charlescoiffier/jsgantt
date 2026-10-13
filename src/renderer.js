@@ -294,7 +294,8 @@ function renderLinks(layout, uid) {
 function barShape(bar) {
   const { x, y, width: w, height: h } = bar;
   if (bar.kind === 'group') {
-    const pts = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x + w - 6},${y + h * 0.55} ${x + 6},${y + h * 0.55} ${x},${y + h}`;
+    const n = Math.min(6, w / 4);
+    const pts = `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x + w - n},${y + h * 0.55} ${x + n},${y + h * 0.55} ${x},${y + h}`;
     return svgEl('polygon', { class: 'gantt-bar gantt-bar--group', points: pts, 'data-role': 'bar', 'data-id': bar.id });
   }
   if (bar.kind === 'milestone') {

@@ -1,6 +1,7 @@
 import { GanttModel } from './model.js';
 import { Timescale, SCALES } from './timescale.js';
 import { computeLayout, renderSVG, readMetrics } from './renderer.js';
+import { attachInteractions } from './interactions.js';
 
 let uidCounter = 0;
 
@@ -28,6 +29,12 @@ export class Gantt {
     this.state = { selectedId: null, selectedLinkId: null };
     this.scroller.addEventListener('scroll', () => this.applySticky(), { passive: true });
     this.refresh();
+    this.detach = attachInteractions(this);
+  }
+
+  destroy() {
+    this.detach();
+    this.root.replaceChildren();
   }
 
   on(name, fn) {

@@ -372,10 +372,6 @@ function renderTable(layout, uid) {
         ? `${cx},${cy - 4} ${cx + 6},${cy} ${cx},${cy + 4}`
         : `${cx - 1},${cy - 3} ${cx + 7},${cy - 3} ${cx + 3},${cy + 4}`;
       rowGroup.append(svgEl('polygon', { class: 'gantt-chevron', points: pts, 'pointer-events': 'none' }));
-      rowGroup.append(svgEl('rect', {
-        class: 'gantt-chevron-hit', x: cx - 6, y: row.y, width: 20, height: layout.rowHeight,
-        'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
-      }));
     }
     const cells = [
       ['cell-name', colX[0], table.nameW, row.name, cx + 16],
@@ -392,6 +388,12 @@ function renderTable(layout, uid) {
         x: tx, y: cy, dy: '0.35em',
         'clip-path': role === 'cell-name' ? `url(#${uid}-clip-name)` : undefined,
       }, text));
+    }
+    if (row.group) {
+      rowGroup.append(svgEl('rect', {
+        class: 'gantt-chevron-hit', x: cx - 6, y: row.y, width: 20, height: layout.rowHeight,
+        'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
+      }));
     }
     g.append(rowGroup);
   }

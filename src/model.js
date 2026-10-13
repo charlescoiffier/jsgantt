@@ -183,6 +183,30 @@ export class GanttModel {
     return total === 0 ? 0 : done / total;
   }
 
+  #indexChildren() {
+    this.#children = new Map();
+    for (const t of this.#tasks.values()) {
+      if (!this.#children.has(t.parentId)) this.#children.set(t.parentId, []);
+      this.#children.get(t.parentId).push(t.id);
+    }
+  }
+
+  #applyOrder(ids) {
+    const next = new Map();
+    for (const id of ids) next.set(id, this.#tasks.get(id));
+    this.#tasks = next;
+    this.#indexChildren();
+  }
+
+  #linksProblem() {
+    for (const link of this.#links) {
+      if (this.ancestorsOf(link.from).includes(link.to) || this.ancestorsOf(link.to).includes(link.from)) {
+        return 'le déplacement créerait un lien interdit entre un groupe et un de ses descendants';
+      }
+    }
+    return this.#wouldCycle() ? 'le déplacement créerait un cycle' : null;
+  }
+
   checkLink(link) {
     const { from, to } = link;
     if (!this.#tasks.has(from)) return `tâche source inconnue : "${from}"`;
@@ -210,7 +234,7 @@ export class GanttModel {
       }
     };
     for (const link of this.#links) addEdge(link.from, link.to);
-    addEdge(from, to);
+    if (from !== undefined) addEdge(from, to);
     const state = new Map(); // 1 = en cours, 2 = terminé
     for (const root of adj.keys()) {
       if (state.has(root)) continue;
@@ -356,6 +380,110 @@ export class GanttModel {
   toggleCollapsed(id) {
     const t = this.#require(id);
     t.collapsed = !t.collapsed;
+  }
+
+  addTask(spec = {}) {
+    let { id, name, start, end, parentId = null, afterId = null } = spec;
+    if (typeof start !== 'string') return { ok: false, reason: '"start" est requis (AAAA-MM-JJ)' };
+    let s;
+    let e;
+    try {
+      s = toDay(start);
+      e = end === undefined ? s + 2 : toDay(end);
+    } catch (err) {
+      return { ok: false, reason: err.message };
+    }
+    if (e < s) return { ok: false, reason: 'la fin précède le début' };
+    if (afterId !== null) {
+      const ref = this.#tasks.get(afterId);
+      if (!ref) return { ok: false, reason: `tâche de référence inconnue : "${afterId}"` };
+      parentId = ref.parentId;
+    } else if (parentId !== null && !this.#tasks.has(parentId)) {
+      return { ok: false, reason: `parent inconnu : "${parentId}"` };
+    }
+    if (id === undefined) {
+      let n = this.#tasks.size + 1;
+      while (this.#tasks.has(`t${n}`)) n++;
+      id = `t${n}`;
+    } else if (this.#tasks.has(id)) {
+      return { ok: false, reason: `identifiant de tâche dupliqué : "${id}"` };
+    }
+    const order = [...this.#tasks.keys()];
+    let at;
+    if (afterId !== null) {
+      at = order.indexOf(afterId) + 1;
+    } else if (parentId === null) {
+      at = order.length;
+    } else {
+      const kids = this.childrenOf(parentId).map((c) => order.indexOf(c.id));
+      at = (kids.length ? Math.max(...kids) : order.indexOf(parentId)) + 1;
+    }
+    const task = {
+      id,
+      name: String(name ?? 'Nouvelle tâche'),
+      start: s,
+      end: e,
+      progress: 0,
+      parentId,
+      collapsed: false,
+      milestone: false,
+      className: '',
+    };
+    order.splice(at, 0, id);
+    this.#tasks.set(id, task);
+    this.#applyOrder(order);
+    this.reschedule();
+    return { ok: true, task: { ...task } };
+  }
+
+  removeTask(id) {
+    this.#require(id);
+    const removedTasks = [id, ...this.descendantsOf(id)];
+    const gone = new Set(removedTasks);
+    const removedLinks = this.#links.filter((l) => gone.has(l.from) || gone.has(l.to)).map((l) => l.id);
+    this.#links = this.#links.filter((l) => !gone.has(l.from) && !gone.has(l.to));
+    for (const rid of removedTasks) this.#tasks.delete(rid);
+    this.#indexChildren();
+    this.reschedule();
+    return { ok: true, removedTasks, removedLinks };
+  }
+
+  moveTaskTo(id, { parentId = null, beforeId = null } = {}) {
+    const t = this.#require(id);
+    if (parentId === id || (parentId !== null && this.descendantsOf(id).includes(parentId))) {
+      return { ok: false, reason: 'une tâche ne peut pas être déplacée dans elle-même ni dans un de ses descendants' };
+    }
+    if (parentId !== null && !this.#tasks.has(parentId)) return { ok: false, reason: `parent inconnu : "${parentId}"` };
+    if (beforeId !== null) {
+      const b = this.#tasks.get(beforeId);
+      if (!b || b.parentId !== parentId || beforeId === id) {
+        return { ok: false, reason: 'beforeId doit être un enfant du nouveau parent' };
+      }
+    }
+    const saved = { order: [...this.#tasks.keys()], parentId: t.parentId };
+    const sub = new Set([id, ...this.descendantsOf(id)]);
+    const rest = saved.order.filter((x) => !sub.has(x));
+    const moved = saved.order.filter((x) => sub.has(x));
+    let at;
+    if (beforeId !== null) {
+      at = rest.indexOf(beforeId);
+    } else if (parentId === null) {
+      at = rest.length;
+    } else {
+      const kids = this.childrenOf(parentId).map((c) => c.id).filter((c) => !sub.has(c));
+      at = (kids.length ? Math.max(...kids.map((k) => rest.indexOf(k))) : rest.indexOf(parentId)) + 1;
+    }
+    rest.splice(at, 0, ...moved);
+    t.parentId = parentId;
+    this.#applyOrder(rest);
+    const reason = this.#linksProblem();
+    if (reason) {
+      t.parentId = saved.parentId;
+      this.#applyOrder(saved.order);
+      return { ok: false, reason };
+    }
+    this.reschedule();
+    return { ok: true };
   }
 
   getData() {

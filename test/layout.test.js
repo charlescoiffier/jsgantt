@@ -184,3 +184,19 @@ test('poignées : jamais plus de la moitié de la barre, pour garder une zone de
   assert.ok(a.handleWidth * 2 < a.width, 'une barre d\'un jour garde un corps central');
   assert.equal(barOf(layout, 'b').handleWidth, 6);
 });
+
+test('ligne d\'ajout : ajoutée sous la dernière ligne seulement si demandée', () => {
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07'), t('b', '2026-10-12', '2026-10-14')] });
+  const without = computeLayout(m, ts(), metrics);
+  assert.equal(without.addRow, null);
+  assert.equal(without.height, 48 + 2 * 32);
+  const withAdd = computeLayout(m, ts(), metrics, { showAdd: true });
+  assert.deepEqual(withAdd.addRow, { y: 48 + 2 * 32, alt: false });
+  assert.equal(withAdd.height, 48 + 3 * 32);
+});
+
+test('ligne d\'ajout sur un planning vide : juste sous l\'en-tête', () => {
+  const layout = computeLayout(new GanttModel(), ts(), metrics, { showAdd: true });
+  assert.deepEqual(layout.addRow, { y: 48, alt: false });
+  assert.equal(layout.height, 48 + 32);
+});

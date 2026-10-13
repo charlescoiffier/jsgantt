@@ -3,6 +3,7 @@ import { Timescale, SCALES } from './timescale.js';
 import { computeLayout, renderSVG, readMetrics } from './renderer.js';
 import { attachInteractions } from './interactions.js';
 import { History } from './history.js';
+import { fromDay } from './dates.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -87,7 +88,7 @@ export class Gantt {
 
   render({ model = this.model, dragId = null } = {}) {
     this.root.classList.toggle('is-readonly', this.readonly);
-    this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay() });
+    this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay(), showAdd: !this.readonly });
     const svg = renderSVG(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
     this.scroller.replaceChildren(svg);
@@ -147,10 +148,72 @@ export class Gantt {
     }
     // Le repli est un état d'affichage : il n'entre pas dans l'historique.
     if (type !== 'collapse') this.#record(before);
-    const extra = result?.link ? { linkId: result.link.id } : {};
+    const extra = result?.link ? { linkId: result.link.id } : result?.task ? { id: result.task.id } : {};
+    this.#reconcileSelection();
     this.emit('change', { type, ...detail, ...extra });
     this.refresh();
     return result ?? { ok: true };
+  }
+
+  #reconcileSelection() {
+    if (this.state.selectedId && !this.model.getTask(this.state.selectedId)) this.state.selectedId = null;
+    if (this.state.selectedLinkId && !this.model.links.some((l) => l.id === this.state.selectedLinkId)) {
+      this.state.selectedLinkId = null;
+    }
+  }
+
+  #denyReadonly() {
+    const reason = 'le diagramme est en lecture seule';
+    this.emit('invalid', { reason });
+    return { ok: false, reason };
+  }
+
+  #viewCenterDay() {
+    const view = (this.scroller.clientWidth - this.metrics.tableWidth) / 2;
+    return view > 0 ? this.timescale.xToDay(this.scroller.scrollLeft + view) : todayDay();
+  }
+
+  addTask(opts = {}) {
+    if (this.readonly) return this.#denyReadonly();
+    const spec = { ...opts };
+    if (spec.start === undefined) spec.start = fromDay(this.#viewCenterDay());
+    const result = this.commit('add', {}, (m) => m.addTask(spec));
+    if (result.ok && result.task) {
+      this.select(result.task.id);
+      this.reveal(result.task.id);
+      this.editCell(result.task.id, 'name');
+    }
+    return result;
+  }
+
+  removeTask(id) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('remove', { id }, (m) => m.removeTask(id));
+  }
+
+  moveTaskTo(id, to) {
+    if (this.readonly) return this.#denyReadonly();
+    const work = this.model.clone();
+    const probe = work.moveTaskTo(id, to);
+    if (probe.ok && JSON.stringify(work.getData()) === JSON.stringify(this.model.getData())) {
+      return { ok: true, unchanged: true };
+    }
+    return this.commit('reorder', { id }, (m) => m.moveTaskTo(id, to));
+  }
+
+  reveal(id) {
+    const row = this.layout.rows.find((r) => r.id === id);
+    if (!row) return;
+    const { scrollTop, clientHeight } = this.scroller;
+    const top = row.y;
+    const bottom = row.y + this.layout.rowHeight;
+    if (top < scrollTop + this.layout.headerHeight) this.scroller.scrollTop = Math.max(0, top - this.layout.headerHeight);
+    else if (bottom > scrollTop + clientHeight) this.scroller.scrollTop = bottom - clientHeight;
+    this.applySticky();
+  }
+
+  editCell(id, field) {
+    this.openEditor?.(id, field);
   }
 
   #record(before) {
@@ -190,10 +253,7 @@ export class Gantt {
       else delete t.collapsed;
     }
     this.model = new GanttModel(snapshot);
-    if (this.state.selectedId && !this.model.getTask(this.state.selectedId)) this.state.selectedId = null;
-    if (this.state.selectedLinkId && !this.model.links.some((l) => l.id === this.state.selectedLinkId)) {
-      this.state.selectedLinkId = null;
-    }
+    this.#reconcileSelection();
     this.emit('change', { type });
     this.refresh();
     this.#emitHistory();

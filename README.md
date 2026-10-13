@@ -41,6 +41,8 @@ Une tâche qui a des enfants est un **groupe** : ses dates sont calculées à pa
 | FF | `end(B) ≥ end(A) + lag` |
 | SF | `end(B) ≥ start(A) - 1 + lag` |
 
+Ajouter une tâche sous une tâche simple en fait un groupe (ses dates deviennent celles de ses enfants) ; retirer le dernier enfant d'un groupe le rend à nouveau simple, avec ses dernières dates. Un déplacement qui créerait un cycle ou un lien interdit entre un groupe et un de ses descendants est refusé.
+
 Planification en avant : une tâche n'est jamais avancée, seulement repoussée. Un lien vers un groupe décale tout le groupe. Les cycles et les liens entre un groupe et un de ses descendants sont refusés. Un import invalide lève une exception avec un message précis.
 
 ## API
@@ -49,6 +51,10 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
+g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
+g.removeTask(id);        // supprime la tâche, ses descendants et leurs liens
+g.moveTaskTo(id, { parentId, beforeId }); // réordonne ou change de parent
+// ces trois méthodes renvoient { ok, … } ; refusées en lecture seule ou si le résultat est invalide
 g.setScale('month');
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
@@ -61,12 +67,12 @@ g.destroy();
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason`), `scale`, `history` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason`), `scale`, `history` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
 
-Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + `Z` annule, `Ctrl`/`Cmd` + `Maj` + `Z` ou `Ctrl` + `Y` rétablit (le repli d'un groupe n'est pas annulable) ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
+Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; ligne « + Ajouter une tâche » en bas du tableau, et au survol d'une ligne : poignée (glisser pour réordonner : trait entre deux lignes = même niveau, milieu d'une ligne = en faire un enfant), « + » (ajoute en dessous) et corbeille ; `Suppr` supprime la tâche sélectionnée (ou le lien sélectionné), annulable ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + `Z` annule, `Ctrl`/`Cmd` + `Maj` + `Z` ou `Ctrl` + `Y` rétablit (le repli d'un groupe n'est pas annulable) ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
 
 ## Styles
 

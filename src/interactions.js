@@ -78,6 +78,20 @@ export function attachInteractions(g) {
         };
         root.setPointerCapture(e.pointerId);
         break;
+      case 'add-task':
+        if (!g.readonly) g.addTask();
+        break;
+      case 'row-add':
+        if (!g.readonly) g.addTask({ afterId: id });
+        break;
+      case 'row-delete':
+        if (!g.readonly) g.removeTask(id);
+        break;
+      case 'row-grip':
+        if (g.readonly) break;
+        g.select(id, null);
+        startReorder(id, e);
+        break;
       case 'cell-name':
       case 'cell-start':
       case 'cell-end':
@@ -114,6 +128,10 @@ export function attachInteractions(g) {
       moveLink(e);
       return;
     }
+    if (drag.kind === 'reorder') {
+      moveReorder(e);
+      return;
+    }
     if (!drag.moved && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) return;
     drag.moved = true;
     previewMutation(e);
@@ -138,6 +156,10 @@ export function attachInteractions(g) {
     }
     if (d.kind === 'link') {
       finishLink(d);
+      return;
+    }
+    if (d.kind === 'reorder') {
+      finishReorder(d);
       return;
     }
     if (!d.moved) return;
@@ -177,11 +199,16 @@ export function attachInteractions(g) {
       g.render();
       return;
     }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && g.state.selectedLinkId && !g.readonly) {
-      e.preventDefault();
-      const id = g.state.selectedLinkId;
-      g.state.selectedLinkId = null;
-      g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !g.readonly) {
+      if (g.state.selectedLinkId) {
+        e.preventDefault();
+        const id = g.state.selectedLinkId;
+        g.state.selectedLinkId = null;
+        g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
+      } else if (g.state.selectedId) {
+        e.preventDefault();
+        g.removeTask(g.state.selectedId);
+      }
     }
   }
 
@@ -194,6 +221,74 @@ export function attachInteractions(g) {
     const i = SCALES.indexOf(g.scale);
     const next = SCALES[Math.min(SCALES.length - 1, Math.max(0, i + (e.deltaY < 0 ? -1 : 1)))];
     if (next !== g.scale) g.setScale(next);
+  }
+
+  function startReorder(id, e) {
+    drag = { kind: 'reorder', id, base: g.model.clone(), drop: null, pointerId: e.pointerId };
+    root.setPointerCapture(e.pointerId);
+    for (const n of g.svg.querySelectorAll('.gantt-table-row')) {
+      if (n.dataset.id === id) n.classList.add('is-reordering');
+    }
+  }
+
+  function moveReorder(e) {
+    const p = local(e);
+    const { headerHeight, rowHeight } = g.layout;
+    const rows = g.layout.table.rows;
+    const model = drag.base;
+    const left = root.scrollLeft;
+    const width = g.layout.table.width;
+    let drop;
+    let line = null;
+    let box = null;
+    if (rows.length === 0 || p.y - headerHeight >= rows.length * rowHeight) {
+      drop = { parentId: null, beforeId: null };
+      line = headerHeight + rows.length * rowHeight;
+    } else {
+      const idx = Math.max(0, Math.floor((p.y - headerHeight) / rowHeight));
+      const row = rows[idx];
+      const frac = (p.y - headerHeight - idx * rowHeight) / rowHeight;
+      const task = model.getTask(row.id);
+      if (frac < 0.3) {
+        drop = { parentId: task.parentId, beforeId: row.id };
+        line = row.y;
+      } else if (frac > 0.7) {
+        const sibs = model.childrenOf(task.parentId);
+        const next = sibs[sibs.findIndex((x) => x.id === row.id) + 1];
+        drop = { parentId: task.parentId, beforeId: next ? next.id : null };
+        const family = new Set([row.id, ...model.descendantsOf(row.id)]);
+        const last = rows.filter((r) => family.has(r.id)).pop();
+        line = last.y + rowHeight;
+      } else {
+        drop = { parentId: row.id, beforeId: null };
+        box = row.y;
+      }
+    }
+    const probe = model.clone().moveTaskTo(drag.id, drop);
+    drop.valid = probe.ok;
+    drop.reason = probe.reason;
+    drag.drop = drop;
+    const cls = probe.ok ? '' : ' is-invalid';
+    g.svg.querySelector('.gantt-overlay').replaceChildren(
+      line !== null
+        ? svgEl('line', { class: `gantt-drop-line${cls}`, x1: left + 4, x2: left + width - 4, y1: line, y2: line })
+        : svgEl('rect', { class: `gantt-drop-box${cls}`, x: left + 2, y: box + 1, width: width - 4, height: rowHeight - 2 }),
+    );
+  }
+
+  function finishReorder(d) {
+    const drop = d.drop;
+    if (!drop) {
+      g.render();
+      return;
+    }
+    if (!drop.valid) {
+      g.emit('invalid', { reason: drop.reason });
+      g.render();
+      return;
+    }
+    const result = g.moveTaskTo(d.id, { parentId: drop.parentId, beforeId: drop.beforeId });
+    if (result.unchanged) g.render();
   }
 
   const LINK_TYPE = { 'end>start': 'FS', 'start>start': 'SS', 'end>end': 'FF', 'start>end': 'SF' };
@@ -238,11 +333,17 @@ export function attachInteractions(g) {
   }
 
   function onDblClick(e) {
-    if (g.readonly) return;
     const hit = e.target.closest?.('[data-role^="cell-"]');
+    if (hit) openEditor(hit.dataset.id, hit.dataset.role.slice('cell-'.length));
+  }
+
+  function openEditor(id, field) {
+    if (g.readonly || !['name', 'start', 'end'].includes(field)) return;
+    let hit = null;
+    for (const n of g.svg.querySelectorAll(`[data-role="cell-${field}"]`)) {
+      if (n.dataset.id === id) hit = n;
+    }
     if (!hit) return;
-    const id = hit.dataset.id;
-    const field = hit.dataset.role.slice('cell-'.length);
     if (field !== 'name' && g.model.isGroup(id)) {
       g.emit('invalid', { reason: 'les dates d\'un groupe sont calculées' });
       return;
@@ -287,6 +388,7 @@ export function attachInteractions(g) {
     input.addEventListener('blur', () => finish(true));
   }
 
+  g.openEditor = openEditor;
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
@@ -296,6 +398,7 @@ export function attachInteractions(g) {
   root.addEventListener('dblclick', onDblClick);
 
   return () => {
+    delete g.openEditor;
     root.removeEventListener('pointerdown', onPointerDown);
     root.removeEventListener('pointermove', onPointerMove);
     root.removeEventListener('pointerup', onPointerUp);

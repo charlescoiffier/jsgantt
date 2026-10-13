@@ -56,7 +56,8 @@ export function computeLayout(model, ts, metrics, state = {}) {
   const { rowHeight, barHeight, headerHeight, tableWidth, dateColWidth, indent, linkGap, linkRadius } = metrics;
   const rowsInfo = model.visibleRows();
   const width = tableWidth + ts.totalWidth;
-  const height = headerHeight + rowsInfo.length * rowHeight;
+  const addRow = state.showAdd ? { y: headerHeight + rowsInfo.length * rowHeight, alt: rowsInfo.length % 2 === 1 } : null;
+  const height = headerHeight + (rowsInfo.length + (addRow ? 1 : 0)) * rowHeight;
 
   const shift = (cell) => ({ ...cell, x: cell.x + tableWidth });
   const cells = ts.headerCells();
@@ -163,6 +164,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     rows,
     weekends,
     gridLines,
+    addRow,
     today,
     bars,
     links,
@@ -171,6 +173,13 @@ export function computeLayout(model, ts, metrics, state = {}) {
 }
 
 const NS = 'http://www.w3.org/2000/svg';
+
+const LABELS = {
+  addTask: 'Ajouter une tâche',
+  addBelow: 'Ajouter une tâche en dessous',
+  remove: 'Supprimer la tâche',
+  move: 'Déplacer la ligne',
+};
 
 export function svgEl(name, attrs = {}, text) {
   const e = document.createElementNS(NS, name);
@@ -231,6 +240,12 @@ function renderGrid(layout) {
     g.append(svgEl('rect', {
       class: cls('gantt-row', row.alt && 'gantt-row--alt', row.group && 'gantt-row--group'),
       x: 0, y: row.y, width: layout.width, height: layout.rowHeight,
+    }));
+  }
+  if (layout.addRow) {
+    g.append(svgEl('rect', {
+      class: cls('gantt-row', layout.addRow.alt && 'gantt-row--alt'),
+      x: 0, y: layout.addRow.y, width: layout.width, height: layout.rowHeight,
     }));
   }
   for (const w of layout.weekends) {
@@ -366,7 +381,38 @@ function renderBars(layout, { readonly, dragId }) {
   return g;
 }
 
-function renderTable(layout, uid) {
+const ACTION_ICONS = {
+  grip: 'M5.5 4.5h.01M10.5 4.5h.01M5.5 8h.01M10.5 8h.01M5.5 11.5h.01M10.5 11.5h.01',
+  add: 'M8 3.5v9M3.5 8h9',
+  delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
+};
+
+function renderRowActions(row, table, rowHeight) {
+  const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip' });
+  const w = 22;
+  const x0 = table.nameW - 3 * w - 4;
+  g.append(svgEl('rect', { class: 'gantt-action-bg', x: x0 - 4, y: row.y + 3, width: 3 * w + 8, height: rowHeight - 6 }));
+  const defs = [
+    ['grip', LABELS.move, 'row-grip'],
+    ['add', LABELS.addBelow, 'row-add'],
+    ['delete', LABELS.remove, 'row-delete'],
+  ];
+  defs.forEach(([icon, label, role], i) => {
+    const x = x0 + i * w;
+    const a = svgEl('g', { class: `gantt-action gantt-action--${icon}` });
+    a.append(svgEl('path', {
+      class: 'gantt-action-icon', d: ACTION_ICONS[icon],
+      transform: `translate(${x + w / 2 - 8},${row.y + rowHeight / 2 - 8})`,
+    }));
+    const hit = svgEl('rect', { class: 'gantt-action-hit', x, y: row.y, width: w, height: rowHeight, 'data-role': role, 'data-id': row.id });
+    hit.append(svgEl('title', {}, label));
+    a.append(hit);
+    g.append(a);
+  });
+  return g;
+}
+
+function renderTable(layout, uid, readonly) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-table', 'data-sticky': 'x' });
   g.append(svgEl('rect', { class: 'gantt-table-bg', x: 0, y: 0, width: table.width, height: layout.height }));
@@ -409,7 +455,24 @@ function renderTable(layout, uid) {
         'data-role': 'chevron', 'data-id': row.id, 'data-export': 'skip',
       }));
     }
+    if (!readonly) rowGroup.append(renderRowActions(row, table, layout.rowHeight));
     g.append(rowGroup);
+  }
+  if (layout.addRow && !readonly) {
+    const add = svgEl('g', { class: 'gantt-add-row', 'data-export': 'skip' });
+    add.append(svgEl('rect', {
+      class: cls('gantt-add-bg', layout.addRow.alt && 'gantt-add-bg--alt'),
+      x: 0, y: layout.addRow.y, width: table.width, height: layout.rowHeight,
+    }));
+    add.append(svgEl('text', {
+      class: 'gantt-add-text', x: 8, y: layout.addRow.y + layout.rowHeight / 2, dy: '0.35em',
+    }, `+ ${LABELS.addTask}`));
+    const hit = svgEl('rect', {
+      class: 'gantt-add-hit', x: 0, y: layout.addRow.y, width: table.width, height: layout.rowHeight, 'data-role': 'add-task',
+    });
+    hit.append(svgEl('title', {}, LABELS.addTask));
+    add.append(hit);
+    g.append(add);
   }
   g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.height }));
   return g;
@@ -443,7 +506,7 @@ export function renderSVG(layout, { uid = 'g0', readonly = false, dragId = null 
     renderLinks(layout, uid),
     renderBars(layout, { readonly, dragId }),
     renderHeader(layout),
-    renderTable(layout, uid),
+    renderTable(layout, uid, readonly),
     renderCorner(layout),
     svgEl('g', { class: 'gantt-overlay' }),
   );

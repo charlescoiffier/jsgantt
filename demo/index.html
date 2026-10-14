@@ -454,7 +454,7 @@
 
     const owners = [{ id: 'alice', name: 'Alice' }, { id: 'bruno', name: 'Bruno' }, { id: 'chloe', name: 'Chloé' }, { id: 'david', name: 'David' }];
     const markers = [{ id: 'copil', date: '2026-10-21', label: 'Copil', color: 'purple' }];
-    const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel du code', color: 'blue' }];
+    const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel', color: 'blue' }];
     const gantt = new Gantt(document.getElementById('chart'), { tasks, links, owners, markers, zones, scale: 'week', locale: initialLang });
     applyLang();
     document.getElementById('lang').value = lang;

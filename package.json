@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "demo": "node scripts/serve.mjs"
+    "demo": "node scripts/serve.mjs",
+    "capture:readme": "node scripts/capture-readme.mjs"
   },
   "license": "MIT"
 }

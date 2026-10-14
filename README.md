@@ -1,9 +1,135 @@
+> [!WARNING]
+> Ce projet a été vibecodé avec l’aide de l’intelligence artificielle.
+
 # jsgantt
 
-Diagrammes de Gantt interactifs en SVG, dont tout le design est piloté par CSS.
-JavaScript vanilla (ES modules), sans build, sans dépendance (le PDF charge svg2pdf.js et jsPDF à la demande).
+Une bibliothèque JavaScript pour dessiner des **diagrammes de Gantt interactifs**, en SVG, dont tout le design est
+piloté par **CSS**. Tâches, groupes, dépendances à la manière de Merlin Project, calendriers ouvrés, chemin critique,
+filtres, exports PDF, CSV, iCalendar et MS Project… sans aucune dépendance ni étape de construction.
+
+**Essayer la démo :** `npm run demo`, puis http://localhost:8000/demo/index.html (voir « Démarrage »).
+
+Rien n'est envoyé à un serveur : tout se passe dans le navigateur.
+
+## Aperçu
+
+![On glisse une tâche : ses successeurs suivent, le chemin critique se recalcule, puis Annuler la remet en place](docs/images/animation.gif)
+
+| La démo | Chemin critique et marges |
+|---|---|
+| ![Le planning d'exemple : groupes, tâches colorées, liens, repère « Copil » et zone « Gel »](docs/images/apercu.png) | ![À l'échelle jour, les tâches critiques et leurs liens en rouge](docs/images/critique.png) |
+
+| Propriétés d'une tâche | Filtres par colonne |
+|---|---|
+| ![La fenêtre « Tâche » : nom, dates, avancement, 12 couleurs, responsable, contrainte, Supprimer](docs/images/proprietes.png) | ![Le filtre de la colonne Début ouvert sur « Après le… », entonnoirs actifs](docs/images/filtres.png) |
+
+| Thème sombre | Thème « Todoist » | Colonnes, tri et marges |
+|---|---|---|
+| ![Le planning en thème sombre, responsables au bout des barres](docs/images/sombre.png) | ![Le planning dans le thème Todoist : barres en pilule](docs/images/todoist.png) | ![Colonnes N°, Responsable (trié) et Marge, avec les traits de marge](docs/images/responsables.png) |
+
+---
+
+# Pour tout le monde
+
+## Le projet en bref
+
+Un **diagramme de Gantt** montre un projet comme une liste de tâches posées sur une ligne de temps : chaque tâche est
+une barre, de sa date de début à sa date de fin, et des flèches relient les tâches qui dépendent les unes des autres
+(« le code commence quand les maquettes sont finies »). jsgantt dessine ces diagrammes dans une page web et permet de
+les modifier directement à la souris ou au clavier : déplacer une barre repousse automatiquement les tâches qui en
+dépendent.
+
+Particularité : **l'apparence est entièrement réglée par CSS** (couleurs, tailles, polices, formes). On change de thème
+sans toucher au code ; trois thèmes sont fournis (clair, sombre, et un thème inspiré de Todoist).
+
+## Utiliser la démo
+
+![La fenêtre Paramètres : langue, thème, affichage, responsables, planification](docs/images/parametres.png)
+
+- **Barre d'outils** : échelle (jour, semaine, mois), annuler et rétablir, recherche dans les noms, menu **Insérer**
+  (repère ou zone colorée), **Paramètres**, **Importer** et **Exporter**.
+- **Tâches** : glisser une barre la déplace, glisser ses bords change ses dates, le petit triangle sous la barre règle
+  l'avancement. Double-clic sur une cellule du tableau pour la modifier. Au survol d'une ligne : poignée (réordonner,
+  ou glisser au milieu d'une ligne pour en faire une sous-tâche), « + » (ajouter en dessous) et crayon (propriétés).
+- **Propriétés d'une tâche** (crayon ou touche `E`) : nom, dates, avancement, **couleur** (12 au choix),
+  **responsable**, contrainte de date et **Supprimer** (avec confirmation, sous-tâches comprises).
+- **Dépendances** : glisser un des petits ronds au bout d'une barre vers une autre barre. Le type dépend des bouts reliés
+  (fin → début, début → début, fin → fin, début → fin). Clic sur une flèche puis `Suppr` pour la retirer.
+- **Groupes** : une tâche qui a des sous-tâches devient un groupe, dont les dates suivent celles de ses enfants. Le
+  chevron le replie.
+- **Repères et zones** : un repère marque une date (comité, mise en production) ; une zone colore une période (congés,
+  gel). On glisse un repère pour le déplacer, un clic sur une étiquette l'édite.
+- **Tableau** : on choisit ses colonnes (N°, Début, Fin, Durée, Avancement, Marge, Responsable), un clic sur un en-tête
+  trie, l'**entonnoir** qui apparaît au survol filtre la colonne (périodes « cette semaine », « mois prochain »…,
+  « avant le », « après le », « entre », responsables, avancement…). On élargit le tableau en glissant son bord droit.
+- **Paramètres** : langue (français, anglais), thème, début de semaine, colonnes et tri, texte au bout des barres,
+  liste des **responsables**, jours travaillés (7 j/7, ouvrables, ouvrés), jours fériés (France, États-Unis), sens de
+  planification, calages au plus tôt ou au plus tard, **chemin critique**, lecture seule.
+- Tout est **annulable** (`Ctrl`/`Cmd` + `Z`), y compris un import. La démo se souvient de l'affichage choisi.
+
+### Raccourcis clavier
+
+Quand le diagramme a le focus (clic dans le tableau ou `Tab`) :
+
+| Groupe | Touches | Effet |
+|---|---|---|
+| Naviguer | `↑` `↓` `Début` `Fin` | Changer de ligne |
+| | `→` / `←` | Déplier ou aller au premier enfant / replier ou aller au parent |
+| Créer | `Entrée` / `Maj` + `Entrée` | Tâche en dessous / sous-tâche (le nom s'édite aussitôt) |
+| Modifier | `F2` | Éditer le nom (`Tab` : colonne suivante) |
+| | `E` | Propriétés de la tâche |
+| | `C` | Contrainte de date |
+| | `+` / `-` | Avancement de ±10 % |
+| Dates | `Alt` + `←` `→` | Déplacer d'un jour (`Alt` + `PgPréc` `PgSuiv` : d'une semaine) |
+| | `Maj` + `←` `→` | Changer la fin d'un jour |
+| | `Alt` + `Maj` + `←` `→` | Changer le début d'un jour |
+| Structure | `Alt` + `↑` `↓` | Monter, descendre |
+| | `Alt` + `Maj` + `↑` / `↓` | Sortir du groupe / entrer dans la tâche du dessus |
+| Liens | `L` | Mode lien : `↑` `↓` choisissent la cible, `1` à `4` le type, `Entrée` valide, `Échap` annule |
+| | `Maj` + `L` | Parcourir les liens de la tâche, puis `Suppr` pour en retirer un |
+| Supprimer | `Suppr` | La tâche (après confirmation) ou le lien sélectionné |
+| Historique | `Ctrl`/`Cmd` + `Z`, `Ctrl`/`Cmd` + `Maj` + `Z` | Annuler, rétablir |
+
+### Importer, exporter, imprimer
+
+| Format | Export | Import | Pour quoi faire |
+|---|---|---|---|
+| **JSON** | oui | oui | Sauvegarder et recharger un planning complet (tout est conservé) |
+| **CSV** | oui | oui | Échanger avec un tableur (Excel, Numbers, LibreOffice) ; en-têtes français ou anglais, dates `AAAA-MM-JJ` ou `JJ/MM/AAAA` |
+| **MS Project (XML)** | oui | oui | Ouvrir le planning dans MS Project, Merlin Project, ProjectLibre, OmniPlan… |
+| **iCalendar (.ics)** | oui | non | Voir les tâches dans un agenda (Google Agenda, Outlook, Calendrier) |
+| **SVG**, **PDF** | oui | non | Image vectorielle, document à partager |
+| **Impression** | | | Le diagramme entier, adapté à la page |
+
+Un fichier invalide est refusé avec un message précis (ligne du CSV comprise) et rien n'est modifié ; ce qui ne peut pas
+être repris (une couleur inconnue, une contrainte non prise en charge) est signalé.
+
+### Limites
+
+- Les durées se comptent en **jours** (pas d'heures).
+- Un seul responsable par tâche ; pas de gestion de charge ni de coûts.
+- MS Project : le format binaire `.mpp` n'est pas lu (l'enregistrer en XML depuis MS Project) ; les couleurs ne
+  passent pas, et une tâche sans contrainte est exportée avec « Début au plus tôt » à sa date (pour que MS Project ne la
+  déplace pas).
+- Les **contraintes de dates** sont indicatives : elles signalent un écart, elles ne déplacent rien.
+- Pas encore de paquet npm ni de composants pour React ou Vue.
+
+---
+
+# Pour les développeurs
 
 ## Démarrage
+
+Prérequis : Node.js 22 ou plus récent (pour les tests et la démo ; la bibliothèque elle-même n'a besoin que d'un navigateur).
+
+```bash
+npm run demo              # sert la démo sans cache : http://localhost:8000/demo/index.html (PORT=… pour changer)
+npm test                  # tests unitaires (runner natif de Node)
+npm run capture:readme    # régénère les images du README (docs/images/) : Chrome et ffmpeg requis
+```
+
+Les ES modules exigent un serveur HTTP. Avec `python3 -m http.server`, le navigateur peut garder d'anciennes versions des
+modules : recharger sans cache (`Ctrl`/`Cmd` + `Maj` + `R`).
 
 ```html
 <link rel="stylesheet" href="src/gantt.css">
@@ -13,7 +139,7 @@ JavaScript vanilla (ES modules), sans build, sans dépendance (le PDF charge svg
   const gantt = new Gantt(document.getElementById('chart'), {
     scale: 'week', // 'day' | 'week' | 'month'
     tasks: [
-      { id: 'a', name: 'Conception', start: '2026-10-05', end: '2026-10-09', progress: 0.5 },
+      { id: 'a', name: 'Conception', start: '2026-10-05', end: '2026-10-09', progress: 0.5, color: 'blue' },
       { id: 'b', name: 'Réalisation', start: '2026-10-12', end: '2026-10-20' },
       { id: 'm', name: 'Livraison', start: '2026-10-21', milestone: true },
     ],
@@ -25,7 +151,37 @@ JavaScript vanilla (ES modules), sans build, sans dépendance (le PDF charge svg
 </script>
 ```
 
-Les ES modules exigent un serveur HTTP : `npm run demo` (serveur sans cache, port 8000 ou `PORT=…`), puis `http://localhost:8000/demo/index.html`. Avec `python3 -m http.server`, le navigateur peut garder d'anciennes versions des modules : recharger sans cache (`Ctrl`/`Cmd` + `Maj` + `R`).
+## Technologies
+
+JavaScript vanilla en ES modules, sans framework, sans build, sans dépendance. Rendu **SVG** stylé par classes et
+variables CSS. Tests avec `node:test`. Le PDF charge [jsPDF](https://github.com/parallax/jsPDF) et
+[svg2pdf.js](https://github.com/yWorks/svg2pdf.js) à la demande (option `pdfLibs` pour fournir ses propres copies). Les
+images du README sont produites en pilotant Chrome par le protocole DevTools (WebSocket intégré à Node), sans
+dépendance non plus.
+
+## Organisation du code
+
+Le cœur (modèle, planification, calculs, formats) ne touche jamais au DOM et est testé sous Node ; le rendu et les
+interactions s'appuient dessus.
+
+| Fichier | Rôle |
+|---|---|
+| `src/gantt.js` | Façade `Gantt` : état, rendu, historique, vue, API publique. |
+| `src/model.js` | Tâches, liens, hiérarchie, responsables, repères et zones, validation, (dé)sérialisation. |
+| `src/scheduler.js` | Planification en avant et en arrière (4 types de liens, décalage, groupes). |
+| `src/slack.js` | Dates au plus tard, marges totale et libre, chemin critique. |
+| `src/calendar.js`, `src/constraints.js` | Jours ouvrés et fériés ; contraintes de dates (indicatives). |
+| `src/view.js` | Colonnes, tri entre sœurs, recherche et filtres par colonne (périodes relatives). |
+| `src/timescale.js`, `src/renderer.js` | Échelle de temps ; mise en page pure (`computeLayout`) puis SVG (`renderParts`). |
+| `src/interactions.js`, `src/keyboard.js`, `src/keynav.js` | Souris, clavier, navigation. |
+| `src/a11y.js`, `src/i18n.js` | Accessibilité (treegrid, annonces) ; localisation et codes d'erreur. |
+| `src/task-editor.js`, `src/filter-editor.js`, `src/annotation-editor.js`, `src/constraint-editor.js`, `src/confirm.js` | Petites fenêtres d'édition et de confirmation. |
+| `src/formats/` | `csv.js`, `ical.js`, `mspdi.js` (MS Project XML), `xml.js` (lecteur XML minimal). |
+| `src/export.js` | SVG autonome, PDF, téléchargements. |
+| `src/gantt.css`, `src/themes/todoist.css` | Thème par défaut (et sombre), thème Todoist. |
+| `demo/index.html` | Page de démonstration complète. |
+| `scripts/` | `serve.mjs` (serveur sans cache), `capture-readme.mjs` (images du README). |
+| `test/` | Tests unitaires (modèle, planification, marges, vue, filtres, formats, mise en page, accessibilité…). |
 
 ## Données
 
@@ -76,7 +232,9 @@ g.addZone({ start, end, label, color }); g.updateZone(id, patch); g.removeZone(i
 g.setShowCritical(true); // affiche le chemin critique et les marges (voir « Chemin critique et marges »)
 g.model.slack();         // Map id → { total, free, lateStart, lateEnd, critical } ; g.model.criticalIds()
 g.getData();            // { tasks, links } au format JSON
-g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
+g.setData(data);        // remplace le planning et vide l'historique (lève avant toute modification si invalide)
+g.importData(data); g.importCSV(texte); g.importMSProject(texte); // remplacent le planning, annulables (voir « Formats d'échange »)
+g.exportCSV(filename?); g.exportICS(filename?); g.exportMSProject(filename?);
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
 g.exportJSON(filename?);
 await g.exportPDF(filename?);
@@ -84,37 +242,9 @@ g.print();
 g.destroy();
 ```
 
-## Clavier et accessibilité
-
-Le diagramme est une grille arborescente (`role="treegrid"`) : chaque ligne annonce son nom, ses dates, sa progression, son niveau, son état replié/déplié et ses prédécesseurs. Les actions sont annoncées dans une zone `aria-live`, refus compris. Les couches purement graphiques (grille, barres, liens, échelle de temps) sont masquées aux technologies d'assistance. Mode contraste élevé (`forced-colors`) pris en charge.
-
-Quand le diagramme a le focus :
-
-| Touches | Action |
-|---|---|
-| `↑` `↓` `Début` `Fin` | Sélectionner une ligne |
-| `→` / `←` | Déplier ou aller au premier enfant / replier ou aller au parent |
-| `Entrée` / `Maj`+`Entrée` | Ajouter une tâche en dessous / une sous-tâche (le nom s'édite aussitôt) |
-| `F2` | Éditer le nom (`Tab` : champ suivant, `Maj`+`Tab` : précédent) |
-| `Suppr` | Supprimer la tâche sélectionnée après confirmation (`Entrée` confirme, `Échap` annule ; ou le lien sélectionné, sans confirmation), la ligne voisine est sélectionnée |
-| `Alt`+`←` `→` / `Alt`+`PgPréc` `PgSuiv` | Déplacer d'un jour / d'une semaine |
-| `Maj`+`←` `→` | Raccourcir / allonger la fin d'un jour |
-| `Alt`+`Maj`+`←` `→` | Avancer / reculer le début d'un jour |
-| `Alt`+`↑` `↓` | Monter / descendre parmi ses frères |
-| `Alt`+`Maj`+`↑` / `↓` | Sortir du parent / devenir enfant du frère précédent |
-| `+` / `-` | Progression de ±10 % |
-| `E` | Propriétés de la tâche sélectionnée (nom, dates, avancement, couleur, responsable, contrainte) |
-| `C` | Contrainte de date de la tâche sélectionnée |
-| `L` | Mode lien : `↑` `↓` choisissent la cible, `1` à `4` le type (FS, SS, FF, SF), `Entrée` valide en FS, `Échap` annule |
-| `Maj`+`L` | Parcourir les liens de la tâche sélectionnée, puis `Suppr` |
-| `Ctrl`/`Cmd`+`Z`, `Ctrl`/`Cmd`+`Maj`+`Z` ou `Ctrl`+`Y` | Annuler / rétablir |
-| `Échap` | Désélectionner le lien, puis la tâche |
-
-Toutes ces actions passent par le même chemin que la souris : annulables, avec les mêmes refus (cycle, dépendance bloquante). En lecture seule, seule la navigation et le repli restent actifs.
-
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `planning`, `align` (avec `mode`), `props` (propriétés d'une tâche), `owners` (avec `action` et `ownerId`), `marker` et `zone` (avec `action` : `add`, `update`, `remove`, et `markerId` / `zoneId`), `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `planning`, `align` (avec `mode`), `props` (propriétés d'une tâche), `owners` (avec `action` et `ownerId`), `marker` et `zone` (avec `action` : `add`, `update`, `remove`, et `markerId` / `zoneId`), `import`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -169,7 +299,7 @@ new Gantt(el, {
 - **Jours fériés :** `frenchHolidays(année ou [années])` (11 jours, Pâques et dérivés calculés) et `americanHolidays(année ou [années])` (jours fériés fédéraux ; un férié à date fixe un samedi est reporté au vendredi, un dimanche au lundi, nom suffixé « (observed) »).
 - **Remarque :** pour les calendriers ouvrés ou ouvrables, `setCalendar` ramène les dates existantes sur des jours travaillés ; une tâche qui ne couvrait que des jours non travaillés se réduit à un jour.
 
-Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, début de semaine, jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis), unité du décalage des liens et lecture seule.
+Dans la démo, ces réglages sont dans **Paramètres › Planification** : jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis) et unité du décalage des liens.
 
 ## Planification : en avant, en arrière
 
@@ -185,7 +315,7 @@ Les formules des liens FS/SS/FF/SF, le décalage (`lag`, jours travaillés ou ca
 
 La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON ni dans l'historique ; chaque changement émet l'événement `view` (détail : `getView()`), ce qui permet de la mémoriser (la démo la garde dans `localStorage`).
 
-- **Colonnes** (`columns`, `g.setColumns`) : le nom est toujours la première. Colonnes fournies : `wbs` (numéro hiérarchique 1, 1.1…), `start`, `end`, `duration`, `progress` (%), `slack` (marge totale), `owner` (nom du responsable, `--gantt-owner-col-width`). Par défaut : `['start', 'end', 'duration']`. Colonne personnalisée, en lecture seule : `{ id, label, width, value: (task) => texte }`, par exemple `{ id: 'owner', label: 'Responsable', width: 96, value: (t) => t.data?.owner }`. Largeurs en CSS : `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-wbs-col-width`, `--gantt-progress-col-width`, `--gantt-slack-col-width`. Seuls le nom, le début et la fin s'éditent en ligne (`Tab` passe d'une colonne éditable affichée à la suivante).
+- **Colonnes** (`columns`, `g.setColumns`) : le nom est toujours la première. Colonnes fournies : `wbs` (numéro hiérarchique 1, 1.1…), `start`, `end`, `duration`, `progress` (%), `slack` (marge totale), `owner` (nom du responsable, `--gantt-owner-col-width`). Par défaut : `['start', 'end', 'duration']`. Colonne personnalisée, en lecture seule : `{ id, label, width, value: (task) => texte }`, par exemple `{ id: 'team', label: 'Équipe', width: 96, value: (t) => t.data?.team }`. Largeurs en CSS : `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-wbs-col-width`, `--gantt-progress-col-width`, `--gantt-slack-col-width`, `--gantt-owner-col-width`. Seuls le nom, le début et la fin s'éditent en ligne (`Tab` passe d'une colonne éditable affichée à la suivante).
 - **Texte au bout des barres** (`barLabel`, `g.setView({ barLabel })`) : `name` (défaut), `wbs`, `start`, `end`, `duration`, `progress`, `slack`, `owner` ou `none` ; même texte que la colonne correspondante.
 - **Largeur du tableau** (`tableWidth`, `g.setTableWidth(px)`, ou en glissant le bord droit du tableau, aussi en lecture seule) : le nom prend la place restante, au moins 120 px. Sans valeur, `--gantt-table-width`.
 - **Tri** (`sort: { column, dir: 'asc' | 'desc' }`, `g.setSort`, ou clic sur un en-tête : croissant, décroissant, ordre du plan) : entre tâches sœurs, la hiérarchie est conservée ; ne change que l'affichage. Pendant un tri, réordonner une tâche (souris ou clavier) est refusé (`reorder.sorted`). La colonne triée doit être affichée ; la retirer annule le tri. Pendant un glissement, l'ordre des lignes est figé.
@@ -279,10 +409,58 @@ Sont traduits : en-têtes du tableau, mois, infobulles, libellés et annonces d'
 
 Les refus (`invalid`, résultats de `addTask`, `moveTaskTo`…) et les exceptions d'import portent un `code` stable (`link.cycle`, `task.unknown`…) et des `params` : ils restent traduisibles quelle que soit la langue du diagramme. Les noms de tâches sont des données et ne sont jamais traduits. Les dates restent au format `AAAA-MM-JJ`. Seules les erreurs d'arguments destinées aux développeurs (option `scale` inconnue, etc.) restent en français.
 
+## Formats d'échange
+
+Chaque format est un module pur (`src/formats/`), utilisable aussi sans la façade :
+
+```js
+import { toCSV, fromCSV } from './src/formats/csv.js';
+import { toICS } from './src/formats/ical.js';
+import { toMSPDI, fromMSPDI } from './src/formats/mspdi.js';
+
+g.exportCSV('planning.csv', { sep: ';', locale: 'fr' }); // UTF-8 avec BOM ; retourne le texte (filename = null : pas de téléchargement)
+g.exportICS('planning.ics');
+g.exportMSProject('planning.xml');
+const { warnings } = g.importCSV(texte);           // annulable ; lève une GanttError traduite si le fichier est illisible
+g.importMSProject(texte);
+g.importData(donneesJSON);                         // remplace le planning en une action annulable
+```
+
+- **CSV** (RFC 4180) : une ligne par tâche, colonnes `N°`, `Id`, `Nom`, `Début`, `Fin`, `Durée (j)`, `Avancement (%)`,
+  `Responsable`, `Couleur`, `Parent`, `Prédécesseurs`, `Contrainte`, `Date contrainte`, `Jalon` (en anglais avec
+  `locale: 'en'`). Séparateur `;` en français, `,` en anglais ; à l'import il est détecté. Prédécesseurs :
+  `t1`, `t1SS`, `t1FS+2`, `t2FF-1`, codes français de MS Project acceptés (`FD`, `DD`, `FF`, `DF`). Les en-têtes sont
+  reconnus en français et en anglais, sans tenir compte de la casse ni des accents ; sans colonne `Parent`, la hiérarchie
+  se déduit des numéros (`1.2` est enfant de `1`). Responsables créés d'après leurs noms ; couleurs en anglais ou en
+  français.
+- **iCalendar** (RFC 5545) : un événement « journée entière » par tâche (fin exclusive), jalon, repère et zone ;
+  avancement, responsable et groupe dans la description ; lignes repliées à 75 octets.
+- **MS Project XML** (MSPDI) : journée de 8 h ; tâches et hiérarchie (`OutlineLevel`), durées, avancement, jalons,
+  liens (`Type` 0 FF, 1 FS, 2 SF, 3 SS ; décalage en dixièmes de minute, écoulé si `lagUnit: 'calendar'`), contraintes
+  (`ConstraintType` 2 à 7), calendrier (jours ouvrés, exceptions = jours fériés), ressources et affectations
+  (responsables), planification en arrière (`ScheduleFromStart`). À l'import : la tâche récapitulative du projet est
+  ignorée, une fin à minuit revient au jour précédent, « Début au plus tôt » à la date de début est ignoré, le premier
+  responsable d'une tâche est gardé ; les avertissements listent ce qui n'a pas pu être repris.
+
+## Accessibilité
+
+Le diagramme est une grille arborescente (`role="treegrid"`) : chaque ligne annonce son nom, ses dates, sa progression,
+son niveau, son état replié/déplié, ses prédécesseurs et, si le chemin critique est affiché, sa marge. Les actions sont
+annoncées dans une zone `aria-live`, refus compris. Les couches purement graphiques sont masquées aux technologies
+d'assistance ; les entonnoirs de filtre sont de vrais boutons. Mode contraste élevé (`forced-colors`) pris en charge.
+Toutes les actions au clavier passent par le même chemin que la souris : annulables, avec les mêmes refus.
+
+## Images du README
+
+`npm run capture:readme` (`scripts/capture-readme.mjs`) sert la démo, lance Chrome sans interface et le pilote par le
+protocole DevTools : date du jour figée au 14 octobre 2026, interface en français, stockage vidé avant chaque image (les
+captures sont reproductibles). Le GIF est obtenu en simulant un vrai glissement à la souris, puis assemblé par `ffmpeg`
+(palette optimisée). Prérequis : Google Chrome (ou `CHROME_PATH`) et `ffmpeg`. On peut ne régénérer qu'une image :
+`npm run capture:readme -- --only=apercu` (`critique`, `sombre`, `todoist`, `proprietes`, `filtres`, `parametres`,
+`responsables`, `animation`).
+
 ## Tests
 
-`npm test` (runner natif de Node) couvre les dates, le modèle, le planificateur, l'échelle de temps et la mise en page. Le rendu, les interactions et les exports se vérifient dans `demo/index.html`.
-
-## Hors v1
-
-Heures (granularité = jour).
+`npm test` (runner natif de Node) couvre les dates, le modèle, le planificateur, les marges, le calendrier, les
+contraintes, la vue et les filtres, les formats (CSV, iCalendar, MS Project, lecteur XML), la mise en page, la
+navigation clavier, l'accessibilité et la localisation. Le rendu et les interactions se vérifient dans la démo.

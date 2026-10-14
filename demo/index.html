@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>jsgantt — démo</title>
   <link rel="stylesheet" href="../src/gantt.css">
-  <link rel="stylesheet" href="../src/themes/todoist.css">
+  <link rel="stylesheet" href="../src/themes/epure.css">
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
     body.dark { background: #111827; color: #e5e7eb; }
@@ -24,7 +24,7 @@
     .toolbar select { padding: 0 8px; }
     .toolbar [hidden] { display: none !important; }
     .toolbar #clear-filters { color: #2563eb; border-color: #93c5fd; }
-    body.theme-todoist .toolbar #clear-filters { color: #dc4c3e; }
+    body.theme-epure .toolbar #clear-filters { color: #dc4c3e; }
     .toolbar #undo, .toolbar #redo, .toolbar #clear-filters { width: 34px; padding: 0; justify-content: center; }
     .toolbar svg { width: 16px; height: 16px; flex: none; }
     .toolbar button:hover:not(:disabled), .toolbar .import:hover { background: #f3f4f6; border-color: #c4c9d1; }
@@ -51,8 +51,8 @@
     .toolbar .search input { height: 34px; box-sizing: border-box; width: 136px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
     .toolbar .search input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
     body.dark .toolbar .search input { background: #1f2937; border-color: #374151; }
-    body.theme-todoist .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
-    body.theme-todoist .toolbar .search input:focus-visible { outline-color: #dc4c3e; }
+    body.theme-epure .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-epure .toolbar .search input:focus-visible { outline-color: #dc4c3e; }
     #settings .owners { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
     #settings .owners li, #settings .owners-add { display: flex; gap: 6px; align-items: center; }
     #settings .owners input, #settings .owners-add input { flex: 1; height: 30px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 7px; font: 13px system-ui, sans-serif; background: inherit; color: inherit; }
@@ -60,7 +60,7 @@
     #settings .owners button { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
     #settings .owners button svg { width: 15px; height: 15px; }
     body.dark #settings .owners input, body.dark #settings .owners-add input, body.dark #settings .owners button, body.dark #settings .owners-add button { background: #1f2937; border-color: #374151; }
-    body.theme-todoist #settings .owners input, body.theme-todoist #settings .owners-add input, body.theme-todoist #settings .owners button, body.theme-todoist #settings .owners-add button { border: 0; background: #f5f5f5; }
+    body.theme-epure #settings .owners input, body.theme-epure #settings .owners-add input, body.theme-epure #settings .owners button, body.theme-epure #settings .owners-add button { border: 0; background: #f5f5f5; }
     #settings .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 4px 0; }
     #settings .cols label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
@@ -74,19 +74,19 @@
     body.dark .help { color: #9ca3af; }
     body.dark .help th { color: #e5e7eb; }
     body.dark .help kbd { background: #1f2937; border-color: #374151; color: #e5e7eb; }
-    /* Boutons du thème Todoist */
-    body.theme-todoist .toolbar { gap: 4px 8px; }
-    body.theme-todoist .toolbar button, body.theme-todoist .toolbar .import, body.theme-todoist .toolbar select {
+    /* Boutons du thème Épure */
+    body.theme-epure .toolbar { gap: 4px 8px; }
+    body.theme-epure .toolbar button, body.theme-epure .toolbar .import, body.theme-epure .toolbar select {
       border: 0; background: transparent; color: #202020; border-radius: 7px; padding: 0 10px; height: 30px; font-size: 13px; box-shadow: none; cursor: pointer;
     }
-    body.theme-todoist .toolbar button:hover:not(:disabled), body.theme-todoist .toolbar .import:hover { background: #f5f5f5; }
-    body.theme-todoist .toolbar .seg { background: #f1f1f1; border: 0; border-radius: 10px; margin-right: 8px; }
-    body.theme-todoist .toolbar .seg button { color: #666; height: 24px; padding: 0 12px; }
-    body.theme-todoist .toolbar .seg button:hover:not(:disabled) { background: transparent; color: #202020; }
-    body.theme-todoist .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-    body.theme-todoist .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
-    body.theme-todoist .toolbar select { background: #f5f5f5; padding: 0 8px; font: inherit; font-size: 13px; }
-    body.theme-todoist .toolbar .group-label { color: #808080; }
+    body.theme-epure .toolbar button:hover:not(:disabled), body.theme-epure .toolbar .import:hover { background: #f5f5f5; }
+    body.theme-epure .toolbar .seg { background: #f1f1f1; border: 0; border-radius: 10px; margin-right: 8px; }
+    body.theme-epure .toolbar .seg button { color: #666; height: 24px; padding: 0 12px; }
+    body.theme-epure .toolbar .seg button:hover:not(:disabled) { background: transparent; color: #202020; }
+    body.theme-epure .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+    body.theme-epure .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
+    body.theme-epure .toolbar select { background: #f5f5f5; padding: 0 8px; font: inherit; font-size: 13px; }
+    body.theme-epure .toolbar .group-label { color: #808080; }
 
     /* Menus Importer / Exporter */
     .toolbar .menu { position: relative; display: inline-flex; }
@@ -98,9 +98,9 @@
     body.dark .toolbar .menu-list { background: #111827; border-color: #374151; }
     body.dark .toolbar .menu-list button.menu-item { color: #e5e7eb; }
     body.dark .toolbar .menu-list button.menu-item:hover, body.dark .toolbar .menu-list button.menu-item:focus-visible { background: #1f2937; }
-    body.theme-todoist .toolbar .menu-list { border-color: #ececec; border-radius: 10px; }
-    body.theme-todoist .toolbar .menu-list button.menu-item { color: #202020; font-size: 13px; }
-    body.theme-todoist .toolbar .menu-list button.menu-item:hover, body.theme-todoist .toolbar .menu-list button.menu-item:focus-visible { background: #f5f5f5; }
+    body.theme-epure .toolbar .menu-list { border-color: #ececec; border-radius: 10px; }
+    body.theme-epure .toolbar .menu-list button.menu-item { color: #202020; font-size: 13px; }
+    body.theme-epure .toolbar .menu-list button.menu-item:hover, body.theme-epure .toolbar .menu-list button.menu-item:focus-visible { background: #f5f5f5; }
 
     /* Modale des paramètres */
     #settings { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(460px, calc(100vw - 32px)); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
@@ -119,8 +119,8 @@
     #settings .row.actions button:hover { background: #f3f4f6; }
     body.dark #settings input[type="date"], body.dark #settings .row.actions button { background: #1f2937; border-color: #374151; }
     body.dark #settings .row.actions button:hover { background: #273449; }
-    body.theme-todoist #settings input[type="date"], body.theme-todoist #settings .row.actions button { border: 0; background: #f5f5f5; border-radius: 7px; }
-    body.theme-todoist #settings .row.actions button:hover { background: #ececec; }
+    body.theme-epure #settings input[type="date"], body.theme-epure #settings .row.actions button { border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-epure #settings .row.actions button:hover { background: #ececec; }
     #settings input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; }
     #settings .hint { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
     #settings menu { display: flex; justify-content: flex-end; margin: 16px 0 0; padding: 0; }
@@ -132,10 +132,10 @@
     body.dark #settings select, body.dark #settings menu button { background: #1f2937; border-color: #374151; }
     body.dark #settings menu button:hover { background: #273449; }
     body.dark #settings .hint { color: #9ca3af; }
-    body.theme-todoist #settings { border-radius: 12px; border-color: #ececec; color: #202020; }
-    body.theme-todoist #settings select, body.theme-todoist #settings menu button { border: 0; background: #f5f5f5; border-radius: 7px; }
-    body.theme-todoist #settings menu button:hover { background: #ececec; }
-    body.theme-todoist #settings input[type="checkbox"] { accent-color: #dc4c3e; }
+    body.theme-epure #settings { border-radius: 12px; border-color: #ececec; color: #202020; }
+    body.theme-epure #settings select, body.theme-epure #settings menu button { border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-epure #settings menu button:hover { background: #ececec; }
+    body.theme-epure #settings input[type="checkbox"] { accent-color: #dc4c3e; }
   </style>
 </head>
 <body>
@@ -201,7 +201,7 @@
           <select id="theme">
             <option value="light" data-i18n="theme.light">Défaut</option>
             <option value="dark" data-i18n="theme.dark">Sombre</option>
-            <option value="todoist">Todoist</option>
+            <option value="epure" data-i18n="theme.epure">Épure</option>
           </select></div>
         <div class="row"><label for="week-start" data-i18n="settings.weekStart">Début de semaine</label>
           <select id="week-start"><option value="1" data-i18n="week.mon">Lundi</option><option value="0" data-i18n="week.sun">Dimanche</option></select></div>
@@ -330,7 +330,7 @@
         'scale.day': 'Jour', 'scale.week': 'Semaine', 'scale.month': 'Mois',
         undo: 'Annuler', redo: 'Rétablir', 'undo.title': 'Annuler (Ctrl+Z)', 'redo.title': 'Rétablir (Ctrl+Maj+Z)',
         export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
-        print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
+        print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', 'theme.epure': 'Épure', lang: 'Langue',
         readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier (JSON, CSV, MS Project)',
         'plan.direction': 'Sens de planification', 'plan.forward': 'En avant', 'plan.backward': 'En arrière', 'plan.end': 'Fin imposée',
         'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
@@ -376,7 +376,7 @@
         'scale.day': 'Day', 'scale.week': 'Week', 'scale.month': 'Month',
         undo: 'Undo', redo: 'Redo', 'undo.title': 'Undo (Ctrl+Z)', 'redo.title': 'Redo (Ctrl+Shift+Z)',
         export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
-        print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
+        print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', 'theme.epure': 'Épure', lang: 'Language',
         readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a file (JSON, CSV, MS Project)',
         'plan.direction': 'Planning direction', 'plan.forward': 'Forward', 'plan.backward': 'Backward', 'plan.end': 'Imposed end',
         'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
@@ -512,7 +512,7 @@
     document.getElementById('theme').onchange = (e) => {
       chart.dataset.theme = e.target.value;
       document.body.classList.toggle('dark', e.target.value === 'dark');
-      document.body.classList.toggle('theme-todoist', e.target.value === 'todoist');
+      document.body.classList.toggle('theme-epure', e.target.value === 'epure');
       gantt.refresh();
     };
     const $ = (id) => document.getElementById(id);

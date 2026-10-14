@@ -23,9 +23,9 @@ Rien n'est envoyé à un serveur : tout se passe dans le navigateur.
 |---|---|
 | ![La fenêtre « Tâche » : nom, dates, avancement, 12 couleurs, responsable, contrainte, Supprimer](docs/images/proprietes.png) | ![Le filtre de la colonne Début ouvert sur « Après le… », entonnoirs actifs](docs/images/filtres.png) |
 
-| Thème sombre | Thème « Todoist » | Colonnes, tri et marges |
+| Thème sombre | Thème « Épure » | Colonnes, tri et marges |
 |---|---|---|
-| ![Le planning en thème sombre, responsables au bout des barres](docs/images/sombre.png) | ![Le planning dans le thème Todoist : barres en pilule](docs/images/todoist.png) | ![Colonnes N°, Responsable (trié) et Marge, avec les traits de marge](docs/images/responsables.png) |
+| ![Le planning en thème sombre, responsables au bout des barres](docs/images/sombre.png) | ![Le planning dans le thème Épure : barres en pilule](docs/images/epure.png) | ![Colonnes N°, Responsable (trié) et Marge, avec les traits de marge](docs/images/responsables.png) |
 
 ---
 
@@ -40,7 +40,7 @@ les modifier directement à la souris ou au clavier : déplacer une barre repous
 dépendent.
 
 Particularité : **l'apparence est entièrement réglée par CSS** (couleurs, tailles, polices, formes). On change de thème
-sans toucher au code ; trois thèmes sont fournis (clair, sombre, et un thème inspiré de Todoist).
+sans toucher au code ; trois thèmes sont fournis (clair, sombre, et « Épure », aux barres en pilule).
 
 ## Utiliser la démo
 
@@ -178,7 +178,7 @@ interactions s'appuient dessus.
 | `src/task-editor.js`, `src/filter-editor.js`, `src/annotation-editor.js`, `src/constraint-editor.js`, `src/confirm.js` | Petites fenêtres d'édition et de confirmation. |
 | `src/formats/` | `csv.js`, `ical.js`, `mspdi.js` (MS Project XML), `xml.js` (lecteur XML minimal). |
 | `src/export.js` | SVG autonome, PDF, téléchargements. |
-| `src/gantt.css`, `src/themes/todoist.css` | Thème par défaut (et sombre), thème Todoist. |
+| `src/gantt.css`, `src/themes/epure.css` | Thème par défaut (et sombre), thème Épure. |
 | `demo/index.html` | Page de démonstration complète. |
 | `scripts/` | `serve.mjs` (serveur sans cache), `capture-readme.mjs` (images du README). |
 | `test/` | Tests unitaires (modèle, planification, marges, vue, filtres, formats, mise en page, accessibilité…). |
@@ -274,7 +274,7 @@ Classes : `gantt-row`, `gantt-row--alt`, `gantt-bar`, `gantt-bar--group`, `gantt
 
 Thème sombre d'exemple : `data-theme="dark"` sur l'élément racine, puis `gantt.refresh()`.
 
-Thème « Todoist » : charger `src/themes/todoist.css` après `gantt.css`, puis `data-theme="todoist"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (barres en pilule) et sa palette de couleurs. Les groupes y sont dessinés comme une pilule fine (le rendu produit aussi cette forme, masquée par défaut : classes `gantt-group-pill` et `gantt-group-pill-progress`).
+Thème « Épure » : charger `src/themes/epure.css` après `gantt.css`, puis `data-theme="epure"` sur l'élément racine et `gantt.refresh()`. Il change aussi la géométrie (barres en pilule) et sa palette de couleurs. Les groupes y sont dessinés comme une pilule fine (le rendu produit aussi cette forme, masquée par défaut : classes `gantt-group-pill` et `gantt-group-pill-progress`).
 Après un changement de variable de géométrie, appeler `gantt.refresh()`.
 
 ## Calendrier : jours ouvrés, ouvrables et fériés
@@ -335,8 +335,8 @@ La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON
 
 ## Couleurs et responsables
 
-- **Palette commune** aux tâches, aux repères et aux zones : `red`, `orange`, `amber`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`. Chaque couleur est une variable `--gantt-color-<nom>` que chaque thème redéfinit (le sombre et Todoist ont la leur).
-- **Couleur d'une tâche** (`color`) : barre teintée, contour et progression dans la couleur (pilule teintée sans contour dans Todoist) ; groupe et jalon en couleur pleine. Classe `gantt-task--color-<nom>`. Le chemin critique, la sélection et les contraintes non respectées restent visibles par-dessus.
+- **Palette commune** aux tâches, aux repères et aux zones : `red`, `orange`, `amber`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`. Chaque couleur est une variable `--gantt-color-<nom>` que chaque thème redéfinit (le sombre et Épure ont la leur).
+- **Couleur d'une tâche** (`color`) : barre teintée, contour et progression dans la couleur (pilule teintée sans contour dans Épure) ; groupe et jalon en couleur pleine. Classe `gantt-task--color-<nom>`. Le chemin critique, la sélection et les contraintes non respectées restent visibles par-dessus.
 - **Responsables** : liste `owners: [{ id, name }]` dans les données ; une tâche désigne le sien par `owner`. Responsable inconnu, `id` en double ou nom vide : refusés. Supprimer un responsable le retire de ses tâches. `g.setOwners`, `g.addOwner`, `g.renameOwner`, `g.removeOwner` sont annulables ; `g.model.owners`, `g.model.ownerName(id)`.
 - **Fenêtre « Tâche »** : crayon au survol de la ligne, touche `E` ou `g.editTask(id)`. Nom, début et fin (une date pour un jalon, aucune pour un groupe), avancement, couleur (12 pastilles et « Aucune », au clavier avec les flèches), responsable, contrainte. « Appliquer » enregistre tout en une seule action annulable, ou rien si une valeur est refusée (la fenêtre reste ouverte). « Supprimer » demande confirmation dans la fenêtre (avec le nombre de sous-tâches emportées). Le drapeau des contraintes n'est plus parmi les icônes de ligne : la contrainte se règle dans cette fenêtre, avec `C` ou par un clic sur son drapeau dans la timeline.
 
@@ -456,7 +456,7 @@ Toutes les actions au clavier passent par le même chemin que la souris : annula
 protocole DevTools : date du jour figée au 14 octobre 2026, interface en français, stockage vidé avant chaque image (les
 captures sont reproductibles). Le GIF est obtenu en simulant un vrai glissement à la souris, puis assemblé par `ffmpeg`
 (palette optimisée). Prérequis : Google Chrome (ou `CHROME_PATH`) et `ffmpeg`. On peut ne régénérer qu'une image :
-`npm run capture:readme -- --only=apercu` (`critique`, `sombre`, `todoist`, `proprietes`, `filtres`, `parametres`,
+`npm run capture:readme -- --only=apercu` (`critique`, `sombre`, `epure`, `proprietes`, `filtres`, `parametres`,
 `responsables`, `animation`).
 
 ## Tests

@@ -22,7 +22,10 @@
       transition: background .12s, border-color .12s, box-shadow .12s;
     }
     .toolbar select { padding: 0 8px; }
-    .toolbar #undo, .toolbar #redo { width: 34px; padding: 0; justify-content: center; }
+    .toolbar [hidden] { display: none !important; }
+    .toolbar #clear-filters { color: #2563eb; border-color: #93c5fd; }
+    body.theme-todoist .toolbar #clear-filters { color: #dc4c3e; }
+    .toolbar #undo, .toolbar #redo, .toolbar #clear-filters { width: 34px; padding: 0; justify-content: center; }
     .toolbar svg { width: 16px; height: 16px; flex: none; }
     .toolbar button:hover:not(:disabled), .toolbar .import:hover { background: #f3f4f6; border-color: #c4c9d1; }
     .toolbar button:active:not(:disabled) { background: #e5e7eb; }
@@ -45,7 +48,7 @@
     body.dark .toolbar .seg button[aria-pressed="true"] { background: #374151; color: #fff; box-shadow: none; }
     .toolbar .search { position: relative; display: inline-flex; align-items: center; }
     .toolbar .search svg { position: absolute; left: 10px; color: #6b7280; pointer-events: none; }
-    .toolbar .search input { height: 34px; box-sizing: border-box; width: 160px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
+    .toolbar .search input { height: 34px; box-sizing: border-box; width: 136px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
     .toolbar .search input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
     body.dark .toolbar .search input { background: #1f2937; border-color: #374151; }
     body.theme-todoist .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
@@ -152,6 +155,7 @@
       <label for="search" class="visually-hidden" data-i18n="search">Rechercher une tâche</label>
       <input id="search" type="search" placeholder="Rechercher…" data-i18n-placeholder="search.placeholder" autocomplete="off">
     </div>
+    <button id="clear-filters" type="button" hidden title="Effacer les filtres" data-i18n-title="filters.clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 7.5V18l-4 2v-7.5z"/><path d="m16 3 5 5m0-5-5 5"/></svg><span class="visually-hidden" data-i18n="filters.clear">Effacer les filtres</span></button>
     <span class="spacer"></span>
     <div class="group" role="group" aria-label="Actions" data-i18n-aria="group.actions">
       <div class="menu">
@@ -329,7 +333,7 @@
         'plan.critical': 'Afficher le chemin critique',
         insert: 'Insérer', 'insert.title': 'Insérer un repère ou une zone', 'insert.marker': 'Repère', 'insert.zone': 'Zone colorée',
         'insert.markerLabel': 'Nouveau repère', 'insert.zoneLabel': 'Nouvelle zone',
-        search: 'Rechercher une tâche', 'search.placeholder': 'Rechercher…', 'settings.view': 'Affichage', 'view.columns': 'Colonnes',
+        search: 'Rechercher une tâche', 'filters.clear': 'Effacer les filtres', 'search.placeholder': 'Rechercher…', 'settings.view': 'Affichage', 'view.columns': 'Colonnes',
         'col.wbs': 'N°', 'col.start': 'Début', 'col.end': 'Fin', 'col.duration': 'Durée', 'col.progress': 'Avancement', 'col.slack': 'Marge', 'col.owner': 'Responsable',
         'view.sort': 'Trier par', 'sort.none': 'Ordre du plan', 'sort.name': 'Nom (A → Z)', 'sort.start': 'Début (plus tôt d\'abord)', 'sort.end': 'Fin (plus tôt d\'abord)',
         'sort.duration': 'Durée (plus longue d\'abord)', 'sort.progress': 'Avancement (moins avancé d\'abord)', 'sort.slack': 'Marge (plus petite d\'abord)',
@@ -354,7 +358,7 @@
         'help.constraint': `${K('C')} contrainte de date de la tâche (aussi dans les propriétés)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Début')} ${K('Fin')} lignes · ${K('→')} déplier / premier enfant · ${K('←')} replier / parent`,
         'help.create': `${K('Entrée')} tâche en dessous · ${K('Maj')}+${K('Entrée')} sous-tâche · ${K('F2')} éditer le nom (${K('Tab')} : champ suivant)`,
-        'help.delete': `${K('Suppr')} tâche sélectionnée (ou lien sélectionné)`,
+        'help.delete': `${K('Suppr')} tâche sélectionnée, après confirmation (ou lien sélectionné) ; aussi dans les propriétés`,
         'help.dates': `${K('Alt')}+${K('←')}${K('→')} déplacer d'un jour · ${K('Alt')}+${K('PgPréc')}${K('PgSuiv')} d'une semaine · ${K('Maj')}+${K('←')}${K('→')} fin · ${K('Alt')}+${K('Maj')}+${K('←')}${K('→')} début`,
         'help.structure': `${K('Alt')}+${K('↑')}${K('↓')} monter / descendre · ${K('Alt')}+${K('Maj')}+${K('↑')} sortir du parent · ${K('Alt')}+${K('Maj')}+${K('↓')} devenir enfant du frère précédent`,
         'help.progress': `${K('+')} ${K('-')} de 10 %`,
@@ -374,7 +378,7 @@
         'plan.critical': 'Show the critical path',
         insert: 'Insert', 'insert.title': 'Insert a marker or a zone', 'insert.marker': 'Marker', 'insert.zone': 'Colored zone',
         'insert.markerLabel': 'New marker', 'insert.zoneLabel': 'New zone',
-        search: 'Search a task', 'search.placeholder': 'Search…', 'settings.view': 'Display', 'view.columns': 'Columns',
+        search: 'Search a task', 'filters.clear': 'Clear filters', 'search.placeholder': 'Search…', 'settings.view': 'Display', 'view.columns': 'Columns',
         'col.wbs': 'No.', 'col.start': 'Start', 'col.end': 'End', 'col.duration': 'Duration', 'col.progress': 'Progress', 'col.slack': 'Slack', 'col.owner': 'Owner',
         'view.sort': 'Sort by', 'sort.none': 'Plan order', 'sort.name': 'Name (A → Z)', 'sort.start': 'Start (earliest first)', 'sort.end': 'End (earliest first)',
         'sort.duration': 'Duration (longest first)', 'sort.progress': 'Progress (least first)', 'sort.slack': 'Slack (smallest first)',
@@ -399,7 +403,7 @@
         'help.constraint': `${K('C')} date constraint of the task (also in the properties)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Home')} ${K('End')} rows · ${K('→')} expand / first child · ${K('←')} collapse / parent`,
         'help.create': `${K('Enter')} task below · ${K('Shift')}+${K('Enter')} subtask · ${K('F2')} edit the name (${K('Tab')}: next field)`,
-        'help.delete': `${K('Delete')} selected task (or selected link)`,
+        'help.delete': `${K('Delete')} selected task, after confirmation (or selected link); also in the properties`,
         'help.dates': `${K('Alt')}+${K('←')}${K('→')} move by one day · ${K('Alt')}+${K('PgUp')}${K('PgDn')} by one week · ${K('Shift')}+${K('←')}${K('→')} end · ${K('Alt')}+${K('Shift')}+${K('←')}${K('→')} start`,
         'help.structure': `${K('Alt')}+${K('↑')}${K('↓')} move up / down · ${K('Alt')}+${K('Shift')}+${K('↑')} leave the parent · ${K('Alt')}+${K('Shift')}+${K('↓')} become a child of the previous sibling`,
         'help.progress': `${K('+')} ${K('-')} by 10%`,
@@ -527,9 +531,9 @@
       };
     };
     function saveView() {
-      const { sort, tableWidth, barLabel } = gantt.getView();
+      const { sort, tableWidth, barLabel, filters } = gantt.getView();
       try {
-        localStorage.setItem(VIEW_KEY, JSON.stringify({ cols: ui.cols, sort, tableWidth, barLabel, criticalOnly: ui.criticalOnly }));
+        localStorage.setItem(VIEW_KEY, JSON.stringify({ cols: ui.cols, sort, tableWidth, barLabel, filters, criticalOnly: ui.criticalOnly }));
       } catch { /* stockage indisponible */ }
     }
     function syncViewForm() {
@@ -543,6 +547,7 @@
       sel.value = value;
       $('view-critical').checked = ui.criticalOnly;
       $('view-barlabel').value = gantt.getView().barLabel;
+      $('clear-filters').hidden = Object.keys(gantt.getView().filters).length === 0;
     }
     function applyUi(extra = {}) {
       gantt.setView({ columns: columnsFor(ui.cols), filter: filterFn(), ...extra });
@@ -552,7 +557,7 @@
       if (saved) {
         ui.cols = Array.isArray(saved.cols) ? saved.cols : DEFAULT_COLS;
         ui.criticalOnly = saved.criticalOnly === true;
-        applyUi({ sort: saved.sort ?? null, tableWidth: saved.tableWidth ?? null, barLabel: saved.barLabel ?? 'name' });
+        applyUi({ sort: saved.sort ?? null, tableWidth: saved.tableWidth ?? null, barLabel: saved.barLabel ?? 'name', filters: saved.filters ?? {} });
       }
     } catch { /* vue enregistrée illisible : vue par défaut */ }
     gantt.on('view', () => { saveView(); syncViewForm(); });
@@ -566,6 +571,10 @@
       // Le tri porte sur une colonne affichée : on l'ajoute au besoin.
       if (column && column !== 'name' && !ui.cols.includes(column)) ui.cols = [...ui.cols, column];
       gantt.setView({ columns: columnsFor(ui.cols), sort: column ? { column, dir } : null });
+    };
+    $('clear-filters').onclick = () => {
+      gantt.clearFilters();
+      $('search').focus();
     };
     $('view-barlabel').onchange = (e) => gantt.setView({ barLabel: e.target.value });
 
@@ -619,7 +628,7 @@
     $('view-reset').onclick = () => {
       ui.cols = DEFAULT_COLS;
       ui.criticalOnly = false;
-      applyUi({ sort: null, tableWidth: null });
+      applyUi({ sort: null, tableWidth: null, filters: {} });
     };
     $('week-start').onchange = (e) => gantt.setWeekStart(Number(e.target.value));
 

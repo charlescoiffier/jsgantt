@@ -29,9 +29,10 @@
   --gantt-header-height: 38px;
   --gantt-table-width: 400px;
   --gantt-date-col-width: 86px;
-  --gantt-duration-col-width: 52px;
-  --gantt-progress-col-width: 84px;
-  --gantt-slack-col-width: 60px;
+  --gantt-duration-col-width: 66px;
+  --gantt-progress-col-width: 104px;
+  --gantt-slack-col-width: 70px;
+  --gantt-owner-col-width: 112px;
   --gantt-indent: 16px;
   --gantt-link-radius: 6px;
 }

@@ -1,7 +1,7 @@
 import { SCALES } from './timescale.js';
 import { svgEl } from './renderer.js';
 import { fromDay } from './dates.js';
-import { neighborAfterRemoval } from './keynav.js';
+import { removeAndSelectNeighbor } from './confirm.js';
 
 const DRAG_THRESHOLD = 3;
 
@@ -139,6 +139,10 @@ export function attachInteractions(g) {
       g.cycleSort(hit.dataset.col);
       return;
     }
+    if (hit.dataset.role === 'col-filter') {
+      g.editColumnFilter(hit.dataset.col);
+      return;
+    }
     if (g.readonly) return;
     const id = hit.dataset.id;
     switch (hit.dataset.role) {
@@ -159,9 +163,6 @@ export function attachInteractions(g) {
         break;
       case 'constraint':
         g.editConstraint(id);
-        break;
-      case 'row-delete':
-        g.removeTask(id);
         break;
       default:
         break;
@@ -256,6 +257,15 @@ export function attachInteractions(g) {
   }
 
   function onKeyDown(e) {
+    // Entonnoir d'une colonne qui a le focus : Entrée ou Espace ouvre son filtre.
+    const filterBtn = e.target.closest?.('[data-role="col-filter"]');
+    if (filterBtn) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        g.editColumnFilter(filterBtn.dataset.col);
+      }
+      return;
+    }
     const mod = e.ctrlKey || e.metaKey;
     if (mod && !e.altKey && !drag) {
       const key = e.key.toLowerCase();
@@ -285,12 +295,9 @@ export function attachInteractions(g) {
         g.commit('unlink', { linkId: id }, (m) => ({ ok: m.removeLink(id) }));
       } else if (g.state.selectedId) {
         e.preventDefault();
-        const removed = g.state.selectedId;
-        const neighbor = neighborAfterRemoval(g.model, removed, g.layout.rows.map((r) => r.id));
-        if (g.removeTask(removed).ok && neighbor) {
-          g.select(neighbor, null);
-          g.reveal(neighbor);
-        }
+        // Confirmation (option confirmDelete), puis la ligne voisine est sélectionnée.
+        if (g.confirmDelete) g.confirmRemoveTask(g.state.selectedId);
+        else removeAndSelectNeighbor(g, g.state.selectedId);
       }
     }
   }

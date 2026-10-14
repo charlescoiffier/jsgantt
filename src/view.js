@@ -116,10 +116,17 @@ function compare(a, b) {
 
 // Lignes visibles [{ id, depth }] : tri entre sœurs (sort = { column, dir: 'asc' | 'desc' }) et filtre (texte ou
 // fonction (task) => booléen). Un filtre garde les groupes parents des tâches retenues et ignore le repli.
-export function viewRows(model, { sort = null, filter = null, columns = null, ctx = null } = {}) {
+// `filters` (facultatif) : filtres par colonne (voir columnPredicate), combinés au filtre global ;
+// `today`, `weekStart` : référence des périodes relatives.
+export function viewRows(model, { sort = null, filter = null, filters = null, columns = null, ctx = null, today, weekStart } = {}) {
   let keep = null;
-  if (filter !== null && filter !== undefined && filter !== '') {
-    const test = typeof filter === 'function' ? filter : (t) => matchesText(t, filter);
+  const context0 = ctx ?? viewContext(model);
+  const global = filter !== null && filter !== undefined && filter !== ''
+    ? (typeof filter === 'function' ? filter : (t) => matchesText(t, filter))
+    : null;
+  const perColumn = columnsPredicate(columns ?? normalizeColumns(BUILTIN_COLUMNS), filters, context0, { today, weekStart });
+  if (global || perColumn) {
+    const test = (t) => (!global || global(t)) && (!perColumn || perColumn(t));
     keep = new Set();
     for (const t of model.tasks) {
       if (!test(t)) continue;
@@ -128,7 +135,7 @@ export function viewRows(model, { sort = null, filter = null, columns = null, ct
     }
   }
   const col = sort ? (columns ?? normalizeColumns(BUILTIN_COLUMNS)).find((c) => c.id === sort.column) : null;
-  const context = ctx ?? viewContext(model);
+  const context = context0;
   const sign = sort?.dir === 'desc' ? -1 : 1;
   const rows = [];
   const walk = (parentId, depth) => {
@@ -146,4 +153,121 @@ export function viewRows(model, { sort = null, filter = null, columns = null, ct
   };
   walk(null, 0);
   return rows;
+}
+
+// --- Filtres par colonne ---
+// Spécifications (JSON, gardées dans la vue) :
+//   texte (nom, colonnes personnalisées) : { contains } ; N° : { prefix }
+//   dates (start, end) : { period } | { before } | { after } | { from, to } (dates 'AAAA-MM-JJ' ; avant/après exclus, entre inclus)
+//   duration : { min, max } ; progress : { states: ['todo', 'doing', 'done'] }
+//   slack : { critical: true } | { max } ; owner : { in: [id | null] }
+export const PERIODS = ['today', 'thisWeek', 'nextWeek', 'thisMonth', 'nextMonth', 'next30', 'past', 'future'];
+
+// Bornes [début, fin] (jours, incluses ; null = ouvert) d'une période relative à `today`.
+export function periodRange(period, today, weekStart = 1) {
+  const dow = ((today % 7) + 7 + 4) % 7; // 1970-01-01 (jour 0) était un jeudi
+  const weekFirst = today - ((dow - weekStart + 7) % 7);
+  const d = new Date(today * 86400000);
+  const monthStart = (y, m) => Date.UTC(y, m, 1) / 86400000;
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  switch (period) {
+    case 'today':
+      return [today, today];
+    case 'thisWeek':
+      return [weekFirst, weekFirst + 6];
+    case 'nextWeek':
+      return [weekFirst + 7, weekFirst + 13];
+    case 'thisMonth':
+      return [monthStart(y, m), monthStart(y, m + 1) - 1];
+    case 'nextMonth':
+      return [monthStart(y, m + 1), monthStart(y, m + 2) - 1];
+    case 'next30':
+      return [today, today + 29];
+    case 'past':
+      return [null, today - 1];
+    case 'future':
+      return [today + 1, null];
+    default:
+      throw new Error(`Période inconnue : "${period}" (attendu : ${PERIODS.join(', ')})`);
+  }
+}
+
+const dayOf = (s) => {
+  const [y, mo, da] = String(s).split('-').map(Number);
+  const v = Date.UTC(y, mo - 1, da) / 86400000;
+  if (!Number.isFinite(v)) throw new Error(`Date de filtre illisible : "${s}"`);
+  return v;
+};
+
+// Prédicat (task) => booléen pour le filtre `spec` de la colonne `col` ; null si le filtre est vide.
+export function columnPredicate(col, spec, ctx, { today, weekStart = 1 } = {}) {
+  if (!spec || typeof spec !== 'object') return null;
+  const { model } = ctx;
+  switch (col.id) {
+    case 'start':
+    case 'end': {
+      let lo = null;
+      let hi = null;
+      if (spec.period) [lo, hi] = periodRange(spec.period, today, weekStart);
+      else if (spec.before) hi = dayOf(spec.before) - 1;
+      else if (spec.after) lo = dayOf(spec.after) + 1;
+      else if (spec.from || spec.to) {
+        lo = spec.from ? dayOf(spec.from) : null;
+        hi = spec.to ? dayOf(spec.to) : null;
+      } else return null;
+      return (t) => (lo === null || t[col.id] >= lo) && (hi === null || t[col.id] <= hi);
+    }
+    case 'duration': {
+      const min = Number.isFinite(spec.min) ? spec.min : null;
+      const max = Number.isFinite(spec.max) ? spec.max : null;
+      if (min === null && max === null) return null;
+      return (t) => {
+        const d = model.durationDays(t.id);
+        return (min === null || d >= min) && (max === null || d <= max);
+      };
+    }
+    case 'progress': {
+      const states = Array.isArray(spec.states) ? spec.states : [];
+      if (!states.length) return null;
+      return (t) => {
+        const p = model.progressOf(t.id);
+        return states.includes(p <= 0 ? 'todo' : p >= 1 ? 'done' : 'doing');
+      };
+    }
+    case 'slack': {
+      if (spec.critical) return (t) => ctx.slack.get(t.id)?.critical === true;
+      if (!Number.isFinite(spec.max)) return null;
+      return (t) => (ctx.slack.get(t.id)?.total ?? 0) <= spec.max;
+    }
+    case 'owner': {
+      if (!Array.isArray(spec.in) || !spec.in.length) return null;
+      return (t) => spec.in.includes(t.owner ?? null);
+    }
+    case 'wbs': {
+      const prefix = String(spec.prefix ?? '').trim();
+      if (!prefix) return null;
+      return (t) => {
+        const n = ctx.wbs.get(t.id);
+        return n === prefix || n.startsWith(`${prefix}.`);
+      };
+    }
+    default: {
+      const text = String(spec.contains ?? '').trim();
+      if (!text) return null;
+      const read = col.id === 'name' ? (t) => t.name : (t) => sortValue(col, t.id, ctx);
+      return (t) => fold(read(t)).includes(fold(text));
+    }
+  }
+}
+
+// Filtres actifs des colonnes affichées → un prédicat (toutes les conditions), ou null.
+export function columnsPredicate(columns, filters, ctx, opts) {
+  if (!filters) return null;
+  const preds = [];
+  for (const col of columns) {
+    const p = columnPredicate(col, filters[col.id], ctx, opts);
+    if (p) preds.push(p);
+  }
+  return preds.length ? (t) => preds.every((p) => p(t)) : null;
 }

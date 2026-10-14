@@ -42,6 +42,15 @@
     body.dark .toolbar .seg button { background: transparent; color: #9ca3af; }
     body.dark .toolbar .seg button:hover:not(:disabled) { background: #1f2937; color: #e5e7eb; }
     body.dark .toolbar .seg button[aria-pressed="true"] { background: #374151; color: #fff; box-shadow: none; }
+    .toolbar .search { position: relative; display: inline-flex; align-items: center; }
+    .toolbar .search svg { position: absolute; left: 10px; color: #6b7280; pointer-events: none; }
+    .toolbar .search input { height: 34px; box-sizing: border-box; width: 160px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
+    .toolbar .search input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    body.dark .toolbar .search input { background: #1f2937; border-color: #374151; }
+    body.theme-todoist .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-todoist .toolbar .search input:focus-visible { outline-color: #dc4c3e; }
+    #settings .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 4px 0; }
+    #settings .cols label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
     #chart { --gantt-max-height: 520px; }
     .help { margin-top: 12px; font-size: 13px; color: #4b5563; }
@@ -129,6 +138,11 @@
       <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span data-i18n="undo">Annuler</span></button>
       <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span data-i18n="redo">Rétablir</span></button>
     </div>
+    <div class="search" role="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <label for="search" class="visually-hidden" data-i18n="search">Rechercher une tâche</label>
+      <input id="search" type="search" placeholder="Rechercher…" data-i18n-placeholder="search.placeholder" autocomplete="off">
+    </div>
     <span class="spacer"></span>
     <div class="group" role="group" aria-label="Actions" data-i18n-aria="group.actions">
       <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
@@ -166,6 +180,33 @@
           </select></div>
         <div class="row"><label for="week-start" data-i18n="settings.weekStart">Début de semaine</label>
           <select id="week-start"><option value="1" data-i18n="week.mon">Lundi</option><option value="0" data-i18n="week.sun">Dimanche</option></select></div>
+      </section>
+      <section role="group" aria-labelledby="sg-view">
+        <h3 id="sg-view" data-i18n="settings.view">Affichage</h3>
+        <fieldset class="cols" id="view-cols" style="border:0;padding:0">
+          <legend class="visually-hidden" data-i18n="view.columns">Colonnes</legend>
+          <label><input type="checkbox" value="wbs"> <span data-i18n="col.wbs">N°</span></label>
+          <label><input type="checkbox" value="start"> <span data-i18n="col.start">Début</span></label>
+          <label><input type="checkbox" value="end"> <span data-i18n="col.end">Fin</span></label>
+          <label><input type="checkbox" value="duration"> <span data-i18n="col.duration">Durée</span></label>
+          <label><input type="checkbox" value="progress"> <span data-i18n="col.progress">Avancement</span></label>
+          <label><input type="checkbox" value="slack"> <span data-i18n="col.slack">Marge</span></label>
+          <label><input type="checkbox" value="owner"> <span data-i18n="col.owner">Responsable</span></label>
+        </fieldset>
+        <div class="row"><label for="view-sort" data-i18n="view.sort">Trier par</label>
+          <select id="view-sort">
+            <option value="" data-i18n="sort.none">Ordre du plan</option>
+            <option value="name:asc" data-i18n="sort.name">Nom (A → Z)</option>
+            <option value="start:asc" data-i18n="sort.start">Début (plus tôt d'abord)</option>
+            <option value="end:asc" data-i18n="sort.end">Fin (plus tôt d'abord)</option>
+            <option value="duration:desc" data-i18n="sort.duration">Durée (plus longue d'abord)</option>
+            <option value="progress:asc" data-i18n="sort.progress">Avancement (moins avancé d'abord)</option>
+            <option value="slack:asc" data-i18n="sort.slack">Marge (plus petite d'abord)</option>
+          </select></div>
+        <div class="row"><label for="view-critical" data-i18n="view.criticalOnly">Tâches critiques seulement</label>
+          <input id="view-critical" type="checkbox"></div>
+        <p class="hint" data-i18n="view.hint">Un clic sur un en-tête de colonne trie aussi ; glissez le bord droit du tableau pour l'élargir.</p>
+        <div class="row actions"><button type="button" id="view-reset" data-i18n="view.reset">Réinitialiser l'affichage</button></div>
       </section>
       <section role="group" aria-labelledby="sg-planning">
         <h3 id="sg-planning" data-i18n="settings.planning">Planification</h3>
@@ -231,6 +272,7 @@
     import { Gantt } from '../src/gantt.js';
     import { WEEK, frenchHolidays, americanHolidays } from '../src/calendar.js';
     import { fromDay } from '../src/dates.js';
+    import { matchesText } from '../src/view.js';
 
     const K = (t) => `<kbd>${t}</kbd>`;
     const DEMO = {
@@ -245,6 +287,12 @@
         'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
         'plan.hint': 'Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.',
         'plan.critical': 'Afficher le chemin critique',
+        search: 'Rechercher une tâche', 'search.placeholder': 'Rechercher…', 'settings.view': 'Affichage', 'view.columns': 'Colonnes',
+        'col.wbs': 'N°', 'col.start': 'Début', 'col.end': 'Fin', 'col.duration': 'Durée', 'col.progress': 'Avancement', 'col.slack': 'Marge', 'col.owner': 'Responsable',
+        'view.sort': 'Trier par', 'sort.none': 'Ordre du plan', 'sort.name': 'Nom (A → Z)', 'sort.start': 'Début (plus tôt d\'abord)', 'sort.end': 'Fin (plus tôt d\'abord)',
+        'sort.duration': 'Durée (plus longue d\'abord)', 'sort.progress': 'Avancement (moins avancé d\'abord)', 'sort.slack': 'Marge (plus petite d\'abord)',
+        'view.criticalOnly': 'Tâches critiques seulement',
+        'view.hint': 'Un clic sur un en-tête de colonne trie aussi ; glissez le bord droit du tableau pour l\'élargir.', 'view.reset': 'Réinitialiser l\'affichage',
         'plan.critical.hint': 'Tâches critiques en rouge ; le trait gris après une barre montre sa marge totale.',
         'group.actions': 'Actions', 'export.title': 'Exporter le diagramme', 'print.item': 'Imprimer…', 'fmt.json': 'JSON',
         'group.file': 'Fichier', settings: 'Paramètres', 'settings.title': 'Paramètres', 'settings.appearance': 'Apparence', 'settings.planning': 'Planification',
@@ -278,6 +326,12 @@
         'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
         'plan.hint': 'Aligning moves linked tasks; unlinked tasks stay put.',
         'plan.critical': 'Show the critical path',
+        search: 'Search a task', 'search.placeholder': 'Search…', 'settings.view': 'Display', 'view.columns': 'Columns',
+        'col.wbs': 'No.', 'col.start': 'Start', 'col.end': 'End', 'col.duration': 'Duration', 'col.progress': 'Progress', 'col.slack': 'Slack', 'col.owner': 'Owner',
+        'view.sort': 'Sort by', 'sort.none': 'Plan order', 'sort.name': 'Name (A → Z)', 'sort.start': 'Start (earliest first)', 'sort.end': 'End (earliest first)',
+        'sort.duration': 'Duration (longest first)', 'sort.progress': 'Progress (least first)', 'sort.slack': 'Slack (smallest first)',
+        'view.criticalOnly': 'Critical tasks only',
+        'view.hint': 'Clicking a column header also sorts; drag the table\'s right edge to widen it.', 'view.reset': 'Reset display',
         'plan.critical.hint': 'Critical tasks in red; the grey line after a bar shows its total slack.',
         'group.actions': 'Actions', 'export.title': 'Export the chart', 'print.item': 'Print…', 'fmt.json': 'JSON',
         'group.file': 'File', settings: 'Settings', 'settings.title': 'Settings', 'settings.appearance': 'Appearance', 'settings.planning': 'Planning',
@@ -310,19 +364,20 @@
       for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = T(el.dataset.i18nHtml);
       for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = T(el.dataset.i18nTitle);
       for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', T(el.dataset.i18nAria));
+      for (const el of document.querySelectorAll('[data-i18n-placeholder]')) el.placeholder = T(el.dataset.i18nPlaceholder);
     }
 
     const tasks = [
       { id: 'p1', name: 'Conception' },
-      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3' },
-      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1', constraint: { type: 'SNET', date: '2026-10-12' } },
+      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3', data: { owner: 'Alice' } },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1', constraint: { type: 'SNET', date: '2026-10-12' }, data: { owner: 'Bruno' } },
       { id: 'p2', name: 'Développement' },
-      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2' },
-      { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04' },
-      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1' },
-      { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06' },
+      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2', data: { owner: 'Chloé' } },
+      { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04', data: { owner: 'Chloé' } },
+      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1', data: { owner: 'David' } },
+      { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06', data: { owner: 'Alice' } },
       { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
-      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04', constraint: { type: 'FNLT', date: '2026-11-06' } },
+      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04', constraint: { type: 'FNLT', date: '2026-11-06' }, data: { owner: 'Bruno' } },
     ];
     const links = [
       { id: 'l1', from: 't1', to: 't2', type: 'FS' },
@@ -341,6 +396,7 @@
       lang = e.target.value;
       applyLang();
       gantt.setLocale(lang);
+      gantt.setColumns(columnsFor(ui.cols)); // libellé de la colonne personnalisée
     };
     window.gantt = gantt;
 
@@ -397,6 +453,77 @@
       syncHistory();
     };
     $('toggle-critical').onchange = (e) => gantt.setShowCritical(e.target.checked);
+
+    // Affichage : colonnes, tri, recherche et filtre « critiques seulement », gardés dans localStorage.
+    const VIEW_KEY = 'jsgantt-demo-view';
+    const DEFAULT_COLS = ['start', 'end', 'duration'];
+    const ui = { cols: DEFAULT_COLS, text: '', criticalOnly: false };
+    const columnsFor = (ids) => ids.map((id) => (id === 'owner' ? { id, label: T('col.owner'), width: 96, value: (t) => t.data?.owner ?? '' } : id));
+    let critical = null; // ids critiques, recalculés après chaque modification
+    gantt.on('change', () => { critical = null; });
+    const filterFn = () => {
+      if (!ui.text && !ui.criticalOnly) return null;
+      return (t) => {
+        if (ui.criticalOnly) {
+          critical ??= new Set(gantt.model.criticalIds());
+          if (!critical.has(t.id) || gantt.model.isGroup(t.id)) return false;
+        }
+        return !ui.text || matchesText(t, ui.text);
+      };
+    };
+    function saveView() {
+      const { sort, tableWidth } = gantt.getView();
+      try {
+        localStorage.setItem(VIEW_KEY, JSON.stringify({ cols: ui.cols, sort, tableWidth, criticalOnly: ui.criticalOnly }));
+      } catch { /* stockage indisponible */ }
+    }
+    function syncViewForm() {
+      const { sort } = gantt.getView();
+      for (const box of $('view-cols').querySelectorAll('input')) box.checked = ui.cols.includes(box.value);
+      const value = sort ? `${sort.column}:${sort.dir}` : '';
+      const sel = $('view-sort');
+      if (![...sel.options].some((o) => o.value === value)) {
+        sel.append(Object.assign(document.createElement('option'), { value, textContent: `${sort.column} (${sort.dir})` }));
+      }
+      sel.value = value;
+      $('view-critical').checked = ui.criticalOnly;
+    }
+    function applyUi(extra = {}) {
+      gantt.setView({ columns: columnsFor(ui.cols), filter: filterFn(), ...extra });
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(VIEW_KEY) ?? 'null');
+      if (saved) {
+        ui.cols = Array.isArray(saved.cols) ? saved.cols : DEFAULT_COLS;
+        ui.criticalOnly = saved.criticalOnly === true;
+        applyUi({ sort: saved.sort ?? null, tableWidth: saved.tableWidth ?? null });
+      }
+    } catch { /* vue enregistrée illisible : vue par défaut */ }
+    gantt.on('view', () => { saveView(); syncViewForm(); });
+    syncViewForm();
+    $('view-cols').onchange = () => {
+      ui.cols = [...$('view-cols').querySelectorAll('input:checked')].map((b) => b.value);
+      applyUi();
+    };
+    $('view-sort').onchange = (e) => {
+      const [column, dir] = e.target.value.split(':');
+      // Le tri porte sur une colonne affichée : on l'ajoute au besoin.
+      if (column && column !== 'name' && !ui.cols.includes(column)) ui.cols = [...ui.cols, column];
+      gantt.setView({ columns: columnsFor(ui.cols), sort: column ? { column, dir } : null });
+    };
+    $('view-critical').onchange = (e) => {
+      ui.criticalOnly = e.target.checked;
+      applyUi();
+    };
+    $('search').oninput = (e) => {
+      ui.text = e.target.value;
+      applyUi();
+    };
+    $('view-reset').onclick = () => {
+      ui.cols = DEFAULT_COLS;
+      ui.criticalOnly = false;
+      applyUi({ sort: null, tableWidth: null });
+    };
     $('week-start').onchange = (e) => gantt.setWeekStart(Number(e.target.value));
 
     // Calendrier : jours travaillés, jours fériés et unité du décalage des liens

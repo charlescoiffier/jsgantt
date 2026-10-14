@@ -29,8 +29,8 @@ Les ES modules exigent un serveur HTTP : `npm run demo` (serveur sans cache, por
 
 ## Données
 
-**Tâche** : `id` (obligatoire), `name`, `start` et `end` (`AAAA-MM-JJ`, fin incluse, obligatoires sauf pour un groupe), `progress` (0 à 1), `parentId`, `collapsed`, `milestone` (jalon : `end` facultatif), `className`.
-Le tableau affiche le nom, le début, la fin et la **durée en jours** (jours travaillés si un calendrier est défini, calendaires sinon ; 0 pour un jalon ; un groupe affiche la durée de son étendue). Cette colonne est en lecture seule ; `g.model.durationDays(id)` donne la même valeur.
+**Tâche** : `id` (obligatoire), `name`, `start` et `end` (`AAAA-MM-JJ`, fin incluse, obligatoires sauf pour un groupe), `progress` (0 à 1), `parentId`, `collapsed`, `milestone` (jalon : `end` facultatif), `className`, `data` (objet libre, conservé dans le JSON, modifiable avec `g.model.updateTask(id, { data })` ; utile aux colonnes personnalisées).
+Par défaut, le tableau affiche le nom, le début, la fin et la **durée en jours** (jours travaillés si un calendrier est défini, calendaires sinon ; 0 pour un jalon ; un groupe affiche la durée de son étendue). Cette colonne est en lecture seule ; `g.model.durationDays(id)` donne la même valeur.
 
 Une tâche qui a des enfants est un **groupe** : ses dates sont calculées à partir de ses enfants.
 
@@ -50,7 +50,8 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning, showCritical });
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning, showCritical,
+  columns, sort, filter, tableWidth });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -64,6 +65,8 @@ g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
 g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulable (voir « Contraintes de dates »)
 g.setPlanning({ direction: 'backward', end: '2026-11-30' }); // ou null : en avant ; annulable (voir « Planification »)
 g.alignEarliest(); g.alignLatest();  // cale les tâches reliées au plus tôt / au plus tard ; annulable
+g.setColumns(['wbs', 'start', 'end', 'progress']); g.setSort({ column: 'start', dir: 'asc' }); g.setFilter('recette');
+g.getView(); g.setView({ columns, sort, filter, tableWidth, scale }); // voir « Affichage »
 g.setShowCritical(true); // affiche le chemin critique et les marges (voir « Chemin critique et marges »)
 g.model.slack();         // Map id → { total, free, lateStart, lateEnd, critical } ; g.model.criticalIds()
 g.getData();            // { tasks, links } au format JSON
@@ -170,6 +173,16 @@ Les liens se résolvent dans un sens :
 Les formules des liens FS/SS/FF/SF, le décalage (`lag`, jours travaillés ou calendaires), le calendrier et les groupes sont repris à l'envers. Un redimensionnement qui irait contre un lien est refusé dans les deux sens.
 
 `g.alignEarliest()` et `g.alignLatest()` (annulables) calent d'un coup les tâches **reliées** : au plus tôt (toutes partent du début actuel du projet puis sont repoussées par leurs liens) ou au plus tard (toutes finissent à la fin imposée, ou à la fin actuelle du projet, puis sont avancées par leurs liens). Les tâches sans lien ne bougent pas. Les contraintes de dates restent indicatives.
+
+## Affichage : colonnes, tri, filtre
+
+La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON ni dans l'historique ; chaque changement émet l'événement `view` (détail : `getView()`), ce qui permet de la mémoriser (la démo la garde dans `localStorage`).
+
+- **Colonnes** (`columns`, `g.setColumns`) : le nom est toujours la première. Colonnes fournies : `wbs` (numéro hiérarchique 1, 1.1…), `start`, `end`, `duration`, `progress` (%), `slack` (marge totale). Par défaut : `['start', 'end', 'duration']`. Colonne personnalisée, en lecture seule : `{ id, label, width, value: (task) => texte }`, par exemple `{ id: 'owner', label: 'Responsable', width: 96, value: (t) => t.data?.owner }`. Largeurs en CSS : `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-wbs-col-width`, `--gantt-progress-col-width`, `--gantt-slack-col-width`. Seuls le nom, le début et la fin s'éditent en ligne (`Tab` passe d'une colonne éditable affichée à la suivante).
+- **Largeur du tableau** (`tableWidth`, `g.setTableWidth(px)`, ou en glissant le bord droit du tableau, aussi en lecture seule) : le nom prend la place restante, au moins 120 px. Sans valeur, `--gantt-table-width`.
+- **Tri** (`sort: { column, dir: 'asc' | 'desc' }`, `g.setSort`, ou clic sur un en-tête : croissant, décroissant, ordre du plan) : entre tâches sœurs, la hiérarchie est conservée ; ne change que l'affichage. Pendant un tri, réordonner une tâche (souris ou clavier) est refusé (`reorder.sorted`). La colonne triée doit être affichée ; la retirer annule le tri. Pendant un glissement, l'ordre des lignes est figé.
+- **Filtre** (`filter`, `g.setFilter`) : texte cherché dans les noms (sans tenir compte de la casse ni des accents, `matchesText` dans `src/view.js`) ou fonction `(task) => booléen`. Les groupes parents des tâches retenues restent affichés, le repli est ignoré, les liens vers des tâches masquées sont masqués.
+- Les changements de tri et de filtre sont annoncés (« Trié par Début, croissant », « 3 lignes affichées »). La navigation clavier suit les lignes affichées.
 
 ## Chemin critique et marges
 

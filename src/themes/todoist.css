@@ -29,8 +29,10 @@
   --gantt-bar-height: 18px;
   --gantt-header-height: 38px;
   --gantt-table-width: 400px;
-  --gantt-date-col-width: 80px;
+  --gantt-date-col-width: 86px;
   --gantt-duration-col-width: 52px;
+  --gantt-progress-col-width: 84px;
+  --gantt-slack-col-width: 60px;
   --gantt-indent: 16px;
   --gantt-link-radius: 6px;
 }
@@ -77,3 +79,7 @@
 .gantt-root[data-theme="todoist"] .gantt-task.is-critical.is-selected .gantt-bar { stroke-width: 2.5; }
 .gantt-root[data-theme="todoist"] .gantt-task--group.is-critical .gantt-group-pill { fill: #fbd9d6; }
 .gantt-root[data-theme="todoist"] .gantt-task--group.is-critical .gantt-group-pill-progress { fill: var(--gantt-critical); }
+
+/* Tri : en-tête et flèche en rouge Todoist */
+.gantt-root[data-theme="todoist"] .gantt-header-text--table.is-sorted { fill: #dc4c3e; }
+.gantt-root[data-theme="todoist"] .gantt-sort-arrow { fill: #dc4c3e; }

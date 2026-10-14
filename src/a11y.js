@@ -116,7 +116,23 @@ export function attachA11y(g) {
     flip = !flip;
     live.textContent = message + (flip ? '' : ' ');
   };
+  // Tri et filtre : annoncés seulement quand ils changent (pas pour une colonne ou une largeur).
+  let last = { sort: JSON.stringify(g.view?.sort ?? null), filter: g.view?.filter ?? null };
+  const onView = (v) => {
+    const sort = JSON.stringify(v.sort);
+    const parts = [];
+    if (sort !== last.sort) {
+      const col = v.sort && g.layout.table.columns.find((c) => c.id === v.sort.column);
+      parts.push(col
+        ? g.i18n.t('a11y.sorted', { column: col.label, dir: g.i18n.t(v.sort.dir === 'desc' ? 'a11y.sortDesc' : 'a11y.sortAsc') })
+        : g.i18n.t('a11y.unsorted'));
+    }
+    if (v.filter !== last.filter) parts.push(g.i18n.t('a11y.rows', { count: g.layout.rows.length }));
+    last = { sort, filter: v.filter };
+    if (parts.length) g.say(parts.join(', '));
+  };
   const offs = [
+    g.on('view', onView),
     g.on('change', (d) => g.say(announceChange(g.model, d, g.i18n, g.showCritical ? g.model.slack() : null))),
     g.on('invalid', ({ reason }) => g.say(g.i18n.t('a11y.refused', { reason }))),
   ];

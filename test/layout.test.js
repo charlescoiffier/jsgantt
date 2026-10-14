@@ -4,11 +4,12 @@ import { GanttModel } from '../src/model.js';
 import { Timescale } from '../src/timescale.js';
 import { toDay } from '../src/dates.js';
 import { computeLayout, routeLink, roundedPath, MIN_BAR_WIDTH } from '../src/renderer.js';
+import { normalizeColumns } from '../src/view.js';
 import { t } from './helpers.js';
 
 const metrics = {
   rowHeight: 32, barHeight: 18, headerHeight: 48, tableWidth: 300,
-  dateColWidth: 80, indent: 16, linkGap: 10, linkRadius: 4,
+  dateColWidth: 60, indent: 16, linkGap: 10, linkRadius: 4,
 };
 const ts = (opts = {}) =>
   new Timescale({
@@ -260,11 +261,15 @@ test('colonne durée : valeurs, largeur de colonne, titres', async () => {
   const layout = computeLayout(m, ts(), metrics);
   assert.deepEqual(layout.table.rows.map((r) => r.durationLabel), ['5 j', '0 j']);
   assert.equal(layout.table.durationColWidth, 56); // valeur par défaut quand les métriques ne la fournissent pas
-  assert.equal(layout.table.nameW, 300 - 2 * 80 - 56);
+  assert.equal(layout.table.nameW, 300 - 2 * 60 - 56);
   assert.equal(layout.labels.duration, 'Durée');
-  const wide = computeLayout(m, ts(), { ...metrics, durationColWidth: 64 });
-  assert.equal(wide.table.durationColWidth, 64);
-  assert.equal(wide.table.nameW, 300 - 2 * 80 - 64);
+  const wide = computeLayout(m, ts(), { ...metrics, durationColWidth: 60 });
+  assert.equal(wide.table.durationColWidth, 60);
+  assert.equal(wide.table.nameW, 300 - 2 * 60 - 60);
+  // le nom garde au moins MIN_NAME_WIDTH : le tableau s'élargit
+  const narrow = computeLayout(m, ts(), { ...metrics, durationColWidth: 100 });
+  assert.equal(narrow.table.nameW, 120);
+  assert.equal(narrow.table.width, 120 + 2 * 60 + 100);
   const en = computeLayout(m, ts(), metrics, { i18n: createI18n('en') });
   assert.deepEqual(en.table.rows.map((r) => r.durationLabel), ['5 d', '0 d']);
   assert.equal(en.labels.duration, 'Duration');
@@ -304,4 +309,37 @@ test('chemin critique : barres et liens critiques, traits de marge, seulement si
   assert.equal(barOf(on, 'd').slack, null); // terminée : pas de trait
   assert.match(on.table.rows[0].label, /sur le chemin critique$/);
   assert.match(on.table.rows[2].label, /marge totale 4 jours, marge libre 4 j$/);
+});
+
+test('vue : colonnes choisies, tri signalé, filtre sans liens vers les tâches masquées', () => {
+  const m = new GanttModel({
+    tasks: [
+      { id: 'g', name: 'Groupe' },
+      t('a', '2026-10-05', '2026-10-06', { parentId: 'g', name: 'Alpha', progress: 0.25 }),
+      t('b', '2026-10-07', '2026-10-09', { parentId: 'g', name: 'Beta', data: { owner: 'Ana' } }),
+    ],
+    links: [{ id: 'ab', from: 'a', to: 'b', type: 'FS' }],
+  });
+  const columns = normalizeColumns(['wbs', 'progress', 'slack', { id: 'owner', label: 'Resp.', width: 70, value: (task) => task.data?.owner }]);
+  const layout = computeLayout(m, ts(), metrics, { columns, sort: { column: 'progress', dir: 'desc' }, tableWidth: 400 });
+  const cols = layout.table.columns;
+  assert.deepEqual(cols.map((c) => c.id), ['name', 'wbs', 'progress', 'slack', 'owner']);
+  assert.deepEqual(cols.map((c) => c.label), ['Nom', 'N°', 'Avancement', 'Marge', 'Resp.']);
+  assert.equal(layout.table.width, 400); // le nom prend la place restante
+  assert.equal(cols[0].width, 400 - 48 - 88 - 64 - 70);
+  assert.deepEqual(cols.map((c) => c.x), [0, 130, 178, 266, 330]);
+  assert.equal(computeLayout(m, ts(), metrics, { columns }).table.width, 120 + 270); // nom au minimum : tableau élargi
+  assert.deepEqual(cols.map((c) => c.sort), [null, null, 'desc', null, null]);
+  assert.equal(cols[0].editable, true);
+  assert.equal(cols[2].sortTitle, 'Trier par Avancement');
+  const rowB = layout.table.rows.find((r) => r.id === 'b');
+  assert.deepEqual(rowB.cells.map((c) => c.text), ['1.2', '0 %', '0 j', 'Ana']);
+  assert.deepEqual(layout.table.rows.map((r) => r.id), ['g', 'a', 'b']); // 25 % avant 0 %
+  assert.equal(layout.links.length, 1);
+  const filtered = computeLayout(m, ts(), metrics, { columns, filter: 'beta' });
+  assert.deepEqual(filtered.table.rows.map((r) => r.id), ['g', 'b']);
+  assert.equal(filtered.links.length, 0);
+  const wide = computeLayout(m, ts(), metrics, { tableWidth: 500 });
+  assert.equal(wide.table.width, 500);
+  assert.equal(barOf(wide, 'a').x, 500 + 4 * 20); // la timeline suit la largeur du tableau
 });

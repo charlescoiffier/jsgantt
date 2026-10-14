@@ -34,6 +34,9 @@
   --gantt-table-width: 420px;
   --gantt-date-col-width: 84px;
   --gantt-duration-col-width: 56px;
+  --gantt-wbs-col-width: 48px;
+  --gantt-progress-col-width: 88px;
+  --gantt-slack-col-width: 64px;
   --gantt-indent: 16px;
   --gantt-link-gap: 10px;
   --gantt-link-radius: 6px;
@@ -152,6 +155,13 @@
 .gantt-chevron-hit { fill: transparent; cursor: pointer; }
 .gantt-cell { fill: transparent; }
 .gantt-table-edge { stroke: var(--gantt-border); stroke-width: 1; }
+/* Tri par en-tête et largeur du tableau */
+.gantt-sort-hit { fill: transparent; cursor: pointer; }
+.gantt-sort-hit:hover { fill: var(--gantt-text); fill-opacity: .04; }
+.gantt-sort-arrow { fill: var(--gantt-selected); pointer-events: none; }
+.gantt-header-text--table.is-sorted { fill: var(--gantt-selected); }
+.gantt-table-resize { fill: transparent; cursor: col-resize; }
+.gantt-table-resize:hover { fill: var(--gantt-selected); fill-opacity: .25; }
 
 /* Actions de ligne (ajouter, supprimer, déplacer) et ligne d'ajout */
 .gantt-actions { opacity: 0; }
@@ -242,7 +252,7 @@
   .gantt-scroll { display: none; }
   .gantt-print-only { display: block; }
   .gantt-print-only .gantt-svg { max-width: 100%; height: auto; }
-  .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit { display: none; }
+  .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit, .gantt-sort-hit, .gantt-table-resize { display: none; }
 }
 
 /* Clavier et accessibilité */

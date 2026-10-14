@@ -8,6 +8,7 @@ import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
 import { createI18n } from './i18n.js';
 import { openConstraintEditor } from './constraint-editor.js';
+import { normalizeColumns } from './view.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -16,6 +17,8 @@ function todayDay() {
   const n = new Date();
   return Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 86400000);
 }
+
+const DEFAULT_VIEW_COLUMNS = ['start', 'end', 'duration'];
 
 export class Gantt {
   #listeners = new Map();
@@ -46,6 +49,9 @@ export class Gantt {
       throw this.#localizeError(e);
     }
     this.state = { selectedId: null, selectedLinkId: null };
+    // Vue du tableau (ni dans les données, ni dans l'historique) : colonnes, tri, filtre, largeur.
+    this.view = { columns: DEFAULT_VIEW_COLUMNS, sort: null, filter: null, tableWidth: null };
+    this.#applyView(options);
     this.refresh();
     this.detach = attachInteractions(this);
     this.detachA11y = attachA11y(this);
@@ -122,6 +128,8 @@ export class Gantt {
     this.root.classList.toggle('is-readonly', this.readonly);
     this.layout = computeLayout(model, this.timescale, this.metrics, {
       ...this.state, today: todayDay(), showAdd: !this.readonly, showCritical: this.showCritical, i18n: this.i18n,
+      columns: this.#columnSpecs, sort: this.view.sort, filter: this.view.filter, tableWidth: this.view.tableWidth,
+      frozenRows: dragId && this.layout ? this.layout.rowsInfo : undefined,
     });
     const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
@@ -136,12 +144,88 @@ export class Gantt {
   setScale(scale) {
     if (!SCALES.includes(scale)) throw new Error(`Échelle inconnue : "${scale}"`);
     if (scale === this.scale) return;
-    const view = (this.scroller.clientWidth - this.metrics.tableWidth) / 2;
+    const view = (this.scroller.clientWidth - this.layout.table.width) / 2;
     const centerDay = this.timescale.xToDay(this.scroller.scrollLeft + view);
     this.scale = scale;
     this.refresh();
     this.scroller.scrollLeft = Math.max(0, this.timescale.dayToX(centerDay) - view);
     this.emit('scale', { scale });
+  }
+
+  // --- Vue du tableau ---
+
+  #columnSpecs = normalizeColumns();
+
+  // Valide puis applique les clés présentes de `v` ; lève (sans rien changer) si une valeur est invalide.
+  #applyView(v) {
+    const next = { ...this.view };
+    let specs = this.#columnSpecs;
+    if ('columns' in v && v.columns !== undefined) {
+      specs = normalizeColumns(v.columns ?? DEFAULT_VIEW_COLUMNS);
+      next.columns = v.columns ?? DEFAULT_VIEW_COLUMNS;
+    }
+    if ('sort' in v && v.sort !== undefined) next.sort = v.sort;
+    if ('filter' in v && v.filter !== undefined) next.filter = v.filter === '' ? null : v.filter;
+    if ('tableWidth' in v && v.tableWidth !== undefined) {
+      if (v.tableWidth !== null && !(Number.isFinite(v.tableWidth) && v.tableWidth > 0)) {
+        throw new Error('"tableWidth" doit être un nombre positif ou null');
+      }
+      next.tableWidth = v.tableWidth === null ? null : Math.round(v.tableWidth);
+    }
+    if (next.sort !== null) {
+      const { column, dir } = next.sort ?? {};
+      if (dir !== 'asc' && dir !== 'desc') throw new Error('"sort.dir" doit valoir "asc" ou "desc"');
+      // Une colonne retirée emporte son tri.
+      if (!specs.some((c) => c.id === column)) {
+        if ('sort' in v && v.sort !== undefined) throw new Error(`Tri : colonne absente du tableau : "${column}"`);
+        next.sort = null;
+      }
+    }
+    if (next.filter !== null && typeof next.filter !== 'string' && typeof next.filter !== 'function') {
+      throw new Error('"filter" doit être un texte, une fonction (task) => booléen ou null');
+    }
+    this.view = next;
+    this.#columnSpecs = specs;
+  }
+
+  getView() {
+    const { columns, sort, filter, tableWidth } = this.view;
+    return { columns: [...columns], sort: sort ? { ...sort } : null, filter, tableWidth, scale: this.scale };
+  }
+
+  // Applique une vue partielle : { columns, sort, filter, tableWidth, scale }.
+  setView(v = {}) {
+    this.#applyView(v);
+    if (v.scale !== undefined && v.scale !== this.scale) this.setScale(v.scale);
+    else this.refresh();
+    if (this.state.selectedId && !this.layout.rows.some((r) => r.id === this.state.selectedId)) this.select(null);
+    this.emit('view', this.getView());
+  }
+
+  setColumns(columns) {
+    this.setView({ columns });
+  }
+
+  // { column, dir: 'asc' | 'desc' } ou null (ordre du plan).
+  setSort(sort) {
+    this.setView({ sort });
+  }
+
+  // Texte cherché dans les noms, fonction (task) => booléen, ou null.
+  setFilter(filter) {
+    this.setView({ filter });
+  }
+
+  setTableWidth(px) {
+    this.setView({ tableWidth: px });
+  }
+
+  // Clic sur un en-tête : croissant, décroissant, puis ordre du plan.
+  cycleSort(column) {
+    const cur = this.view.sort;
+    if (!cur || cur.column !== column) this.setSort({ column, dir: 'asc' });
+    else if (cur.dir === 'asc') this.setSort({ column, dir: 'desc' });
+    else this.setSort(null);
   }
 
   // Affiche ou masque le chemin critique et les marges.
@@ -257,7 +341,7 @@ export class Gantt {
   }
 
   #viewCenterDay() {
-    const view = (this.scroller.clientWidth - this.metrics.tableWidth) / 2;
+    const view = (this.scroller.clientWidth - this.layout.table.width) / 2;
     return view > 0 ? this.timescale.xToDay(this.scroller.scrollLeft + view) : todayDay();
   }
 
@@ -281,6 +365,10 @@ export class Gantt {
 
   moveTaskTo(id, to) {
     if (this.readonly) return this.#denyReadonly();
+    if (this.view.sort) {
+      this.refuse('reorder.sorted');
+      return { ok: false, reason: this.i18n.t('reorder.sorted'), code: 'reorder.sorted' };
+    }
     const work = this.model.clone();
     const probe = work.moveTaskTo(id, to);
     if (probe.ok && JSON.stringify(work.getData()) === JSON.stringify(this.model.getData())) {
@@ -300,8 +388,9 @@ export class Gantt {
     const bar = this.layout.bars.find((b) => b.id === id);
     if (bar) {
       const { scrollLeft, clientWidth } = this.scroller;
-      const left = scrollLeft + this.metrics.tableWidth;
-      if (bar.x < left) this.scroller.scrollLeft = Math.max(0, bar.x - this.metrics.tableWidth - 24);
+      const tw = this.layout.table.width;
+      const left = scrollLeft + tw;
+      if (bar.x < left) this.scroller.scrollLeft = Math.max(0, bar.x - tw - 24);
       else if (bar.x + bar.width > scrollLeft + clientWidth) this.scroller.scrollLeft = bar.x + bar.width - clientWidth + 24;
     }
   }

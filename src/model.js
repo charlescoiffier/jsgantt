@@ -68,7 +68,15 @@ export class GanttModel {
       milestone: raw.milestone === true,
       className: raw.className ?? '',
       constraint: this.#parseConstraint(id, raw.constraint),
+      data: this.#parseData(id, raw.data),
     });
+  }
+
+  // Champ libre d'une tâche (objet JSON), copié pour rester indépendant des données d'origine.
+  #parseData(id, data) {
+    if (data === undefined || data === null) return null;
+    if (typeof data !== 'object' || Array.isArray(data)) throw new GanttError('task.data', { id });
+    return JSON.parse(JSON.stringify(data));
   }
 
   #parseConstraint(id, c) {
@@ -550,6 +558,13 @@ export class GanttModel {
     const t = this.#require(id);
     const next = {};
     if ('name' in patch) next.name = String(patch.name);
+    if ('data' in patch) {
+      try {
+        next.data = this.#parseData(id, patch.data);
+      } catch (e) {
+        return failFrom(e);
+      }
+    }
     for (const key of ['start', 'end']) {
       if (!(key in patch)) continue;
       if (this.isGroup(id)) return fail('dates.group');
@@ -569,8 +584,9 @@ export class GanttModel {
       start = this.#calendar.nextWorking(start);
       end = t.milestone ? start : Math.max(start, this.#calendar.prevWorking(end));
     }
-    const saved = { name: t.name, start: t.start, end: t.end };
+    const saved = { name: t.name, start: t.start, end: t.end, data: t.data };
     if ('name' in next) t.name = next.name;
+    if ('data' in next) t.data = next.data;
     if (!this.isGroup(id)) {
       t.start = start;
       t.end = end;
@@ -579,6 +595,7 @@ export class GanttModel {
         t.name = saved.name;
         t.start = saved.start;
         t.end = saved.end;
+        t.data = saved.data;
         return fail('update.blocked');
       }
     }
@@ -640,6 +657,7 @@ export class GanttModel {
       milestone: false,
       className: '',
       constraint: null,
+      data: null,
     };
     order.splice(at, 0, id);
     this.#tasks.set(id, task);
@@ -714,6 +732,7 @@ export class GanttModel {
       if (t.milestone) o.milestone = true;
       if (t.className) o.className = t.className;
       if (t.constraint) o.constraint = { type: t.constraint.type, date: fromDay(t.constraint.date) };
+      if (t.data) o.data = JSON.parse(JSON.stringify(t.data));
       return o;
     });
     const calendar = this.#calendar.toJSON();

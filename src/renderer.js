@@ -4,8 +4,10 @@ import { createI18n } from './i18n.js';
 import { constraintSide } from './constraints.js';
 import { constraintText } from './a11y.js';
 import { criticalLinkIds } from './slack.js';
+import { normalizeColumns, viewRows, viewContext, EDITABLE_COLUMNS } from './view.js';
 
 export const MIN_BAR_WIDTH = 4;
+export const MIN_NAME_WIDTH = 120;
 const DEFAULT_I18N = createI18n('fr');
 
 const fmt = (n) => +n.toFixed(2);
@@ -70,10 +72,54 @@ export function computeLayout(model, ts, metrics, state = {}) {
     remove: i18n.t('ui.remove'),
     move: i18n.t('ui.move'),
     constraint: i18n.t('ui.constraint'),
+    wbs: i18n.t('ui.wbs'),
+    progress: i18n.t('ui.progress'),
+    slack: i18n.t('ui.slack'),
   };
-  const { rowHeight, barHeight, headerHeight, tableWidth, dateColWidth, indent, linkGap, linkRadius } = metrics;
+  const { rowHeight, barHeight, headerHeight, dateColWidth, indent, linkGap, linkRadius } = metrics;
   const durationColWidth = metrics.durationColWidth ?? 56;
-  const rowsInfo = model.visibleRows();
+  // Colonnes : le nom prend la largeur restante du tableau (au moins MIN_NAME_WIDTH).
+  const columns = state.columns ?? normalizeColumns();
+  const ctx = viewContext(model, i18n);
+  const colWidth = (c) => {
+    switch (c.id) {
+      case 'start':
+      case 'end':
+        return dateColWidth;
+      case 'duration':
+        return durationColWidth;
+      case 'wbs':
+        return metrics.wbsColWidth ?? 48;
+      case 'progress':
+        return metrics.progressColWidth ?? 88;
+      case 'slack':
+        return metrics.slackColWidth ?? 64;
+      default:
+        return c.width ?? 100;
+    }
+  };
+  const others = columns.slice(1).reduce((sum, c) => sum + colWidth(c), 0);
+  const nameW = Math.max(MIN_NAME_WIDTH, (state.tableWidth ?? metrics.tableWidth) - others);
+  const tableWidth = nameW + others;
+  metrics = { ...metrics, tableWidth };
+  let cx = 0;
+  const tableColumns = columns.map((c) => {
+    const w = c.id === 'name' ? nameW : colWidth(c);
+    const col = {
+      id: c.id,
+      label: c.builtin ? labels[c.id] : c.label,
+      x: cx,
+      width: w,
+      editable: EDITABLE_COLUMNS.includes(c.id),
+      sort: state.sort?.column === c.id ? state.sort.dir : null,
+      sortTitle: i18n.t('ui.sortBy', { column: c.builtin ? labels[c.id] : c.label }),
+      spec: c,
+    };
+    cx += w;
+    return col;
+  });
+  // `frozenRows` : ordre des lignes figé (pendant un glissement, pour qu'un tri ne fasse pas sauter les lignes).
+  const rowsInfo = state.frozenRows ?? viewRows(model, { sort: state.sort ?? null, filter: state.filter ?? null, columns, ctx });
   const width = tableWidth + ts.totalWidth;
   const addRow = state.showAdd ? { y: headerHeight + rowsInfo.length * rowHeight, alt: rowsInfo.length % 2 === 1 } : null;
   const height = headerHeight + (rowsInfo.length + (addRow ? 1 : 0)) * rowHeight;
@@ -159,6 +205,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
       startLabel,
       endLabel,
       durationLabel: i18n.t('ui.durationValue', { n: model.durationDays(id) }),
+      cells: tableColumns.slice(1).map((c) => ({ id: c.id, text: cellText(c.spec, id, ctx) })),
       group,
       collapsed: group && t.collapsed,
       alt,
@@ -194,7 +241,10 @@ export function computeLayout(model, ts, metrics, state = {}) {
     : null;
 
   const barById = new Map(bars.map((b) => [b.id, b]));
+  // Repli : un lien vers une tâche repliée part de son groupe visible. Filtre : un lien vers une tâche masquée est masqué.
+  const filtering = state.filter !== null && state.filter !== undefined && state.filter !== '';
   const visibleBar = (id) => {
+    if (filtering) return barById.get(id) ?? null;
     let cur = id;
     while (cur !== null && !barById.has(cur)) cur = model.getTask(cur).parentId;
     return cur === null ? null : barById.get(cur);
@@ -229,6 +279,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     labels,
     header,
     rows,
+    rowsInfo,
     weekends,
     gridLines,
     addRow,
@@ -237,8 +288,35 @@ export function computeLayout(model, ts, metrics, state = {}) {
     today,
     bars,
     links,
-    table: { width: tableWidth, nameW: tableWidth - 2 * dateColWidth - durationColWidth, dateColWidth, durationColWidth, indent, rows: tableRows },
+    table: { width: tableWidth, nameW, columns: tableColumns, dateColWidth, durationColWidth, indent, rows: tableRows },
   };
+}
+
+// Texte d'une cellule hors nom.
+function cellText(col, id, ctx) {
+  const { model, i18n } = ctx;
+  const t = model.getTask(id);
+  switch (col.id) {
+    case 'wbs':
+      return ctx.wbs.get(id);
+    case 'start':
+      return fromDay(t.start);
+    case 'end':
+      return fromDay(t.end);
+    case 'duration':
+      return i18n.t('ui.durationValue', { n: model.durationDays(id) });
+    case 'progress':
+      return i18n.t('ui.progressValue', { p: Math.round(model.progressOf(id) * 100) });
+    case 'slack':
+      return i18n.t('ui.durationValue', { n: ctx.slack.get(id)?.total ?? 0 });
+    default:
+      try {
+        const v = col.value(t);
+        return v === undefined || v === null ? '' : String(v);
+      } catch {
+        return '';
+      }
+  }
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -267,6 +345,9 @@ export function readMetrics(el) {
     tableWidth: num('--gantt-table-width', 360),
     dateColWidth: num('--gantt-date-col-width', 84),
     durationColWidth: num('--gantt-duration-col-width', 56),
+    wbsColWidth: num('--gantt-wbs-col-width', 48),
+    progressColWidth: num('--gantt-progress-col-width', 88),
+    slackColWidth: num('--gantt-slack-col-width', 64),
     indent: num('--gantt-indent', 16),
     linkGap: num('--gantt-link-gap', 10),
     linkRadius: num('--gantt-link-radius', 6),
@@ -296,11 +377,14 @@ function markerDefs(uid) {
   return defs;
 }
 
-function clipDefs(uid, layout) {
+function clipDefs(uid, layout, prefix = 'clip') {
   const defs = svgEl('defs');
-  const clip = svgEl('clipPath', { id: `${uid}-clip-name` });
-  clip.append(svgEl('rect', { x: 0, y: 0, width: Math.max(layout.table.nameW - 4, 0), height: layout.height }));
-  defs.append(clip);
+  for (const col of layout.table.columns) {
+    const clip = svgEl('clipPath', { id: `${uid}-${prefix}-${col.id}` });
+    // Le nom s'arrête un peu avant la colonne suivante ; les autres cellules peuvent aller jusqu'au bord.
+    clip.append(svgEl('rect', { x: col.x, y: 0, width: Math.max(col.width - (col.id === 'name' ? 4 : 0), 0), height: layout.height }));
+    defs.append(clip);
+  }
   return defs;
 }
 
@@ -540,7 +624,6 @@ function renderTable(layout, uid, readonly) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-table' });
   g.append(svgEl('rect', { class: 'gantt-table-bg', x: 0, y: 0, width: table.width, height: layout.height }));
-  const colX = [0, table.nameW, table.nameW + table.dateColWidth, table.nameW + 2 * table.dateColWidth];
   for (const row of table.rows) {
     const rowGroup = svgEl('g', {
       class: cls('gantt-table-row', row.alt && 'gantt-table-row--alt', row.group && 'gantt-table-row--group',
@@ -563,24 +646,20 @@ function renderTable(layout, uid, readonly) {
         : `${cx - 1},${cy - 3} ${cx + 7},${cy - 3} ${cx + 3},${cy + 4}`;
       rowGroup.append(svgEl('polygon', { class: 'gantt-chevron', points: pts, 'pointer-events': 'none' }));
     }
-    const cells = [
-      ['cell-name', colX[0], table.nameW, row.name, cx + 16],
-      ['cell-start', colX[1], table.dateColWidth, row.startLabel, colX[1] + 8],
-      ['cell-end', colX[2], table.dateColWidth, row.endLabel, colX[2] + 8],
-    ];
-    rowGroup.append(svgEl('text', {
-      class: 'gantt-table-text gantt-table-text--date gantt-table-text--duration', x: colX[3] + 8, y: cy, dy: '0.35em', role: 'gridcell',
-    }, row.durationLabel));
-    for (const [role, x, w, text, tx] of cells) {
-      rowGroup.append(svgEl('rect', {
-        class: 'gantt-cell', x, y: row.y, width: w, height: layout.rowHeight, 'data-role': role, 'data-id': row.id,
-        'data-export': 'skip',
-      }));
+    const texts = new Map([['name', row.name], ...row.cells.map((c) => [c.id, c.text])]);
+    for (const col of table.columns) {
+      const name = col.id === 'name';
+      if (col.editable) {
+        rowGroup.append(svgEl('rect', {
+          class: 'gantt-cell', x: col.x, y: row.y, width: col.width, height: layout.rowHeight, 'data-role': `cell-${col.id}`,
+          'data-id': row.id, 'data-export': 'skip',
+        }));
+      }
       rowGroup.append(svgEl('text', {
-        class: cls('gantt-table-text', role === 'cell-name' ? 'gantt-table-text--name' : 'gantt-table-text--date'),
-        x: tx, y: cy, dy: '0.35em', role: 'gridcell',
-        'clip-path': role === 'cell-name' ? `url(#${uid}-clip-name)` : undefined,
-      }, text));
+        class: cls('gantt-table-text', name ? 'gantt-table-text--name' : 'gantt-table-text--date', `gantt-table-text--${col.id}`),
+        x: name ? cx + 16 : col.x + 8, y: cy, dy: '0.35em', role: 'gridcell',
+        'clip-path': `url(#${uid}-clip-${name ? 'name' : col.id})`,
+      }, texts.get(col.id)));
     }
     if (row.group) {
       rowGroup.append(svgEl('rect', {
@@ -608,24 +687,49 @@ function renderTable(layout, uid, readonly) {
     g.append(add);
   }
   g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.height }));
+  g.append(resizeHandle(table.width, layout.height));
   return g;
 }
 
-function renderCorner(layout) {
+function renderCorner(layout, uid, readonly) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-corner' });
+  g.append(clipDefs(uid, layout, 'hclip'));
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
-  const titles = [
-    [layout.labels.name, 8],
-    [layout.labels.start, table.nameW + 8],
-    [layout.labels.end, table.nameW + table.dateColWidth + 8],
-    [layout.labels.duration, table.nameW + 2 * table.dateColWidth + 8],
-  ];
-  for (const [label, x] of titles) {
-    g.append(svgEl('text', { class: 'gantt-header-text gantt-header-text--table', x, y: layout.headerHeight / 2, dy: '0.35em' }, label));
+  const sortable = true;
+  for (const col of table.columns) {
+    const text = svgEl('text', {
+      class: cls('gantt-header-text', 'gantt-header-text--table', col.sort && 'is-sorted'),
+      x: col.x + 8, y: layout.headerHeight / 2, dy: '0.35em',
+      'clip-path': `url(#${uid}-hclip-${col.id})`,
+    }, col.label);
+    g.append(text);
+    if (col.sort) {
+      // Flèche de tri : vers le haut en croissant, vers le bas en décroissant.
+      const ax = col.x + col.width - 12;
+      const ay = layout.headerHeight / 2;
+      const pts = col.sort === 'asc' ? `${ax - 4},${ay + 2} ${ax + 4},${ay + 2} ${ax},${ay - 3}` : `${ax - 4},${ay - 2} ${ax + 4},${ay - 2} ${ax},${ay + 3}`;
+      g.append(svgEl('polygon', { class: 'gantt-sort-arrow', points: pts }));
+    }
+    if (sortable) {
+      const hit = svgEl('rect', {
+        class: 'gantt-sort-hit', x: col.x, y: 0, width: col.width, height: layout.headerHeight,
+        'data-role': 'sort', 'data-col': col.id, 'data-export': 'skip',
+      });
+      hit.append(svgEl('title', {}, col.sortTitle));
+      g.append(hit);
+    }
   }
   g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.headerHeight }));
+  g.append(resizeHandle(table.width, layout.headerHeight));
   return g;
+}
+
+// Poignée du bord droit du tableau : glisser pour changer sa largeur.
+function resizeHandle(x, height) {
+  return svgEl('rect', {
+    class: 'gantt-table-resize', x: x - 4, y: 0, width: 8, height, 'data-role': 'table-resize', 'data-export': 'skip',
+  });
 }
 
 export function renderParts(layout, { uid = 'g0', readonly = false, dragId = null } = {}) {
@@ -647,7 +751,7 @@ export function renderParts(layout, { uid = 'g0', readonly = false, dragId = nul
   const table = mk('table', tw, layout.height);
   table.append(clipDefs(uid, layout), renderTable(layout, uid, readonly));
   const corner = mk('corner', tw, hh);
-  corner.append(renderCorner(layout));
+  corner.append(renderCorner(layout, uid, readonly));
   const overlay = mk('overlay', layout.width, layout.height);
   overlay.append(svgEl('g', { class: 'gantt-overlay' }));
   return { main, header, table, corner, overlay };

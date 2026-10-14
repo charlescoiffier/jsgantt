@@ -41,7 +41,7 @@ export function attachKeyboard(g) {
       return;
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      const ids = g.model.visibleRows().map((r) => r.id).filter((x) => x !== linkMode.fromId);
+      const ids = g.layout.rows.map((r) => r.id).filter((x) => x !== linkMode.fromId);
       const next = rowNav(ids, linkMode.targetId, e.key);
       if (next === null) return;
       linkMode.targetId = next;
@@ -102,12 +102,12 @@ export function attachKeyboard(g) {
     if (!e.altKey && !e.shiftKey) {
       if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
         handled();
-        const next = rowNav(g.model.visibleRows().map((r) => r.id), id, key);
+        const next = rowNav(g.layout.rows.map((r) => r.id), id, key);
         if (next) selectRow(next);
         return;
       }
       if ((key === 'ArrowLeft' || key === 'ArrowRight') && id) {
-        const act = treeKey(g.model, id, key);
+        const act = treeKey(g.model, id, key, g.layout.rows.map((r) => r.id));
         if (act) {
           handled();
           if (act.action === 'select') selectRow(act.id);

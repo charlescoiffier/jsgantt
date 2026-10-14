@@ -50,6 +50,12 @@ export function attachInteractions(g) {
     const id = hit.dataset.id;
     g.root.querySelector('.gantt-input')?.blur(); // valide l'édition en cours avant de copier le modèle
     switch (role) {
+      case 'table-resize':
+        // Largeur du tableau : réglage d'affichage, permis aussi en lecture seule.
+        drag = { kind: 'table', startX: e.clientX, width0: g.layout.table.width, prev: g.view.tableWidth, pointerId: e.pointerId };
+        root.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        break;
       case 'chevron':
         g.commit('collapse', { id }, (m) => m.toggleCollapsed(id));
         break;
@@ -82,7 +88,8 @@ export function attachInteractions(g) {
       case 'row-grip':
         if (g.readonly) break;
         g.select(id, null);
-        startReorder(id, e);
+        if (g.view.sort) g.refuse('reorder.sorted');
+        else startReorder(id, e);
         break;
       case 'cell-name':
       case 'cell-start':
@@ -117,9 +124,13 @@ export function attachInteractions(g) {
   // Ces actions s'exécutent au clic : à l'appui, le navigateur déplace ensuite le focus et refermerait aussitôt
   // le champ ou la fenêtre qu'elles ouvrent.
   function onClick(e) {
-    if (g.readonly) return;
     const hit = e.target.closest?.('[data-role]');
     if (!hit) return;
+    if (hit.dataset.role === 'sort') {
+      g.cycleSort(hit.dataset.col);
+      return;
+    }
+    if (g.readonly) return;
     const id = hit.dataset.id;
     switch (hit.dataset.role) {
       case 'add-task':
@@ -148,6 +159,13 @@ export function attachInteractions(g) {
     }
     if (drag.kind === 'reorder') {
       moveReorder(e);
+      return;
+    }
+    if (drag.kind === 'table') {
+      // Aperçu sans émettre d'événement ; la vue n'est fixée qu'au relâchement.
+      drag.width = Math.max(0, drag.width0 + e.clientX - drag.startX);
+      g.view.tableWidth = drag.width;
+      g.render();
       return;
     }
     if (!drag.moved && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) return;
@@ -180,6 +198,10 @@ export function attachInteractions(g) {
       finishReorder(d);
       return;
     }
+    if (d.kind === 'table') {
+      if (d.width !== undefined) g.setTableWidth(g.layout.table.width);
+      return;
+    }
     if (!d.moved) return;
     const type = d.kind === 'move' ? 'move' : d.kind === 'handle-progress' ? 'progress' : 'resize';
     g.commit(type, { id: d.id }, d.mutate);
@@ -187,6 +209,7 @@ export function attachInteractions(g) {
 
   function onPointerCancel(e) {
     if (!drag) return;
+    if (drag.kind === 'table') g.view.tableWidth = drag.prev;
     drag = null;
     try {
       root.releasePointerCapture(e.pointerId);
@@ -213,6 +236,7 @@ export function attachInteractions(g) {
       }
     }
     if (e.key === 'Escape' && drag) {
+      if (drag.kind === 'table') g.view.tableWidth = drag.prev;
       drag = null;
       g.render();
       return;
@@ -226,7 +250,7 @@ export function attachInteractions(g) {
       } else if (g.state.selectedId) {
         e.preventDefault();
         const removed = g.state.selectedId;
-        const neighbor = neighborAfterRemoval(g.model, removed);
+        const neighbor = neighborAfterRemoval(g.model, removed, g.layout.rows.map((r) => r.id));
         if (g.removeTask(removed).ok && neighbor) {
           g.select(neighbor, null);
           g.reveal(neighbor);
@@ -412,7 +436,7 @@ export function attachInteractions(g) {
       else if (ev.key === 'Escape') finish(false, { refocus: true });
       else if (ev.key === 'Tab') {
         ev.preventDefault();
-        const order = ['name', 'start', 'end'];
+        const order = g.layout.table.columns.filter((c) => c.editable).map((c) => c.id);
         const next = order[order.indexOf(field) + (ev.shiftKey ? -1 : 1)] ?? null;
         finish(true, { refocus: !next, next });
       }

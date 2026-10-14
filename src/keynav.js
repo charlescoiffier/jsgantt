@@ -15,13 +15,17 @@ export function rowNav(ids, current, key) {
   }
 }
 
-export function treeKey(model, id, key) {
+// `rows` (facultatif) : ids des lignes affichées, pour aller au premier enfant visible (tri, filtre).
+export function treeKey(model, id, key, rows = null) {
   const task = model.getTask(id);
   const group = model.isGroup(id);
   if (key === 'ArrowRight') {
     if (!group) return null;
     if (task.collapsed) return { action: 'expand' };
-    return { action: 'select', id: model.childrenOf(id)[0].id };
+    const first = rows
+      ? rows.slice(rows.indexOf(id) + 1).find((r) => model.getTask(r).parentId === id)
+      : model.childrenOf(id)[0].id;
+    return first ? { action: 'select', id: first } : null;
   }
   if (key === 'ArrowLeft') {
     if (group && !task.collapsed) return { action: 'collapse' };
@@ -30,8 +34,8 @@ export function treeKey(model, id, key) {
   return null;
 }
 
-export function neighborAfterRemoval(model, id) {
-  const rows = model.visibleRows().map((r) => r.id);
+// `rows` : ids des lignes affichées (par défaut, l'ordre du plan).
+export function neighborAfterRemoval(model, id, rows = model.visibleRows().map((r) => r.id)) {
   const family = new Set([id, ...model.descendantsOf(id)]);
   const i = rows.indexOf(id);
   const after = rows.slice(i + 1).find((r) => !family.has(r));

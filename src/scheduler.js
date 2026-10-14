@@ -1,4 +1,5 @@
 // Planification : en avant, une tâche trop tôt est repoussée plus tard ; en arrière, une tâche trop tard est avancée.
+// `opts.initial` (Map id → { start, end }) remplace les dates des tâches comme point de départ, sans toucher au modèle.
 // `opts.direction` ('forward' | 'backward') et `opts.anchor` (jour : fin imposée, plafond de toutes les tâches en arrière).
 export function computeDates(model, opts = {}) {
   const direction = opts.direction ?? model.planning.direction;
@@ -7,7 +8,10 @@ export function computeDates(model, opts = {}) {
   const leavesOf = new Map();
   for (const t of model.tasks) {
     leavesOf.set(t.id, model.leafIdsUnder(t.id));
-    if (!model.isGroup(t.id)) cur.set(t.id, { start: t.start, end: t.end });
+    if (!model.isGroup(t.id)) {
+      const from = opts.initial?.get(t.id) ?? t;
+      cur.set(t.id, { start: from.start, end: from.end });
+    }
   }
   const span = (id) => {
     let start = Infinity;
@@ -68,30 +72,7 @@ export function computeDates(model, opts = {}) {
           changed = true;
         }
       } else {
-        // Miroir : le bord de A ne peut pas dépasser la limite imposée par B.
-        const working = cal.lagUnit === 'working';
-        let edge;
-        let latest;
-        switch (link.type) {
-          case 'FS':
-            edge = 'end';
-            latest = working ? cal.addWorkingDays(b.start, -(1 + lag)) : cal.addWorkingDays(cal.prevWorking(b.start - lag), -1);
-            break;
-          case 'SS':
-            edge = 'start';
-            latest = working ? cal.addWorkingDays(b.start, -lag) : cal.prevWorking(b.start - lag);
-            break;
-          case 'FF':
-            edge = 'end';
-            latest = working ? cal.addWorkingDays(b.end, -lag) : cal.prevWorking(b.end - lag);
-            break;
-          case 'SF':
-            edge = 'start';
-            latest = working ? cal.addWorkingDays(b.end, 1 - lag) : cal.addWorkingDays(cal.prevWorking(b.end - lag), 1);
-            break;
-          default:
-            throw new Error(`Type de lien inconnu : "${link.type}"`);
-        }
+        const { edge, latest } = latestEdge(cal, link, b);
         if (a[edge] > latest) {
           shift(link.from, cal.workingDistance(a[edge], latest));
           changed = true;
@@ -109,4 +90,22 @@ export function computeDates(model, opts = {}) {
     if (!changed) break;
   }
   return cur;
+}
+
+// Miroir d'un lien A → B : le bord de A (`edge`) ne peut pas dépasser `latest`, compte tenu des dates de B.
+export function latestEdge(cal, link, b) {
+  const working = cal.lagUnit === 'working';
+  const lag = link.lag ?? 0;
+  switch (link.type) {
+    case 'FS':
+      return { edge: 'end', latest: working ? cal.addWorkingDays(b.start, -(1 + lag)) : cal.addWorkingDays(cal.prevWorking(b.start - lag), -1) };
+    case 'SS':
+      return { edge: 'start', latest: working ? cal.addWorkingDays(b.start, -lag) : cal.prevWorking(b.start - lag) };
+    case 'FF':
+      return { edge: 'end', latest: working ? cal.addWorkingDays(b.end, -lag) : cal.prevWorking(b.end - lag) };
+    case 'SF':
+      return { edge: 'start', latest: working ? cal.addWorkingDays(b.end, 1 - lag) : cal.addWorkingDays(cal.prevWorking(b.end - lag), 1) };
+    default:
+      throw new Error(`Type de lien inconnu : "${link.type}"`);
+  }
 }

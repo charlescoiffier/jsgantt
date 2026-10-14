@@ -36,6 +36,7 @@ export class Gantt {
     this.root.replaceChildren(this.scroller);
     this.uid = `gantt${++uidCounter}`;
     this.readonly = options.readonly === true;
+    this.showCritical = options.showCritical === true;
     this.scale = scale;
     this.pdfLibs = options.pdfLibs ?? {};
     this.history = new History(options.historyLimit ?? 100);
@@ -119,7 +120,9 @@ export class Gantt {
 
   render({ model = this.model, dragId = null } = {}) {
     this.root.classList.toggle('is-readonly', this.readonly);
-    this.layout = computeLayout(model, this.timescale, this.metrics, { ...this.state, today: todayDay(), showAdd: !this.readonly, i18n: this.i18n });
+    this.layout = computeLayout(model, this.timescale, this.metrics, {
+      ...this.state, today: todayDay(), showAdd: !this.readonly, showCritical: this.showCritical, i18n: this.i18n,
+    });
     const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
     const { scrollLeft, scrollTop } = this.scroller;
     this.canvas.replaceChildren(parts.main, parts.table, parts.header, parts.corner, parts.overlay);
@@ -139,6 +142,12 @@ export class Gantt {
     this.refresh();
     this.scroller.scrollLeft = Math.max(0, this.timescale.dayToX(centerDay) - view);
     this.emit('scale', { scale });
+  }
+
+  // Affiche ou masque le chemin critique et les marges.
+  setShowCritical(on) {
+    this.showCritical = on === true;
+    this.render();
   }
 
   select(id, linkId = null) {

@@ -11,7 +11,16 @@ export function constraintText(model, id, i18n = FR) {
   return i18n.t('constraint.text', { type: i18n.t(`constraint.type.${c.type}`), date: fromDay(c.date) });
 }
 
-export function describeTask(model, id, depth, i18n = FR) {
+// Mention du chemin critique ou de la marge d'une tâche (`slack` : entrée de model.slack()), ou null.
+export function slackText(slack, i18n = FR) {
+  if (!slack) return null;
+  if (slack.critical) return i18n.t('a11y.critical');
+  if (slack.total <= 0) return null;
+  return i18n.t('a11y.slack', { count: slack.total, free: slack.free });
+}
+
+// `slack` (optionnel) : entrée de model.slack() pour cette tâche, quand le chemin critique est affiché.
+export function describeTask(model, id, depth, i18n = FR, slack = null) {
   const { t } = i18n;
   const task = model.getTask(id);
   const group = model.isGroup(id);
@@ -32,12 +41,15 @@ export function describeTask(model, id, depth, i18n = FR) {
   const constraint = constraintText(model, id, i18n);
   if (constraint) parts.push(t('a11y.constraint', { text: constraint }));
   if (model.violations().some((v) => v.id === id)) parts.push(t('a11y.constraintViolated'));
+  const slackPart = slackText(slack, i18n);
+  if (slackPart) parts.push(slackPart);
   const preds = model.links.filter((l) => l.to === id).map((l) => `${nameOf(model, l.from, i18n)} (${l.type})`);
   if (preds.length) parts.push(t('a11y.predecessors', { list: preds.join(', ') }));
   return parts.join(', ');
 }
 
-export function announceChange(model, detail, i18n = FR) {
+// `slack` (optionnel) : Map de model.slack(), quand le chemin critique est affiché.
+export function announceChange(model, detail, i18n = FR, slack = null) {
   const { t } = i18n;
   const { type, id } = detail;
   const task = id ? model.getTask(id) : null;
@@ -46,7 +58,11 @@ export function announceChange(model, detail, i18n = FR) {
     case 'move':
     case 'resize':
     case 'dates':
-      return task ? t('a11y.rowDates', { name: name(), range: t('a11y.range', { start: fromDay(task.start), end: fromDay(task.end) }) }) : null;
+      if (!task) return null;
+      return [
+        t('a11y.rowDates', { name: name(), range: t('a11y.range', { start: fromDay(task.start), end: fromDay(task.end) }) }),
+        slackText(slack?.get(id), i18n),
+      ].filter(Boolean).join(', ');
     case 'progress':
       return task ? t('a11y.rowProgress', { name: name(), progress: t('a11y.progress', { p: Math.round(model.progressOf(id) * 100) }) }) : null;
     case 'add':
@@ -101,7 +117,7 @@ export function attachA11y(g) {
     live.textContent = message + (flip ? '' : ' ');
   };
   const offs = [
-    g.on('change', (d) => g.say(announceChange(g.model, d, g.i18n))),
+    g.on('change', (d) => g.say(announceChange(g.model, d, g.i18n, g.showCritical ? g.model.slack() : null))),
     g.on('invalid', ({ reason }) => g.say(g.i18n.t('a11y.refused', { reason }))),
   ];
   return () => {

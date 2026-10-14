@@ -2,6 +2,7 @@ import { toDay, fromDay } from './dates.js';
 import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
 import { createCalendar } from './calendar.js';
+import { computeSlack } from './slack.js';
 import { CONSTRAINT_TYPES, constraintSide, isViolated } from './constraints.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
@@ -229,6 +230,17 @@ export class GanttModel {
     this.reschedule({ direction: 'backward', anchor });
     this.reschedule();
     return { ok: true };
+  }
+
+  // Marges en jours ouvrés : Map id → { total, free, lateStart, lateEnd, critical } (voir slack.js).
+  slack() {
+    return computeSlack(this);
+  }
+
+  // Tâches et groupes du chemin critique, dans l'ordre des tâches.
+  criticalIds() {
+    const slack = this.slack();
+    return this.tasks.map((t) => t.id).filter((id) => slack.get(id)?.critical);
   }
 
   constraintOf(id) {

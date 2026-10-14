@@ -99,3 +99,17 @@ test('annonces de planification et de calage', async () => {
   assert.equal(announceChange(m, { type: 'align', mode: 'latest' }), 'Planning calé au plus tard');
   assert.equal(announceChange(m, { type: 'align', mode: 'latest' }, createI18n('en')), 'Schedule aligned to the latest dates');
 });
+
+test('chemin critique : description et annonce mentionnent la criticité ou la marge', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-06', { name: 'A' }), t('b', '2026-10-07', '2026-10-09', { name: 'B' }), t('c', '2026-10-05', '2026-10-05', { name: 'C' })],
+    links: [l('a', 'b')],
+  });
+  const slack = m.slack();
+  assert.equal(describeTask(m, 'a', 0, undefined, slack.get('a')), 'A, du 2026-10-05 au 2026-10-06, progression 0 %, niveau 1, sur le chemin critique');
+  assert.match(describeTask(m, 'c', 0, createI18n('en'), slack.get('c')), /total slack 4 days, free slack 4 d$/);
+  assert.equal(describeTask(m, 'c', 0), 'C, du 2026-10-05 au 2026-10-05, progression 0 %, niveau 1');
+  assert.equal(announceChange(m, { type: 'move', id: 'c' }, undefined, slack), 'C : du 2026-10-05 au 2026-10-05, marge totale 4 jours, marge libre 4 j');
+  assert.equal(announceChange(m, { type: 'move', id: 'c' }), 'C : du 2026-10-05 au 2026-10-05');
+});

@@ -154,7 +154,9 @@ export function attachInteractions(g) {
       case 'row-add':
         g.addTask({ afterId: id });
         break;
-      case 'row-constraint':
+      case 'row-props':
+        g.editTask(id);
+        break;
       case 'constraint':
         g.editConstraint(id);
         break;

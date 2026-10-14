@@ -1,4 +1,4 @@
-import { ANNOTATION_COLORS } from './annotations.js';
+import { COLORS } from './colors.js';
 import { fromDay } from './dates.js';
 
 const el = (tag, attrs = {}, text) => {
@@ -40,8 +40,8 @@ export function openAnnotationEditor(g, kind, id) {
       };
   for (const [key, input] of Object.entries(dates)) input.value = fromDay(item[key]);
   const color = row('annotation.color', el('select', { id: `${g.uid}-ac` }));
-  color.append(el('option', { value: '' }, g.t('annotation.color.none')));
-  for (const c of ANNOTATION_COLORS) color.append(el('option', { value: c }, g.t(`annotation.color.${c}`)));
+  color.append(el('option', { value: '' }, g.t('color.none')));
+  for (const c of COLORS) color.append(el('option', { value: c }, g.t(`color.${c}`)));
   color.value = item.color ?? '';
 
   const actions = el('div', { class: 'gantt-popover-actions' });

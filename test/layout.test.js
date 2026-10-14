@@ -320,10 +320,10 @@ test('vue : colonnes choisies, tri signalé, filtre sans liens vers les tâches 
     ],
     links: [{ id: 'ab', from: 'a', to: 'b', type: 'FS' }],
   });
-  const columns = normalizeColumns(['wbs', 'progress', 'slack', { id: 'owner', label: 'Resp.', width: 70, value: (task) => task.data?.owner }]);
+  const columns = normalizeColumns(['wbs', 'progress', 'slack', { id: 'team', label: 'Resp.', width: 70, value: (task) => task.data?.owner }]);
   const layout = computeLayout(m, ts(), metrics, { columns, sort: { column: 'progress', dir: 'desc' }, tableWidth: 400 });
   const cols = layout.table.columns;
-  assert.deepEqual(cols.map((c) => c.id), ['name', 'wbs', 'progress', 'slack', 'owner']);
+  assert.deepEqual(cols.map((c) => c.id), ['name', 'wbs', 'progress', 'slack', 'team']);
   assert.deepEqual(cols.map((c) => c.label), ['Nom', 'N°', 'Avancement', 'Marge', 'Resp.']);
   assert.equal(layout.table.width, 400); // le nom prend la place restante
   assert.equal(cols[0].width, 400 - 48 - 88 - 64 - 70);
@@ -361,4 +361,21 @@ test('repères et zones : bande sous l’échelle, positions, infobulles', () =>
   assert.equal(z.title, 'Gel : du 2026-10-12 au 2026-10-14');
   const none = computeLayout(new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] }), ts(), metrics);
   assert.deepEqual([none.bandHeight, none.headerHeight], [0, 48]);
+});
+
+test('couleur de tâche et texte au bout des barres', () => {
+  const m = new GanttModel({
+    owners: [{ id: 'ana', name: 'Ana' }],
+    tasks: [t('a', '2026-10-05', '2026-10-09', { name: 'Alpha', color: 'teal', owner: 'ana', progress: 0.4 })],
+  });
+  const byDefault = computeLayout(m, ts(), metrics);
+  assert.deepEqual([barOf(byDefault, 'a').color, barOf(byDefault, 'a').text], ['teal', 'Alpha']);
+  const text = (barLabel) => barOf(computeLayout(m, ts(), metrics, { barLabel }), 'a').text;
+  assert.deepEqual(
+    ['wbs', 'start', 'end', 'duration', 'progress', 'slack', 'owner', 'none'].map(text),
+    ['1', '2026-10-05', '2026-10-09', '5 j', '40 %', '0 j', 'Ana', ''],
+  );
+  const owner = computeLayout(m, ts(), metrics, { columns: normalizeColumns(['owner']) });
+  assert.deepEqual(owner.table.columns.map((c) => [c.id, c.label, c.width]).slice(1), [['owner', 'Responsable', 96]]);
+  assert.deepEqual(owner.table.rows[0].cells.map((c) => c.text), ['Ana']);
 });

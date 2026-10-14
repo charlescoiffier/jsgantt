@@ -13,14 +13,20 @@
   --gantt-planning-end: #7c3aed;
   --gantt-critical: #b91c1c;
   --gantt-slack: #9ca3af;
-  /* Repères et zones : couleur par défaut et palette nommée (color: 'red' | 'orange' | …) */
+  /* Palette commune (tâches, repères, zones : color: 'red' | 'orange' | …) ; repères et zones sans couleur : --gantt-annotation */
+  --gantt-color-red: #ef4444;
+  --gantt-color-orange: #f97316;
+  --gantt-color-amber: #f59e0b;
+  --gantt-color-yellow: #eab308;
+  --gantt-color-lime: #84cc16;
+  --gantt-color-green: #22c55e;
+  --gantt-color-teal: #14b8a6;
+  --gantt-color-cyan: #06b6d4;
+  --gantt-color-blue: #3b82f6;
+  --gantt-color-indigo: #6366f1;
+  --gantt-color-purple: #a855f7;
+  --gantt-color-pink: #ec4899;
   --gantt-annotation: #64748b;
-  --gantt-annotation-red: #dc2626;
-  --gantt-annotation-orange: #ea580c;
-  --gantt-annotation-green: #16a34a;
-  --gantt-annotation-blue: #2563eb;
-  --gantt-annotation-purple: #7c3aed;
-  --gantt-annotation-grey: #6b7280;
   --gantt-zone-opacity: .1;
   --gantt-annotation-height: 20px;
   --gantt-header-bg: #f3f4f6;
@@ -109,6 +115,13 @@
 .gantt-bar { fill: var(--gantt-bar-bg); stroke: var(--gantt-bar-stroke); stroke-width: 1; rx: var(--gantt-bar-radius); ry: var(--gantt-bar-radius); cursor: grab; }
 .gantt-bar--group { fill: var(--gantt-group-bg); stroke: var(--gantt-group-bg); }
 .gantt-bar--milestone { fill: var(--gantt-milestone-bg); stroke: var(--gantt-milestone-bg); }
+/* Couleur d'une tâche (champ color) : barre teintée, contour et progression pleins ; groupe et jalon pleins */
+.gantt-task[class*="gantt-task--color-"] .gantt-bar { fill: var(--c); fill-opacity: .3; stroke: var(--c); }
+.gantt-task[class*="gantt-task--color-"] .gantt-progress { fill: var(--c); opacity: 1; }
+.gantt-task--group[class*="gantt-task--color-"] .gantt-bar,
+.gantt-task--milestone[class*="gantt-task--color-"] .gantt-bar { fill-opacity: 1; }
+.gantt-task[class*="gantt-task--color-"] .gantt-group-pill { fill: var(--c); fill-opacity: .3; }
+.gantt-task[class*="gantt-task--color-"] .gantt-group-pill-progress { fill: var(--c); }
 .gantt-progress { fill: var(--gantt-progress-bg); opacity: 0.85; rx: var(--gantt-bar-radius); ry: var(--gantt-bar-radius); }
 .gantt-label { fill: var(--gantt-text); pointer-events: none; }
 .gantt-task.is-selected .gantt-bar { stroke: var(--gantt-selected); stroke-width: 2; }
@@ -142,12 +155,18 @@
 .gantt-link--sf .gantt-link-path { stroke-dasharray: 5 3; }
 /* Repères et zones colorées */
 .gantt-zone, .gantt-marker, .gantt-zone-tag, .gantt-marker-tag { --c: var(--gantt-annotation); }
-.gantt-zone--red, .gantt-marker--red, .gantt-zone-tag--red, .gantt-marker-tag--red { --c: var(--gantt-annotation-red); }
-.gantt-zone--orange, .gantt-marker--orange, .gantt-zone-tag--orange, .gantt-marker-tag--orange { --c: var(--gantt-annotation-orange); }
-.gantt-zone--green, .gantt-marker--green, .gantt-zone-tag--green, .gantt-marker-tag--green { --c: var(--gantt-annotation-green); }
-.gantt-zone--blue, .gantt-marker--blue, .gantt-zone-tag--blue, .gantt-marker-tag--blue { --c: var(--gantt-annotation-blue); }
-.gantt-zone--purple, .gantt-marker--purple, .gantt-zone-tag--purple, .gantt-marker-tag--purple { --c: var(--gantt-annotation-purple); }
-.gantt-zone--grey, .gantt-marker--grey, .gantt-zone-tag--grey, .gantt-marker-tag--grey { --c: var(--gantt-annotation-grey); }
+.gantt-color--red, .gantt-task--color-red, .gantt-zone--red, .gantt-marker--red, .gantt-zone-tag--red, .gantt-marker-tag--red, .gantt-swatch--red { --c: var(--gantt-color-red); }
+.gantt-color--orange, .gantt-task--color-orange, .gantt-zone--orange, .gantt-marker--orange, .gantt-zone-tag--orange, .gantt-marker-tag--orange, .gantt-swatch--orange { --c: var(--gantt-color-orange); }
+.gantt-color--amber, .gantt-task--color-amber, .gantt-zone--amber, .gantt-marker--amber, .gantt-zone-tag--amber, .gantt-marker-tag--amber, .gantt-swatch--amber { --c: var(--gantt-color-amber); }
+.gantt-color--yellow, .gantt-task--color-yellow, .gantt-zone--yellow, .gantt-marker--yellow, .gantt-zone-tag--yellow, .gantt-marker-tag--yellow, .gantt-swatch--yellow { --c: var(--gantt-color-yellow); }
+.gantt-color--lime, .gantt-task--color-lime, .gantt-zone--lime, .gantt-marker--lime, .gantt-zone-tag--lime, .gantt-marker-tag--lime, .gantt-swatch--lime { --c: var(--gantt-color-lime); }
+.gantt-color--green, .gantt-task--color-green, .gantt-zone--green, .gantt-marker--green, .gantt-zone-tag--green, .gantt-marker-tag--green, .gantt-swatch--green { --c: var(--gantt-color-green); }
+.gantt-color--teal, .gantt-task--color-teal, .gantt-zone--teal, .gantt-marker--teal, .gantt-zone-tag--teal, .gantt-marker-tag--teal, .gantt-swatch--teal { --c: var(--gantt-color-teal); }
+.gantt-color--cyan, .gantt-task--color-cyan, .gantt-zone--cyan, .gantt-marker--cyan, .gantt-zone-tag--cyan, .gantt-marker-tag--cyan, .gantt-swatch--cyan { --c: var(--gantt-color-cyan); }
+.gantt-color--blue, .gantt-task--color-blue, .gantt-zone--blue, .gantt-marker--blue, .gantt-zone-tag--blue, .gantt-marker-tag--blue, .gantt-swatch--blue { --c: var(--gantt-color-blue); }
+.gantt-color--indigo, .gantt-task--color-indigo, .gantt-zone--indigo, .gantt-marker--indigo, .gantt-zone-tag--indigo, .gantt-marker-tag--indigo, .gantt-swatch--indigo { --c: var(--gantt-color-indigo); }
+.gantt-color--purple, .gantt-task--color-purple, .gantt-zone--purple, .gantt-marker--purple, .gantt-zone-tag--purple, .gantt-marker-tag--purple, .gantt-swatch--purple { --c: var(--gantt-color-purple); }
+.gantt-color--pink, .gantt-task--color-pink, .gantt-zone--pink, .gantt-marker--pink, .gantt-zone-tag--pink, .gantt-marker-tag--pink, .gantt-swatch--pink { --c: var(--gantt-color-pink); }
 .gantt-zone { fill: var(--c); fill-opacity: var(--gantt-zone-opacity); pointer-events: none; }
 .gantt-marker { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
 .gantt-annotation-band { fill: var(--gantt-header-bg); stroke: var(--gantt-border); stroke-width: 1; }
@@ -221,7 +240,6 @@
 .gantt-constraint.is-violated .gantt-constraint-line { stroke: var(--gantt-invalid); }
 .gantt-constraint.is-violated .gantt-constraint-flag { fill: var(--gantt-invalid); }
 .gantt-task.is-violated .gantt-bar { stroke: var(--gantt-invalid); stroke-width: 2; }
-.gantt-action--constraint.is-set .gantt-action-icon { stroke: var(--gantt-selected); }
 .gantt-root.is-readonly .gantt-constraint-hit { cursor: default; }
 
 /* Fenêtre d'édition d'une contrainte */
@@ -234,6 +252,16 @@
 .gantt-popover :focus-visible { outline: 2px solid var(--gantt-selected); outline-offset: 1px; }
 .gantt-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .gantt-popover button { height: 30px; padding: 0 12px; border: 1px solid var(--gantt-border); border-radius: 7px; background: var(--gantt-bg); color: inherit; font: inherit; cursor: pointer; }
+.gantt-popover--task { width: 300px; }
+.gantt-popover-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gantt-swatches { display: grid; grid-template-columns: repeat(7, 22px); gap: 6px 8px; margin: 0 0 8px; padding: 0; border: 0; }
+.gantt-swatches legend { padding: 0; margin-bottom: 4px; font-size: 11px; color: var(--gantt-text-muted); }
+.gantt-swatch { position: relative; display: block; width: 22px; height: 22px; cursor: pointer; }
+.gantt-swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.gantt-swatch span { display: block; width: 100%; height: 100%; box-sizing: border-box; border-radius: 50%; background: var(--c); }
+.gantt-swatch--none span { background: linear-gradient(135deg, transparent 45%, var(--gantt-text-muted) 45% 55%, transparent 55%), var(--gantt-bg); border: 1px solid var(--gantt-border); }
+.gantt-swatch input:checked + span { box-shadow: 0 0 0 2px var(--gantt-bg), 0 0 0 4px var(--gantt-text); }
+.gantt-swatch input:focus-visible + span { outline: 2px solid var(--gantt-selected); outline-offset: 4px; }
 .gantt-popover-apply { background: var(--gantt-selected) !important; border-color: var(--gantt-selected) !important; color: #fff !important; }
 
 /* Surcouche (infobulle de glisser) */
@@ -254,6 +282,7 @@
 
 /* Thème sombre d'exemple : s'active avec data-theme="dark" sur l'élément racine */
 .gantt-root[data-theme="dark"] {
+  color-scheme: dark;
   --gantt-bg: #111827;
   --gantt-text: #e5e7eb;
   --gantt-text-muted: #9ca3af;
@@ -265,13 +294,19 @@
   --gantt-planning-end: #a78bfa;
   --gantt-critical: #f87171;
   --gantt-slack: #6b7280;
+  --gantt-color-red: #f87171;
+  --gantt-color-orange: #fb923c;
+  --gantt-color-amber: #fbbf24;
+  --gantt-color-yellow: #facc15;
+  --gantt-color-lime: #a3e635;
+  --gantt-color-green: #4ade80;
+  --gantt-color-teal: #2dd4bf;
+  --gantt-color-cyan: #22d3ee;
+  --gantt-color-blue: #60a5fa;
+  --gantt-color-indigo: #818cf8;
+  --gantt-color-purple: #c084fc;
+  --gantt-color-pink: #f472b6;
   --gantt-annotation: #94a3b8;
-  --gantt-annotation-red: #f87171;
-  --gantt-annotation-orange: #fb923c;
-  --gantt-annotation-green: #4ade80;
-  --gantt-annotation-blue: #60a5fa;
-  --gantt-annotation-purple: #a78bfa;
-  --gantt-annotation-grey: #9ca3af;
   --gantt-zone-opacity: .14;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;

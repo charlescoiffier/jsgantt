@@ -83,6 +83,8 @@ export function announceChange(model, detail, i18n = FR, slack = null) {
       return task ? t('a11y.propsChanged', { name: name() }) : null;
     case 'owners':
       return t('a11y.ownersChanged');
+    case 'import':
+      return t('a11y.imported');
     case 'planning':
       return t('a11y.planningChanged');
     case 'align':

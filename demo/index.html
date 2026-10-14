@@ -167,9 +167,11 @@
       </div>
       <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
       <div class="menu">
-        <button id="import-btn" aria-controls="import-menu" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button id="import-btn" aria-controls="import-menu" title="Importer un fichier (JSON, CSV, MS Project)" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div id="import-menu" class="menu-list" role="menu" aria-labelledby="import-btn" hidden>
-          <button class="menu-item" role="menuitem" id="imp-json-item" data-i18n="fmt.json">JSON</button>
+          <button class="menu-item" role="menuitem" data-format="json" data-i18n="fmt.json">JSON</button>
+          <button class="menu-item" role="menuitem" data-format="csv">CSV</button>
+          <button class="menu-item" role="menuitem" data-format="msp" data-i18n="fmt.msp">MS Project (XML)</button>
         </div>
       </div>
       <div class="menu">
@@ -177,12 +179,15 @@
         <div id="export-menu" class="menu-list" role="menu" aria-labelledby="export-btn" hidden>
           <button class="menu-item" role="menuitem" id="exp-svg" title="Télécharger en SVG" data-i18n-title="export.svg">SVG</button>
           <button class="menu-item" role="menuitem" id="exp-json" title="Télécharger en JSON" data-i18n-title="export.json">JSON</button>
+          <button class="menu-item" role="menuitem" id="exp-csv" title="Tableur (Excel, Numbers, LibreOffice)" data-i18n-title="export.csv">CSV</button>
+          <button class="menu-item" role="menuitem" id="exp-ics" title="Agenda (Google Agenda, Outlook, Calendrier)" data-i18n-title="export.ics">iCalendar</button>
+          <button class="menu-item" role="menuitem" id="exp-msp" title="MS Project, Merlin Project, ProjectLibre…" data-i18n-title="export.msp" data-i18n="fmt.msp">MS Project (XML)</button>
           <button class="menu-item" role="menuitem" id="exp-pdf" title="Télécharger en PDF" data-i18n-title="export.pdf">PDF</button>
           <button class="menu-item" role="menuitem" id="exp-print" title="Imprimer" data-i18n-title="print" data-i18n="print.item">Imprimer…</button>
         </div>
       </div>
     </div>
-    <input id="imp-json" type="file" accept="application/json" hidden>
+    <input id="imp-file" type="file" hidden>
   </div>
   <div id="chart"></div>
   <dialog id="settings" aria-labelledby="settings-title">
@@ -326,7 +331,7 @@
         undo: 'Annuler', redo: 'Rétablir', 'undo.title': 'Annuler (Ctrl+Z)', 'redo.title': 'Rétablir (Ctrl+Maj+Z)',
         export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
         print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
-        readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier JSON',
+        readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier (JSON, CSV, MS Project)',
         'plan.direction': 'Sens de planification', 'plan.forward': 'En avant', 'plan.backward': 'En arrière', 'plan.end': 'Fin imposée',
         'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
         'plan.hint': 'Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.',
@@ -351,7 +356,8 @@
         'cal.holidays': 'Jours fériés', 'hol.none': 'Aucun', 'hol.fr': 'France', 'hol.us': 'États-Unis',
         'cal.lag': 'Décalage des liens', 'lag.working': 'Jours travaillés', 'lag.calendar': 'Jours calendaires',
         'cal.lag.hint': 'Sans jour non travaillé, l\'unité du décalage est sans effet.', close: 'Fermer',
-        'log.error': 'erreur', 'log.import': 'import',
+        'log.error': 'erreur', 'log.import': 'import', 'log.warning': 'avertissement', 'fmt.msp': 'MS Project (XML)',
+        'export.csv': 'Tableur (Excel, Numbers, LibreOffice)', 'export.ics': 'Agenda (Google Agenda, Outlook, Calendrier)', 'export.msp': 'MS Project, Merlin Project, ProjectLibre…',
         'help.title': 'Raccourcis clavier',
         'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique', 'help.constraint.h': 'Contrainte',
@@ -371,7 +377,7 @@
         undo: 'Undo', redo: 'Redo', 'undo.title': 'Undo (Ctrl+Z)', 'redo.title': 'Redo (Ctrl+Shift+Z)',
         export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
         print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
-        readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a JSON file',
+        readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a file (JSON, CSV, MS Project)',
         'plan.direction': 'Planning direction', 'plan.forward': 'Forward', 'plan.backward': 'Backward', 'plan.end': 'Imposed end',
         'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
         'plan.hint': 'Aligning moves linked tasks; unlinked tasks stay put.',
@@ -396,7 +402,8 @@
         'cal.holidays': 'Public holidays', 'hol.none': 'None', 'hol.fr': 'France', 'hol.us': 'United States',
         'cal.lag': 'Link lag unit', 'lag.working': 'Working days', 'lag.calendar': 'Calendar days',
         'cal.lag.hint': 'Without non-working days, the lag unit has no effect.', close: 'Close',
-        'log.error': 'error', 'log.import': 'import',
+        'log.error': 'error', 'log.import': 'import', 'log.warning': 'warning', 'fmt.msp': 'MS Project (XML)',
+        'export.csv': 'Spreadsheet (Excel, Numbers, LibreOffice)', 'export.ics': 'Calendar (Google Calendar, Outlook, Apple Calendar)', 'export.msp': 'MS Project, Merlin Project, ProjectLibre…',
         'help.title': 'Keyboard shortcuts',
         'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History', 'help.constraint.h': 'Constraint',
@@ -447,7 +454,7 @@
 
     const owners = [{ id: 'alice', name: 'Alice' }, { id: 'bruno', name: 'Bruno' }, { id: 'chloe', name: 'Chloé' }, { id: 'david', name: 'David' }];
     const markers = [{ id: 'copil', date: '2026-10-21', label: 'Copil', color: 'purple' }];
-    const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel du code', color: 'blue' }];
+    const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel', color: 'blue' }];
     const gantt = new Gantt(document.getElementById('chart'), { tasks, links, owners, markers, zones, scale: 'week', locale: initialLang });
     applyLang();
     document.getElementById('lang').value = lang;
@@ -489,6 +496,9 @@
 
     document.getElementById('exp-svg').onclick = () => gantt.exportSVG();
     document.getElementById('exp-json').onclick = () => gantt.exportJSON();
+    document.getElementById('exp-csv').onclick = () => gantt.exportCSV();
+    document.getElementById('exp-ics').onclick = () => gantt.exportICS();
+    document.getElementById('exp-msp').onclick = () => gantt.exportMSProject();
     document.getElementById('exp-print').onclick = () => gantt.print();
     document.getElementById('exp-pdf').onclick = async () => {
       try {
@@ -602,7 +612,7 @@
     }
     renderOwners();
     gantt.on('change', ({ type }) => {
-      if (['owners', 'undo', 'redo'].includes(type)) renderOwners();
+      if (['owners', 'undo', 'redo', 'import'].includes(type)) renderOwners();
     });
     const addOwner = () => {
       const input = $('owner-new');
@@ -742,7 +752,14 @@
       });
       menus.push({ list, close });
     }
-    setupMenu('import-btn', 'import-menu', () => $('imp-json').click());
+    // Import : le format choisi règle les fichiers proposés ; l'import est annulable (Ctrl+Z).
+    const IMPORT_ACCEPT = { json: '.json,application/json', csv: '.csv,text/csv,text/plain', msp: '.xml,application/xml,text/xml,.mpp' };
+    let importFormat = 'json';
+    setupMenu('import-btn', 'import-menu', (item) => {
+      importFormat = item.dataset.format;
+      $('imp-file').accept = IMPORT_ACCEPT[importFormat];
+      $('imp-file').click();
+    });
     setupMenu('export-btn', 'export-menu');
     setupMenu('insert-btn', 'insert-menu', (item) => {
       if (item.id === 'ins-marker') {
@@ -757,13 +774,16 @@
       for (const m of menus) if (!m.list.parentElement.contains(e.target)) m.close();
     });
 
-    document.getElementById('imp-json').onchange = async (e) => {
+    $('imp-file').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        gantt.setData(JSON.parse(await file.text()));
-        renderOwners();
+        const text = await file.text();
+        const res = importFormat === 'csv' ? gantt.importCSV(text)
+          : importFormat === 'msp' ? gantt.importMSProject(text)
+            : gantt.importData(JSON.parse(text));
         write(T('log.import'), { file: file.name });
+        for (const w of res.warnings ?? []) write(T('log.warning'), { message: w });
       } catch (err) {
         write(T('log.error'), { message: err.message });
       }

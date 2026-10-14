@@ -75,23 +75,72 @@ test('calendrier : une date non travaillée est ramenée sur un jour travaillé'
   assert.equal(span(build([t('a', '2026-10-05', '2026-10-06', c('FNET', '2026-10-10'))], [], ouvres), 'a'), '2026-10-08..2026-10-09');
 });
 
-test('redimensionner ou déplacer en deçà d\'une borne : bloqué ou ramené', () => {
+test('déplacer ou redimensionner à la main : la date de SNET suit en deçà de la borne seulement', () => {
   const m = build([t('a', '2026-10-12', '2026-10-16', c('SNET', '2026-10-12'))]);
-  const r = m.resizeTask('a', 'start', toDay('2026-10-08'));
-  assert.equal(r.code, 'resize.blocked');
-  assert.equal(span(m, 'a'), '2026-10-12..2026-10-16');
-  m.moveTask('a', -3);
-  assert.equal(span(m, 'a'), '2026-10-12..2026-10-16');
-  m.moveTask('a', 2); // plus tard est permis
-  assert.equal(span(m, 'a'), '2026-10-14..2026-10-18');
+  m.moveTask('a', -3); // en deçà de la borne : la borne suit
+  assert.equal(span(m, 'a'), '2026-10-09..2026-10-13');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-09');
+  assert.deepEqual(m.violations(), []);
+  m.moveTask('a', 2); // plus tard : la borne reste
+  assert.equal(span(m, 'a'), '2026-10-11..2026-10-15');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-09');
+  assert.deepEqual(m.resizeTask('a', 'start', toDay('2026-10-07')), { ok: true });
+  assert.equal(span(m, 'a'), '2026-10-07..2026-10-15');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-07');
+  assert.deepEqual(m.updateTask('a', { start: '2026-10-05' }), { ok: true });
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-05');
 });
 
-test('une tâche « doit commencer le » déplacée plus tard est signalée, pas ramenée', () => {
-  const m = build([t('a', '2026-10-12', '2026-10-14', c('MSO', '2026-10-12'))]);
-  assert.deepEqual(m.violations(), []);
+test('FNET : la date suit la fin ramenée en deçà de la borne', () => {
+  const m = build([t('a', '2026-10-05', '2026-10-12', c('FNET', '2026-10-12'))]);
+  assert.deepEqual(m.resizeTask('a', 'end', toDay('2026-10-09')), { ok: true });
+  assert.equal(span(m, 'a'), '2026-10-05..2026-10-09');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-09');
+  m.resizeTask('a', 'end', toDay('2026-10-14')); // plus loin : la borne reste
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-09');
+  m.moveTask('a', -2);
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-09'); // la fin (12) reste au-delà de la borne
+  m.moveTask('a', -6);
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-06'); // fin ramenée au 6, en deçà de la borne : elle suit
+});
+
+test('« doit commencer le » / « doit finir le » : la date suit les déplacements', () => {
+  const m = build([t('a', '2026-10-12', '2026-10-14', c('MSO', '2026-10-12')), t('b', '2026-10-12', '2026-10-14', c('MFO', '2026-10-14'))]);
   m.moveTask('a', 3);
   assert.equal(span(m, 'a'), '2026-10-15..2026-10-17');
-  assert.equal(m.violations()[0].id, 'a');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-15');
+  m.moveTask('b', -2);
+  assert.equal(fromDay(m.constraintOf('b').date), '2026-10-12');
+  assert.deepEqual(m.violations(), []);
+});
+
+test('au plus tard : une échéance ne suit pas ; dépassée, elle est signalée', () => {
+  const m = build([t('a', '2026-10-12', '2026-10-14', c('SNLT', '2026-10-12')), t('b', '2026-10-12', '2026-10-14', c('FNLT', '2026-10-14'))]);
+  m.moveTask('a', 3);
+  m.moveTask('b', 3);
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-12');
+  assert.equal(fromDay(m.constraintOf('b').date), '2026-10-14');
+  assert.deepEqual(m.violations().map((v) => v.id).sort(), ['a', 'b']);
+});
+
+test('un groupe déplacé fait suivre les contraintes de ses enfants', () => {
+  const m = build([{ id: 'g', name: 'g' }, t('c1', '2026-10-12', '2026-10-13', { parentId: 'g', ...c('MSO', '2026-10-12') })]);
+  m.moveTask('g', 2);
+  assert.equal(span(m, 'c1'), '2026-10-14..2026-10-15');
+  assert.equal(fromDay(m.constraintOf('c1').date), '2026-10-14');
+});
+
+test('un redimensionnement refusé par une dépendance laisse la contrainte intacte', () => {
+  const m = build(
+    [t('x', '2026-10-05', '2026-10-09'), t('a', '2026-10-12', '2026-10-16', c('SNET', '2026-10-12'))],
+    [l('x', 'a')],
+  );
+  const r = m.resizeTask('a', 'start', toDay('2026-10-10')); // le lien impose de commencer au plus tôt le 10
+  assert.equal(r.ok, true); // le 10 est permis par le lien (x finit le 9)
+  const blocked = m.resizeTask('a', 'start', toDay('2026-10-08')); // avant la fin de x : refusé
+  assert.equal(blocked.code, 'resize.blocked');
+  assert.equal(span(m, 'a'), '2026-10-10..2026-10-16');
+  assert.equal(fromDay(m.constraintOf('a').date), '2026-10-10');
 });
 
 test('jalon avec contrainte', () => {

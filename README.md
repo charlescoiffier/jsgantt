@@ -167,7 +167,7 @@ Une tâche simple peut porter **une** contrainte, `constraint: { type, date }` d
 | `MSO` | Doit commencer le | Calée sur la date ; non respectée si les liens ou un déplacement la repoussent plus tard |
 | `MFO` | Doit finir le | Idem pour la fin |
 
-- **Planification :** `SNET`, `FNET`, `MSO` et `MFO` agissent comme des bornes inférieures, avec les liens. Redimensionner ou déplacer une tâche en deçà de sa borne est bloqué ou ramené, comme pour une dépendance ; déplacer plus tard est permis (et signalé pour `MSO`/`MFO`). Retirer une contrainte ne ramène pas la tâche en arrière.
+- **Planification :** `SNET`, `FNET`, `MSO` et `MFO` agissent comme des bornes inférieures, avec les liens. Déplacer ou redimensionner une tâche à la main fait **suivre la date de la contrainte** : toujours pour `MSO`/`MFO`, et pour `SNET`/`FNET` seulement quand on passe en deçà de la borne (plus tard, la borne reste). Une échéance (`SNLT`/`FNLT`) ne suit pas : dépassée, elle est signalée. Seuls les liens bloquent un déplacement vers l'amont. Retirer une contrainte ne ramène pas la tâche en arrière.
 - **Calendrier :** une date non travaillée est ramenée au jour travaillé suivant pour un début, précédent pour une fin.
 - **Groupes :** ils ne portent pas de contrainte (leurs enfants oui) ; une tâche qui devient un groupe perd la sienne.
 - **Affichage :** un drapeau marque la date de chaque contrainte sur la ligne de la tâche (côté gauche pour un début, droit pour une fin, infobulle avec le texte) ; rouge, avec la barre cerclée de rouge, quand elle n'est pas respectée (`--gantt-constraint`, `--gantt-invalid`, classes `gantt-constraint`, `is-violated`). `g.model.violations()` donne la liste.

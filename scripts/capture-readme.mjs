@@ -47,7 +47,7 @@ const SHOTS = {
     setup: `gantt.alignEarliest(); gantt.setShowCritical(true); gantt.setScale('day'); gantt.scroller.scrollLeft = 120;`,
   },
   sombre: { width: 1100, height: 560, setup: `${theme('dark')} gantt.setView({ barLabel: 'owner' });` },
-  todoist: { width: 1100, height: 560, setup: `${theme('todoist')} gantt.setColumns(['start', 'owner']);` },
+  epure: { width: 1100, height: 560, setup: `${theme('epure')} gantt.setColumns(['start', 'owner']);` },
   proprietes: {
     width: 1280, height: 640,
     setup: `gantt.select('t5'); gantt.editTask('t5');`,

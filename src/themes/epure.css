@@ -1,0 +1,108 @@
+/* Thème « Épure » : à charger après gantt.css, s'active avec data-theme="epure" sur l'élément racine.
+   Barres en pilule sans contour, couleurs douces, accent rouge. */
+.gantt-root[data-theme="epure"] {
+  --gantt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gantt-font-size: 12.5px;
+  --gantt-bg: #ffffff;
+  --gantt-text: #202020;
+  --gantt-text-muted: #808080;
+  --gantt-border: #f0f0f0;
+  --gantt-row-alt: #fafafa;
+  --gantt-weekend: #fafafa;
+  --gantt-holiday: #fdecea;
+  --gantt-constraint: #808080;
+  --gantt-critical: #dc4c3e;
+  --gantt-slack: #c4c4c4;
+  --gantt-header-bg: #ffffff;
+  --gantt-bar-bg: #e8e8e8;
+  --gantt-progress-bg: #999999;
+    --gantt-milestone-bg: #dc4c3e;
+  --gantt-link-color: #c4c4c4;
+  --gantt-link-width: 1.5px;
+  --gantt-link-selected: #dc4c3e;
+  --gantt-today-color: #dc4c3e;
+  --gantt-selected: #dc4c3e;
+  --gantt-invalid: #dc4c3e;
+  --gantt-bar-radius: 9px;
+
+  --gantt-row-height: 34px;
+  --gantt-bar-height: 18px;
+  --gantt-header-height: 38px;
+  --gantt-table-width: 400px;
+  --gantt-date-col-width: 86px;
+  --gantt-duration-col-width: 66px;
+  --gantt-progress-col-width: 104px;
+  --gantt-slack-col-width: 70px;
+  --gantt-owner-col-width: 112px;
+  --gantt-indent: 16px;
+  --gantt-link-radius: 6px;
+}
+
+/* Couleur d'une tâche : pilule teintée sans contour, progression pleine */
+.gantt-root[data-theme="epure"] .gantt-task[class*="gantt-task--color-"] .gantt-bar { stroke: none; fill-opacity: .25; }
+.gantt-root[data-theme="epure"] .gantt-task--milestone[class*="gantt-task--color-"] .gantt-bar { fill-opacity: 1; }
+.gantt-root[data-theme="epure"] .gantt-task[class*="gantt-task--color-"] .gantt-group-pill { fill: var(--c); fill-opacity: .25; }
+.gantt-root[data-theme="epure"] .gantt-task[class*="gantt-task--color-"] .gantt-group-pill-progress { fill: var(--c); }
+
+/* Groupes : pilule fine à la place de l'accolade, ligne de tableau grisée et en gras */
+.gantt-root[data-theme="epure"] .gantt-bar--group { display: none; }
+.gantt-root[data-theme="epure"] .gantt-group-pill,
+.gantt-root[data-theme="epure"] .gantt-group-pill-progress { display: inline; rx: 4px; ry: 4px; }
+.gantt-root[data-theme="epure"] .gantt-group-pill { fill: var(--gantt-bar-bg); stroke: none; cursor: grab; }
+.gantt-root[data-theme="epure"] .gantt-group-pill-progress { fill: var(--gantt-progress-bg); }
+.gantt-root[data-theme="epure"] .gantt-task.is-selected .gantt-group-pill { stroke: #dc4c3e; stroke-width: 2; }
+.gantt-root[data-theme="epure"] .gantt-row--group { fill: #fafafa; }
+.gantt-root[data-theme="epure"] .gantt-table-row--group { --row-bg: #fafafa; }
+
+/* Barres en pilule, sans contour */
+.gantt-root[data-theme="epure"] .gantt-bar { stroke: none; }
+.gantt-root[data-theme="epure"] .gantt-progress { opacity: 1; }
+.gantt-root[data-theme="epure"] .gantt-task.is-selected .gantt-bar { stroke: #dc4c3e; stroke-width: 2; }
+.gantt-root[data-theme="epure"] .gantt-label { fill: var(--gantt-text); }
+
+/* Grille et en-tête épurés */
+.gantt-root[data-theme="epure"] .gantt-scroll { border-color: #f0f0f0; border-radius: 8px; }
+.gantt-root[data-theme="epure"] .gantt-weekend { opacity: 1; }
+.gantt-root[data-theme="epure"] .gantt-header-cell { stroke: none; }
+.gantt-root[data-theme="epure"] .gantt-header-text { fill: #808080; font-size: 10.5px; }
+.gantt-root[data-theme="epure"] .gantt-header-text--table { fill: #202020; font-weight: 600; }
+
+/* Tableau */
+.gantt-root[data-theme="epure"] .gantt-table-row:hover { --row-bg: #f5f5f5; }
+.gantt-root[data-theme="epure"] .gantt-table-row.is-selected { --row-bg: #fdf0ef; }
+.gantt-root[data-theme="epure"] .gantt-table-row--group .gantt-table-text--name { font-weight: 700; }
+
+/* Liens : arrondis, sans pointillés */
+.gantt-root[data-theme="epure"] .gantt-link--ss .gantt-link-path,
+.gantt-root[data-theme="epure"] .gantt-link--sf .gantt-link-path { stroke-dasharray: none; }
+
+/* Chemin critique : barre et pilule cerclées de rouge, progression rouge */
+.gantt-root[data-theme="epure"] .gantt-task.is-critical .gantt-bar { stroke: var(--gantt-critical); stroke-width: 1.5; }
+.gantt-root[data-theme="epure"] .gantt-task.is-critical.is-selected .gantt-bar { stroke-width: 2.5; }
+.gantt-root[data-theme="epure"] .gantt-task--group.is-critical .gantt-group-pill { fill: #fbd9d6; }
+.gantt-root[data-theme="epure"] .gantt-task--group.is-critical .gantt-group-pill-progress { fill: var(--gantt-critical); }
+
+/* Tri : en-tête et flèche en rouge (accent du thème) */
+.gantt-root[data-theme="epure"] .gantt-header-text--table.is-sorted { fill: #dc4c3e; }
+.gantt-root[data-theme="epure"] .gantt-sort-arrow { fill: #dc4c3e; }
+
+/* Repères et zones : palette du thème, étiquettes en pilule */
+.gantt-root[data-theme="epure"] {
+  --gantt-color-red: #db4035;
+  --gantt-color-orange: #ff9933;
+  --gantt-color-amber: #e8a33b;
+  --gantt-color-yellow: #fad000;
+  --gantt-color-lime: #7ecc49;
+  --gantt-color-green: #299438;
+  --gantt-color-teal: #158fad;
+  --gantt-color-cyan: #14aaf5;
+  --gantt-color-blue: #4073ff;
+  --gantt-color-indigo: #6a5acd;
+  --gantt-color-purple: #884dff;
+  --gantt-color-pink: #e05194;
+  --gantt-annotation: #808080;
+  --gantt-zone-opacity: .07;
+}
+.gantt-root[data-theme="epure"] .gantt-annotation-band { stroke: none; }
+.gantt-root[data-theme="epure"] .gantt-marker-tag-bg, .gantt-root[data-theme="epure"] .gantt-zone-tag-bg { rx: 8px; ry: 8px; }
+.gantt-root[data-theme="epure"] .gantt-marker { stroke-dasharray: none; stroke-width: 1; }

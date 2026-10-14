@@ -3,6 +3,7 @@ import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
 import { createCalendar } from './calendar.js';
 import { computeSlack } from './slack.js';
+import { parseMarker, parseZone, freeId, markerToJSON, zoneToJSON } from './annotations.js';
 import { CONSTRAINT_TYPES, constraintSide, isViolated } from './constraints.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
@@ -14,19 +15,23 @@ export class GanttModel {
   #linkSeq = 0;
   #calendar = createCalendar();
   #planning = { direction: 'forward', end: null };
+  #markers = [];
+  #zones = [];
 
   constructor(data = {}) {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) {
       throw new GanttError('data.notObject');
     }
     for (const key of Object.keys(data)) {
-      if (!['tasks', 'links', 'calendar', 'planning'].includes(key)) throw new GanttError('data.unknownKey', { key });
+      if (!['tasks', 'links', 'calendar', 'planning', 'markers', 'zones'].includes(key)) throw new GanttError('data.unknownKey', { key });
     }
     const { tasks = [], links = [] } = data;
     if (!Array.isArray(tasks)) throw new GanttError('data.tasksNotArray');
     if (!Array.isArray(links)) throw new GanttError('data.linksNotArray');
     this.#calendar = createCalendar(data.calendar);
     this.#planning = this.#parsePlanning(data.planning);
+    this.#markers = this.#loadAnnotations('marker', data.markers, parseMarker);
+    this.#zones = this.#loadAnnotations('zone', data.zones, parseZone);
     for (const raw of tasks) this.#loadTask(raw);
     this.#buildHierarchy();
     this.#resolveDates();
@@ -38,6 +43,89 @@ export class GanttModel {
       if (!res.ok) throw new GanttError('link.invalid', { link: raw?.id ?? `${raw?.from}→${raw?.to}`, reason: res });
     }
     this.reschedule();
+  }
+
+  #loadAnnotations(kind, list = [], parse) {
+    if (!Array.isArray(list)) throw new GanttError(`data.${kind}sNotArray`);
+    const out = [];
+    const ids = new Set();
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new GanttError(`${kind}.notObject`);
+      if (typeof raw.id !== 'string' || raw.id === '') throw new GanttError(`${kind}.idRequired`);
+      if (ids.has(raw.id)) throw new GanttError(`${kind}.duplicateId`, { id: raw.id });
+      ids.add(raw.id);
+      out.push(parse(raw, raw.id));
+    }
+    return out;
+  }
+
+  // --- Repères (jalons de projet) et zones colorées : indicatifs, ils ne déplacent aucune tâche ---
+
+  get markers() {
+    return this.#markers.map((m) => ({ ...m }));
+  }
+
+  get zones() {
+    return this.#zones.map((z) => ({ ...z }));
+  }
+
+  // spec : { id?, date, label?, color?, className? } → { ok, marker }
+  addMarker(spec) {
+    return this.#addAnnotation('marker', this.#markers, 'm', spec, parseMarker);
+  }
+
+  updateMarker(id, patch) {
+    return this.#updateAnnotation('marker', this.#markers, id, patch, parseMarker);
+  }
+
+  removeMarker(id) {
+    return this.#removeAnnotation('marker', this.#markers, id);
+  }
+
+  // spec : { id?, start, end, label?, color?, className? } → { ok, zone }
+  addZone(spec) {
+    return this.#addAnnotation('zone', this.#zones, 'z', spec, parseZone);
+  }
+
+  updateZone(id, patch) {
+    return this.#updateAnnotation('zone', this.#zones, id, patch, parseZone);
+  }
+
+  removeZone(id) {
+    return this.#removeAnnotation('zone', this.#zones, id);
+  }
+
+  #addAnnotation(kind, list, prefix, spec, parse) {
+    const ids = new Set(list.map((a) => a.id));
+    const id = spec?.id ?? freeId(prefix, ids);
+    if (typeof id !== 'string' || id === '') return fail(`${kind}.idRequired`);
+    if (ids.has(id)) return fail(`${kind}.duplicateId`, { id });
+    let item;
+    try {
+      item = parse(spec, id);
+    } catch (e) {
+      return failFrom(e);
+    }
+    list.push(item);
+    return { ok: true, [kind]: { ...item } };
+  }
+
+  #updateAnnotation(kind, list, id, patch, parse) {
+    const i = list.findIndex((a) => a.id === id);
+    if (i === -1) return fail(`${kind}.unknown`, { id });
+    try {
+      list[i] = parse(patch, id, list[i]);
+    } catch (e) {
+      return failFrom(e);
+    }
+    return { ok: true, [kind]: { ...list[i] } };
+  }
+
+  #removeAnnotation(kind, list, id) {
+    const i = list.findIndex((a) => a.id === id);
+    if (i === -1) return fail(`${kind}.unknown`, { id });
+    list.splice(i, 1);
+    return { ok: true };
   }
 
   #loadTask(raw) {
@@ -744,6 +832,8 @@ export class GanttModel {
       links: this.#links.map((x) => ({ ...x })),
       ...(calendar ? { calendar } : {}),
       ...(planning ? { planning } : {}),
+      ...(this.#markers.length ? { markers: this.#markers.map(markerToJSON) } : {}),
+      ...(this.#zones.length ? { zones: this.#zones.map(zoneToJSON) } : {}),
     };
   }
 

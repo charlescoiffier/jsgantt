@@ -76,7 +76,13 @@ export function computeLayout(model, ts, metrics, state = {}) {
     progress: i18n.t('ui.progress'),
     slack: i18n.t('ui.slack'),
   };
-  const { rowHeight, barHeight, headerHeight, dateColWidth, indent, linkGap, linkRadius } = metrics;
+  const { rowHeight, barHeight, dateColWidth, indent, linkGap, linkRadius } = metrics;
+  // Bande des repères et zones sous l'échelle de temps, seulement s'il y en a.
+  const markersIn = model.markers ?? [];
+  const zonesIn = model.zones ?? [];
+  const scaleHeight = metrics.headerHeight;
+  const bandHeight = markersIn.length || zonesIn.length ? (metrics.annotationHeight ?? 20) : 0;
+  const headerHeight = scaleHeight + bandHeight;
   const durationColWidth = metrics.durationColWidth ?? 56;
   // Colonnes : le nom prend la largeur restante du tableau (au moins MIN_NAME_WIDTH).
   const columns = state.columns ?? normalizeColumns();
@@ -240,6 +246,30 @@ export function computeLayout(model, ts, metrics, state = {}) {
     ? { x: tableWidth + ts.dayToX(planning.end) + ts.pixelsPerDay, label: i18n.t('planning.endLabel') }
     : null;
 
+  // Repères (ligne au milieu du jour) et zones (du début du premier jour à la fin du dernier), dans l'échelle visible.
+  const inView = (a, b) => b >= ts.originDay && a <= ts.endDay;
+  const markers = markersIn.filter((m) => inView(m.date, m.date)).map((m) => ({
+    id: m.id,
+    x: tableWidth + ts.dayToX(m.date) + ts.pixelsPerDay / 2,
+    label: m.label,
+    color: m.color,
+    className: m.className,
+    title: i18n.t('marker.title', { label: m.label || i18n.t('marker.untitled'), date: fromDay(m.date) }),
+  }));
+  const zones = zonesIn.filter((z) => inView(z.start, z.end)).map((z) => {
+    const start = Math.max(z.start, ts.originDay);
+    const end = Math.min(z.end, ts.endDay);
+    return {
+      id: z.id,
+      x: tableWidth + ts.dayToX(start),
+      width: ts.barWidth(start, end),
+      label: z.label,
+      color: z.color,
+      className: z.className,
+      title: i18n.t('zone.title', { label: z.label || i18n.t('zone.untitled'), start: fromDay(z.start), end: fromDay(z.end) }),
+    };
+  });
+
   const barById = new Map(bars.map((b) => [b.id, b]));
   // Repli : un lien vers une tâche repliée part de son groupe visible. Filtre : un lien vers une tâche masquée est masqué.
   const filtering = state.filter !== null && state.filter !== undefined && state.filter !== '';
@@ -276,6 +306,10 @@ export function computeLayout(model, ts, metrics, state = {}) {
     metrics,
     rowHeight,
     headerHeight,
+    scaleHeight,
+    bandHeight,
+    markers,
+    zones,
     labels,
     header,
     rows,
@@ -342,6 +376,7 @@ export function readMetrics(el) {
     rowHeight: num('--gantt-row-height', 32),
     barHeight: num('--gantt-bar-height', 18),
     headerHeight: num('--gantt-header-height', 48),
+    annotationHeight: num('--gantt-annotation-height', 20),
     tableWidth: num('--gantt-table-width', 360),
     dateColWidth: num('--gantt-date-col-width', 84),
     durationColWidth: num('--gantt-duration-col-width', 56),
@@ -411,8 +446,16 @@ function renderGrid(layout) {
     if (typeof w.holiday === 'string') rect.append(svgEl('title', {}, w.holiday));
     g.append(rect);
   }
+  for (const z of layout.zones) {
+    g.append(svgEl('rect', {
+      class: colorClass('gantt-zone', z), x: z.x, y: layout.headerHeight, width: z.width, height: layout.height - layout.headerHeight,
+    }));
+  }
   for (const x of layout.gridLines) {
     g.append(svgEl('line', { class: 'gantt-gridline', x1: x, x2: x, y1: layout.headerHeight, y2: layout.height }));
+  }
+  for (const m of layout.markers) {
+    g.append(svgEl('line', { class: colorClass('gantt-marker', m), x1: m.x, x2: m.x, y1: layout.headerHeight, y2: layout.height }));
   }
   if (layout.today) {
     g.append(svgEl('line', {
@@ -428,10 +471,10 @@ function renderGrid(layout) {
   return g;
 }
 
-function renderHeader(layout) {
+function renderHeader(layout, uid) {
   const g = svgEl('g', { class: 'gantt-header', 'aria-hidden': 'true' });
   const { tableWidth } = layout.metrics;
-  const half = layout.headerHeight / 2;
+  const half = layout.scaleHeight / 2;
   g.append(svgEl('rect', {
     class: 'gantt-header-bg', x: tableWidth, y: 0, width: layout.width - tableWidth, height: layout.headerHeight,
   }));
@@ -448,6 +491,39 @@ function renderHeader(layout) {
   };
   addCells(layout.header.top, 0);
   addCells(layout.header.bottom, half);
+  if (layout.bandHeight) g.append(renderAnnotationBand(layout, uid));
+  return g;
+}
+
+const colorClass = (prefix, a) => cls(prefix, a.color && `${prefix}--${a.color}`, a.className);
+const labelWidth = (text) => Math.max(18, text.length * 6.2 + 14);
+
+// Bande sous l'échelle : segments des zones puis étiquettes des repères (on glisse un repère, on clique pour éditer).
+function renderAnnotationBand(layout, uid) {
+  const g = svgEl('g', { class: 'gantt-annotations' });
+  const y = layout.scaleHeight;
+  const h = layout.bandHeight;
+  const { tableWidth } = layout.metrics;
+  g.append(svgEl('rect', { class: 'gantt-annotation-band', x: tableWidth, y, width: layout.width - tableWidth, height: h }));
+  for (const z of layout.zones) {
+    const seg = svgEl('g', { class: colorClass('gantt-zone-tag', z), 'data-role': 'zone', 'data-zone-id': z.id });
+    seg.append(svgEl('rect', { class: 'gantt-zone-tag-bg', x: z.x + 1, y: y + 3, width: Math.max(z.width - 2, 2), height: h - 6, rx: 4 }));
+    const clipId = `${uid}-zclip-${z.id}`;
+    const clip = svgEl('clipPath', { id: clipId });
+    clip.append(svgEl('rect', { x: z.x + 1, y, width: Math.max(z.width - 4, 0), height: h }));
+    seg.append(clip);
+    seg.append(svgEl('text', { class: 'gantt-zone-tag-text', x: z.x + 6, y: y + h / 2, dy: '0.35em', 'clip-path': `url(#${clipId})` }, z.label));
+    seg.append(svgEl('title', {}, z.title));
+    g.append(seg);
+  }
+  for (const m of layout.markers) {
+    const w = m.label ? labelWidth(m.label) : 12;
+    const tag = svgEl('g', { class: colorClass('gantt-marker-tag', m), 'data-role': 'marker', 'data-marker-id': m.id });
+    tag.append(svgEl('rect', { class: 'gantt-marker-tag-bg', x: m.x - 1, y: y + 2, width: w, height: h - 4, rx: 4 }));
+    if (m.label) tag.append(svgEl('text', { class: 'gantt-marker-tag-text', x: m.x + 6, y: y + h / 2, dy: '0.35em' }, m.label));
+    tag.append(svgEl('title', {}, m.title));
+    g.append(tag);
+  }
   return g;
 }
 
@@ -747,7 +823,7 @@ export function renderParts(layout, { uid = 'g0', readonly = false, dragId = nul
   const main = mk('main', layout.width, layout.height);
   main.append(markerDefs(uid), renderGrid(layout), renderLinks(layout, uid), renderBars(layout, { readonly, dragId }), renderConstraints(layout, readonly));
   const header = mk('header', layout.width, hh);
-  header.append(renderHeader(layout));
+  header.append(renderHeader(layout, uid));
   const table = mk('table', tw, layout.height);
   table.append(clipDefs(uid, layout), renderTable(layout, uid, readonly));
   const corner = mk('corner', tw, hh);

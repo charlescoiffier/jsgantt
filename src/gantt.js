@@ -8,6 +8,7 @@ import { attachKeyboard } from './keyboard.js';
 import { fromDay } from './dates.js';
 import { createI18n } from './i18n.js';
 import { openConstraintEditor } from './constraint-editor.js';
+import { openAnnotationEditor } from './annotation-editor.js';
 import { normalizeColumns } from './view.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
@@ -44,7 +45,10 @@ export class Gantt {
     this.pdfLibs = options.pdfLibs ?? {};
     this.history = new History(options.historyLimit ?? 100);
     try {
-      this.model = new GanttModel({ tasks: options.tasks, links: options.links, calendar: options.calendar, planning: options.planning });
+      this.model = new GanttModel({
+        tasks: options.tasks, links: options.links, calendar: options.calendar, planning: options.planning,
+        markers: options.markers, zones: options.zones,
+      });
     } catch (e) {
       throw this.#localizeError(e);
     }
@@ -99,6 +103,15 @@ export class Gantt {
     }
     if (min === Infinity) min = max = todayDay();
     if (this.model.planning.end !== null) max = Math.max(max, this.model.planning.end);
+    // Les repères et zones élargissent l'échelle de temps.
+    for (const m of this.model.markers) {
+      min = Math.min(min, m.date);
+      max = Math.max(max, m.date);
+    }
+    for (const z of this.model.zones) {
+      min = Math.min(min, z.start);
+      max = Math.max(max, z.end);
+    }
     const originDay = min - 7;
     const endDay = Math.max(max + 14, originDay + 30);
     return new Timescale({
@@ -262,7 +275,10 @@ export class Gantt {
     }
     // Le repli est un état d'affichage : il n'entre pas dans l'historique.
     if (type !== 'collapse') this.#record(before);
-    const extra = result?.link ? { linkId: result.link.id } : result?.task ? { id: result.task.id } : {};
+    const extra = result?.link ? { linkId: result.link.id }
+      : result?.task ? { id: result.task.id }
+        : result?.marker ? { markerId: result.marker.id }
+          : result?.zone ? { zoneId: result.zone.id } : {};
     this.#reconcileSelection();
     this.emit('change', { type, ...detail, ...extra });
     this.refresh();
@@ -326,6 +342,52 @@ export class Gantt {
 
   editConstraint(id) {
     openConstraintEditor(this, id);
+  }
+
+  // --- Repères (jalons de projet) et zones colorées : annulables, refusés en lecture seule ---
+
+  // Sans date : le jour au centre de la vue.
+  addMarker(spec = {}) {
+    if (this.readonly) return this.#denyReadonly();
+    const full = { ...spec, date: spec.date ?? fromDay(this.#viewCenterDay()) };
+    return this.commit('marker', { action: 'add' }, (m) => m.addMarker(full));
+  }
+
+  updateMarker(id, patch) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('marker', { action: 'update', markerId: id }, (m) => m.updateMarker(id, patch));
+  }
+
+  removeMarker(id) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('marker', { action: 'remove', markerId: id }, (m) => m.removeMarker(id));
+  }
+
+  // Sans dates : une semaine à partir du jour au centre de la vue.
+  addZone(spec = {}) {
+    if (this.readonly) return this.#denyReadonly();
+    const center = this.#viewCenterDay();
+    const full = { ...spec, start: spec.start ?? fromDay(center), end: spec.end ?? fromDay(center + 6) };
+    return this.commit('zone', { action: 'add' }, (m) => m.addZone(full));
+  }
+
+  updateZone(id, patch) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('zone', { action: 'update', zoneId: id }, (m) => m.updateZone(id, patch));
+  }
+
+  removeZone(id) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('zone', { action: 'remove', zoneId: id }, (m) => m.removeZone(id));
+  }
+
+  // Petite fenêtre d'édition (libellé, date(s), couleur, suppression).
+  editMarker(id) {
+    openAnnotationEditor(this, 'marker', id);
+  }
+
+  editZone(id) {
+    openAnnotationEditor(this, 'zone', id);
   }
 
   setWeekStart(day) {

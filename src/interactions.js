@@ -9,6 +9,7 @@ export function attachInteractions(g) {
   const root = g.scroller;
   let drag = null;
   let lastWheel = 0;
+  let suppressClick = false; // un repère vient d'être glissé : pas d'édition au clic qui suit
 
   const local = (e) => {
     const r = g.svg.getBoundingClientRect();
@@ -50,6 +51,14 @@ export function attachInteractions(g) {
     const id = hit.dataset.id;
     g.root.querySelector('.gantt-input')?.blur(); // valide l'édition en cours avant de copier le modèle
     switch (role) {
+      case 'marker': {
+        if (g.readonly) break;
+        // La capture du pointeur n'est prise qu'au premier déplacement : un simple clic reste un clic (édition).
+        const markerId = hit.dataset.markerId;
+        const m = g.model.markers.find((x) => x.id === markerId);
+        drag = { kind: 'marker', id: markerId, date0: m.date, base: g.model.clone(), startX: e.clientX, moved: false, pointerId: e.pointerId };
+        break;
+      }
       case 'table-resize':
         // Largeur du tableau : réglage d'affichage, permis aussi en lecture seule.
         drag = { kind: 'table', startX: e.clientX, width0: g.layout.table.width, prev: g.view.tableWidth, pointerId: e.pointerId };
@@ -133,6 +142,12 @@ export function attachInteractions(g) {
     if (g.readonly) return;
     const id = hit.dataset.id;
     switch (hit.dataset.role) {
+      case 'marker':
+        if (!suppressClick) g.editMarker(hit.dataset.markerId);
+        break;
+      case 'zone':
+        g.editZone(hit.dataset.zoneId);
+        break;
       case 'add-task':
         g.addTask();
         break;
@@ -159,6 +174,17 @@ export function attachInteractions(g) {
     }
     if (drag.kind === 'reorder') {
       moveReorder(e);
+      return;
+    }
+    if (drag.kind === 'marker') {
+      if (!drag.moved && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) return;
+      if (!drag.moved) root.setPointerCapture(drag.pointerId);
+      drag.moved = true;
+      drag.date = fromDay(drag.date0 + Math.round((e.clientX - drag.startX) / g.timescale.pixelsPerDay));
+      const work = drag.base.clone();
+      work.updateMarker(drag.id, { date: drag.date });
+      g.render({ model: work });
+      showTip(drag.date, local(e));
       return;
     }
     if (drag.kind === 'table') {
@@ -200,6 +226,14 @@ export function attachInteractions(g) {
     }
     if (d.kind === 'table') {
       if (d.width !== undefined) g.setTableWidth(g.layout.table.width);
+      return;
+    }
+    if (d.kind === 'marker') {
+      if (d.moved) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 0);
+        g.updateMarker(d.id, { date: d.date });
+      }
       return;
     }
     if (!d.moved) return;

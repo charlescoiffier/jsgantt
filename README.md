@@ -51,7 +51,7 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 
 ```js
 const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning, showCritical,
-  columns, sort, filter, tableWidth });
+  columns, sort, filter, tableWidth, markers, zones });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -67,6 +67,8 @@ g.setPlanning({ direction: 'backward', end: '2026-11-30' }); // ou null : en ava
 g.alignEarliest(); g.alignLatest();  // cale les tâches reliées au plus tôt / au plus tard ; annulable
 g.setColumns(['wbs', 'start', 'end', 'progress']); g.setSort({ column: 'start', dir: 'asc' }); g.setFilter('recette');
 g.getView(); g.setView({ columns, sort, filter, tableWidth, scale }); // voir « Affichage »
+g.addMarker({ date, label, color }); g.updateMarker(id, patch); g.removeMarker(id); g.editMarker(id);
+g.addZone({ start, end, label, color }); g.updateZone(id, patch); g.removeZone(id); g.editZone(id); // voir « Repères et zones »
 g.setShowCritical(true); // affiche le chemin critique et les marges (voir « Chemin critique et marges »)
 g.model.slack();         // Map id → { total, free, lateStart, lateEnd, critical } ; g.model.criticalIds()
 g.getData();            // { tasks, links } au format JSON
@@ -107,7 +109,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `planning`, `align` (avec `mode`), `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `planning`, `align` (avec `mode`), `marker` et `zone` (avec `action` : `add`, `update`, `remove`, et `markerId` / `zoneId`), `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -183,6 +185,17 @@ La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON
 - **Tri** (`sort: { column, dir: 'asc' | 'desc' }`, `g.setSort`, ou clic sur un en-tête : croissant, décroissant, ordre du plan) : entre tâches sœurs, la hiérarchie est conservée ; ne change que l'affichage. Pendant un tri, réordonner une tâche (souris ou clavier) est refusé (`reorder.sorted`). La colonne triée doit être affichée ; la retirer annule le tri. Pendant un glissement, l'ordre des lignes est figé.
 - **Filtre** (`filter`, `g.setFilter`) : texte cherché dans les noms (sans tenir compte de la casse ni des accents, `matchesText` dans `src/view.js`) ou fonction `(task) => booléen`. Les groupes parents des tâches retenues restent affichés, le repli est ignoré, les liens vers des tâches masquées sont masqués.
 - Les changements de tri et de filtre sont annoncés (« Trié par Début, croissant », « 3 lignes affichées »). La navigation clavier suit les lignes affichées.
+
+## Repères et zones colorées
+
+- **Repère** (jalon de projet, sans tâche) : `{ id, date, label?, color?, className? }`, une ligne verticale en pointillés sur toute la hauteur, au milieu du jour (comité de pilotage, mise en production…).
+- **Zone** : `{ id, start, end, label?, color?, className? }`, une bande colorée derrière les barres, du premier au dernier jour inclus (gel du code, congés, recette…).
+- Dans les données JSON (`markers`, `zones`), importés, exportés, validés (dates lisibles, fin après début, couleur connue, `id` uniques). Indicatifs : ils ne déplacent aucune tâche ; l'échelle de temps s'élargit pour les inclure.
+- **Couleurs** : `red`, `orange`, `green`, `blue`, `purple`, `grey` (variables `--gantt-annotation-<couleur>`, `--gantt-annotation` sans couleur, `--gantt-zone-opacity`) ; classes `gantt-marker--<couleur>`, `gantt-zone--<couleur>`, plus la classe libre `className`.
+- **Affichage** : une bande sous l'échelle de temps (`--gantt-annotation-height`, présente seulement s'il y a des repères ou des zones) porte les étiquettes, collée en haut avec l'en-tête.
+- **Souris** : glisser l'étiquette d'un repère le déplace (annulable) ; un clic sur une étiquette ouvre une petite fenêtre (libellé, date ou dates, couleur, « Supprimer » ; `Entrée` valide, `Échap` annule). En lecture seule, ils sont seulement affichés.
+- **API** : `g.addMarker`, `g.updateMarker`, `g.removeMarker`, `g.addZone`, `g.updateZone`, `g.removeZone` (annulables, renvoient `{ ok, marker | zone }`, refusées en lecture seule ; sans date, le jour au centre de la vue) ; `g.editMarker(id)`, `g.editZone(id)` ouvrent la fenêtre ; `g.model.markers`, `g.model.zones`.
+- **Accessibilité** : le nom du diagramme liste les repères et les zones ; ajouts, modifications et suppressions sont annoncés. Au clavier, la démo les crée par le menu « Insérer », qui ouvre aussitôt la fenêtre d'édition.
 
 ## Chemin critique et marges
 

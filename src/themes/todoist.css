@@ -83,3 +83,18 @@
 /* Tri : en-tête et flèche en rouge Todoist */
 .gantt-root[data-theme="todoist"] .gantt-header-text--table.is-sorted { fill: #dc4c3e; }
 .gantt-root[data-theme="todoist"] .gantt-sort-arrow { fill: #dc4c3e; }
+
+/* Repères et zones : couleurs Todoist, étiquettes en pilule */
+.gantt-root[data-theme="todoist"] {
+  --gantt-annotation: #808080;
+  --gantt-annotation-red: #dc4c3e;
+  --gantt-annotation-orange: #eb8909;
+  --gantt-annotation-green: #058527;
+  --gantt-annotation-blue: #246fe0;
+  --gantt-annotation-purple: #692ec2;
+  --gantt-annotation-grey: #808080;
+  --gantt-zone-opacity: .07;
+}
+.gantt-root[data-theme="todoist"] .gantt-annotation-band { stroke: none; }
+.gantt-root[data-theme="todoist"] .gantt-marker-tag-bg, .gantt-root[data-theme="todoist"] .gantt-zone-tag-bg { rx: 8px; ry: 8px; }
+.gantt-root[data-theme="todoist"] .gantt-marker { stroke-dasharray: none; stroke-width: 1; }

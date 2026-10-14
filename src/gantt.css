@@ -13,6 +13,16 @@
   --gantt-planning-end: #7c3aed;
   --gantt-critical: #b91c1c;
   --gantt-slack: #9ca3af;
+  /* Repères et zones : couleur par défaut et palette nommée (color: 'red' | 'orange' | …) */
+  --gantt-annotation: #64748b;
+  --gantt-annotation-red: #dc2626;
+  --gantt-annotation-orange: #ea580c;
+  --gantt-annotation-green: #16a34a;
+  --gantt-annotation-blue: #2563eb;
+  --gantt-annotation-purple: #7c3aed;
+  --gantt-annotation-grey: #6b7280;
+  --gantt-zone-opacity: .1;
+  --gantt-annotation-height: 20px;
   --gantt-header-bg: #f3f4f6;
   --gantt-bar-bg: #93c5fd;
   --gantt-bar-stroke: #3b82f6;
@@ -130,6 +140,26 @@
 .gantt-link.is-selected .gantt-link-path { stroke: var(--gantt-link-selected); stroke-width: 2.5; }
 .gantt-link--ss .gantt-link-path,
 .gantt-link--sf .gantt-link-path { stroke-dasharray: 5 3; }
+/* Repères et zones colorées */
+.gantt-zone, .gantt-marker, .gantt-zone-tag, .gantt-marker-tag { --c: var(--gantt-annotation); }
+.gantt-zone--red, .gantt-marker--red, .gantt-zone-tag--red, .gantt-marker-tag--red { --c: var(--gantt-annotation-red); }
+.gantt-zone--orange, .gantt-marker--orange, .gantt-zone-tag--orange, .gantt-marker-tag--orange { --c: var(--gantt-annotation-orange); }
+.gantt-zone--green, .gantt-marker--green, .gantt-zone-tag--green, .gantt-marker-tag--green { --c: var(--gantt-annotation-green); }
+.gantt-zone--blue, .gantt-marker--blue, .gantt-zone-tag--blue, .gantt-marker-tag--blue { --c: var(--gantt-annotation-blue); }
+.gantt-zone--purple, .gantt-marker--purple, .gantt-zone-tag--purple, .gantt-marker-tag--purple { --c: var(--gantt-annotation-purple); }
+.gantt-zone--grey, .gantt-marker--grey, .gantt-zone-tag--grey, .gantt-marker-tag--grey { --c: var(--gantt-annotation-grey); }
+.gantt-zone { fill: var(--c); fill-opacity: var(--gantt-zone-opacity); pointer-events: none; }
+.gantt-marker { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+.gantt-annotation-band { fill: var(--gantt-header-bg); stroke: var(--gantt-border); stroke-width: 1; }
+.gantt-zone-tag-bg { fill: var(--c); fill-opacity: .18; }
+.gantt-zone-tag-text { fill: var(--c); font-size: 11px; font-weight: 600; pointer-events: none; }
+.gantt-marker-tag-bg { fill: var(--c); }
+.gantt-marker-tag-text { fill: #fff; font-size: 11px; font-weight: 600; pointer-events: none; }
+.gantt-zone-tag, .gantt-marker-tag { cursor: pointer; }
+.gantt-marker-tag { cursor: ew-resize; }
+.gantt-root.is-readonly .gantt-zone-tag, .gantt-root.is-readonly .gantt-marker-tag { cursor: default; }
+.gantt-marker-tag.is-dragging .gantt-marker-tag-bg { opacity: .8; }
+
 /* Chemin critique et marges (option showCritical) */
 .gantt-task.is-critical .gantt-bar { stroke: var(--gantt-critical); stroke-width: 2; }
 .gantt-task.is-critical .gantt-progress { fill: var(--gantt-critical); }
@@ -235,6 +265,14 @@
   --gantt-planning-end: #a78bfa;
   --gantt-critical: #f87171;
   --gantt-slack: #6b7280;
+  --gantt-annotation: #94a3b8;
+  --gantt-annotation-red: #f87171;
+  --gantt-annotation-orange: #fb923c;
+  --gantt-annotation-green: #4ade80;
+  --gantt-annotation-blue: #60a5fa;
+  --gantt-annotation-purple: #a78bfa;
+  --gantt-annotation-grey: #9ca3af;
+  --gantt-zone-opacity: .14;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;
   --gantt-bar-stroke: #60a5fa;
@@ -268,5 +306,9 @@
   .gantt-today { stroke: Highlight; }
   .gantt-task.is-critical .gantt-bar, .gantt-link--critical .gantt-link-path { stroke: CanvasText; stroke-width: 3; }
   .gantt-slack-line, .gantt-slack-tick { stroke: GrayText; }
+  .gantt-marker { stroke: CanvasText; }
+  .gantt-marker-tag-bg { fill: CanvasText; }
+  .gantt-marker-tag-text { fill: Canvas; }
+  .gantt-zone-tag-text { fill: CanvasText; }
   .gantt-task.is-selected .gantt-bar, .gantt-link.is-selected .gantt-link-path { stroke: Highlight; stroke-width: 3; }
 }

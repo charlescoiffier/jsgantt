@@ -343,3 +343,22 @@ test('vue : colonnes choisies, tri signalé, filtre sans liens vers les tâches 
   assert.equal(wide.table.width, 500);
   assert.equal(barOf(wide, 'a').x, 500 + 4 * 20); // la timeline suit la largeur du tableau
 });
+
+test('repères et zones : bande sous l’échelle, positions, infobulles', () => {
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-07')],
+    markers: [{ id: 'copil', date: '2026-10-10', label: 'Comité', color: 'purple' }, { id: 'loin', date: '2027-03-01' }],
+    zones: [{ id: 'gel', start: '2026-10-12', end: '2026-10-14', label: 'Gel', className: 'freeze' }],
+  });
+  const layout = computeLayout(m, ts(), metrics);
+  assert.deepEqual([layout.scaleHeight, layout.bandHeight, layout.headerHeight], [48, 20, 68]);
+  assert.equal(barOf(layout, 'a').y, 68 + (32 - 18) / 2); // les lignes commencent sous la bande
+  assert.equal(layout.markers.length, 1); // hors de l'échelle : non dessiné
+  const [mk] = layout.markers;
+  assert.deepEqual([mk.id, mk.x, mk.color, mk.title], ['copil', 300 + 9 * 20 + 10, 'purple', 'Comité : 2026-10-10']);
+  const [z] = layout.zones;
+  assert.deepEqual([z.id, z.x, z.width, z.color, z.className], ['gel', 300 + 11 * 20, 60, null, 'freeze']);
+  assert.equal(z.title, 'Gel : du 2026-10-12 au 2026-10-14');
+  const none = computeLayout(new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] }), ts(), metrics);
+  assert.deepEqual([none.bandHeight, none.headerHeight], [0, 48]);
+});

@@ -63,6 +63,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     name: i18n.t('ui.name'),
     start: i18n.t('ui.start'),
     end: i18n.t('ui.end'),
+    duration: i18n.t('ui.duration'),
     addTask: i18n.t('ui.addTask'),
     addBelow: i18n.t('ui.addBelow'),
     remove: i18n.t('ui.remove'),
@@ -70,6 +71,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     constraint: i18n.t('ui.constraint'),
   };
   const { rowHeight, barHeight, headerHeight, tableWidth, dateColWidth, indent, linkGap, linkRadius } = metrics;
+  const durationColWidth = metrics.durationColWidth ?? 56;
   const rowsInfo = model.visibleRows();
   const width = tableWidth + ts.totalWidth;
   const addRow = state.showAdd ? { y: headerHeight + rowsInfo.length * rowHeight, alt: rowsInfo.length % 2 === 1 } : null;
@@ -140,6 +142,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
       name: t.name,
       startLabel,
       endLabel,
+      durationLabel: i18n.t('ui.durationValue', { n: model.durationDays(id) }),
       group,
       collapsed: group && t.collapsed,
       alt,
@@ -211,7 +214,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     today,
     bars,
     links,
-    table: { width: tableWidth, nameW: tableWidth - 2 * dateColWidth, dateColWidth, indent, rows: tableRows },
+    table: { width: tableWidth, nameW: tableWidth - 2 * dateColWidth - durationColWidth, dateColWidth, durationColWidth, indent, rows: tableRows },
   };
 }
 
@@ -240,6 +243,7 @@ export function readMetrics(el) {
     headerHeight: num('--gantt-header-height', 48),
     tableWidth: num('--gantt-table-width', 360),
     dateColWidth: num('--gantt-date-col-width', 84),
+    durationColWidth: num('--gantt-duration-col-width', 56),
     indent: num('--gantt-indent', 16),
     linkGap: num('--gantt-link-gap', 10),
     linkRadius: num('--gantt-link-radius', 6),
@@ -497,7 +501,7 @@ function renderTable(layout, uid, readonly) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-table' });
   g.append(svgEl('rect', { class: 'gantt-table-bg', x: 0, y: 0, width: table.width, height: layout.height }));
-  const colX = [0, table.nameW, table.nameW + table.dateColWidth];
+  const colX = [0, table.nameW, table.nameW + table.dateColWidth, table.nameW + 2 * table.dateColWidth];
   for (const row of table.rows) {
     const rowGroup = svgEl('g', {
       class: cls('gantt-table-row', row.alt && 'gantt-table-row--alt', row.group && 'gantt-table-row--group',
@@ -525,6 +529,9 @@ function renderTable(layout, uid, readonly) {
       ['cell-start', colX[1], table.dateColWidth, row.startLabel, colX[1] + 8],
       ['cell-end', colX[2], table.dateColWidth, row.endLabel, colX[2] + 8],
     ];
+    rowGroup.append(svgEl('text', {
+      class: 'gantt-table-text gantt-table-text--date gantt-table-text--duration', x: colX[3] + 8, y: cy, dy: '0.35em', role: 'gridcell',
+    }, row.durationLabel));
     for (const [role, x, w, text, tx] of cells) {
       rowGroup.append(svgEl('rect', {
         class: 'gantt-cell', x, y: row.y, width: w, height: layout.rowHeight, 'data-role': role, 'data-id': row.id,
@@ -569,7 +576,12 @@ function renderCorner(layout) {
   const { table } = layout;
   const g = svgEl('g', { class: 'gantt-corner' });
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
-  const titles = [[layout.labels.name, 8], [layout.labels.start, table.nameW + 8], [layout.labels.end, table.nameW + table.dateColWidth + 8]];
+  const titles = [
+    [layout.labels.name, 8],
+    [layout.labels.start, table.nameW + 8],
+    [layout.labels.end, table.nameW + table.dateColWidth + 8],
+    [layout.labels.duration, table.nameW + 2 * table.dateColWidth + 8],
+  ];
   for (const [label, x] of titles) {
     g.append(svgEl('text', { class: 'gantt-header-text gantt-header-text--table', x, y: layout.headerHeight / 2, dy: '0.35em' }, label));
   }

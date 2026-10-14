@@ -257,6 +257,13 @@ export class GanttModel {
     return rows;
   }
 
+  // Durée en jours : travaillés si un calendrier est défini, calendaires sinon ; 0 pour un jalon.
+  durationDays(id) {
+    const t = this.#require(id);
+    if (t.milestone && !this.isGroup(id)) return 0;
+    return this.#calendar.workingDaysBetween(t.start, t.end);
+  }
+
   progressOf(id) {
     const t = this.#tasks.get(id);
     if (!this.isGroup(id)) return t.progress;

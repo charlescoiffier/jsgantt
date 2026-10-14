@@ -30,6 +30,8 @@ Les ES modules exigent un serveur HTTP : `npm run demo` (serveur sans cache, por
 ## Données
 
 **Tâche** : `id` (obligatoire), `name`, `start` et `end` (`AAAA-MM-JJ`, fin incluse, obligatoires sauf pour un groupe), `progress` (0 à 1), `parentId`, `collapsed`, `milestone` (jalon : `end` facultatif), `className`.
+Le tableau affiche le nom, le début, la fin et la **durée en jours** (jours travaillés si un calendrier est défini, calendaires sinon ; 0 pour un jalon ; un groupe affiche la durée de son étendue). Cette colonne est en lecture seule ; `g.model.durationDays(id)` donne la même valeur.
+
 Une tâche qui a des enfants est un **groupe** : ses dates sont calculées à partir de ses enfants.
 
 **Lien** : `from`, `to`, `type` (`FS`, `SS`, `FF`, `SF`), `lag` (jours, négatif = avance), `id` facultatif.
@@ -118,7 +120,7 @@ Tout le design passe par CSS. Variables principales (définies sur `.gantt-root`
 | `--gantt-group-bg`, `--gantt-milestone-bg` | Groupes, jalons |
 | `--gantt-link-color`, `--gantt-link-width`, `--gantt-link-selected` | Liens |
 | `--gantt-selected`, `--gantt-invalid` | États |
-| `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
+| `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
 | `--gantt-link-gap`, `--gantt-link-radius` | Tracé des liens |
 | `--gantt-col-width-day`, `--gantt-col-width-week`, `--gantt-col-width-month` | Largeur d'une colonne par échelle |
 | `--gantt-max-height` | Hauteur maximale du conteneur (défilement vertical) |

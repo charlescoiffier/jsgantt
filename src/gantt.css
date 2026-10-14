@@ -28,8 +28,9 @@
   --gantt-row-height: 32px;
   --gantt-bar-height: 18px;
   --gantt-header-height: 48px;
-  --gantt-table-width: 360px;
+  --gantt-table-width: 420px;
   --gantt-date-col-width: 84px;
+  --gantt-duration-col-width: 56px;
   --gantt-indent: 16px;
   --gantt-link-gap: 10px;
   --gantt-link-radius: 6px;

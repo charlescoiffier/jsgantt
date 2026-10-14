@@ -253,3 +253,19 @@ test('pas de contrainte : liste vide', () => {
   const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
   assert.deepEqual(computeLayout(m, ts(), metrics).constraints, []);
 });
+
+test('colonne durée : valeurs, largeur de colonne, titres', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-09'), t('ms', '2026-10-12', '2026-10-12', { milestone: true })] });
+  const layout = computeLayout(m, ts(), metrics);
+  assert.deepEqual(layout.table.rows.map((r) => r.durationLabel), ['5 j', '0 j']);
+  assert.equal(layout.table.durationColWidth, 56); // valeur par défaut quand les métriques ne la fournissent pas
+  assert.equal(layout.table.nameW, 300 - 2 * 80 - 56);
+  assert.equal(layout.labels.duration, 'Durée');
+  const wide = computeLayout(m, ts(), { ...metrics, durationColWidth: 64 });
+  assert.equal(wide.table.durationColWidth, 64);
+  assert.equal(wide.table.nameW, 300 - 2 * 80 - 64);
+  const en = computeLayout(m, ts(), metrics, { i18n: createI18n('en') });
+  assert.deepEqual(en.table.rows.map((r) => r.durationLabel), ['5 d', '0 d']);
+  assert.equal(en.labels.duration, 'Duration');
+});

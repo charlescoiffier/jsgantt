@@ -14,6 +14,9 @@ import { openFilterEditor } from './filter-editor.js';
 import { openDeleteConfirm } from './confirm.js';
 import { BAR_LABELS, columnPredicate, viewContext } from './view.js';
 import { normalizeColumns } from './view.js';
+import { toCSV, fromCSV } from './formats/csv.js';
+import { toICS } from './formats/ical.js';
+import { toMSPDI, fromMSPDI } from './formats/mspdi.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
 let uidCounter = 0;
@@ -594,6 +597,69 @@ export class Gantt {
     const text = JSON.stringify(this.model.getData(), null, 2);
     if (filename) downloadBlob(new Blob([text], { type: 'application/json' }), filename);
     return text;
+  }
+
+  // CSV (UTF-8 avec BOM pour Excel) ; opts : { sep, locale } (par défaut la langue du diagramme).
+  exportCSV(filename = 'gantt.csv', opts = {}) {
+    const text = toCSV(this.model, { locale: this.i18n.code, ...opts });
+    if (filename) downloadBlob(new Blob(['\uFEFF', text], { type: 'text/csv;charset=utf-8' }), filename);
+    return text;
+  }
+
+  // iCalendar : un événement par tâche, jalon, repère et zone.
+  exportICS(filename = 'gantt.ics', opts = {}) {
+    const text = toICS(this.model, {
+      labels: { progress: this.t('ui.progress'), owner: this.t('ui.owner'), marker: this.t('marker.untitled'), zone: this.t('zone.untitled') },
+      ...opts,
+    });
+    if (filename) downloadBlob(new Blob([text], { type: 'text/calendar;charset=utf-8' }), filename);
+    return text;
+  }
+
+  // MS Project XML (MSPDI), lisible par MS Project, Merlin Project, ProjectLibre…
+  exportMSProject(filename = 'gantt.xml', opts = {}) {
+    const text = toMSPDI(this.model, { title: filename ? filename.replace(/\.xml$/i, '') : 'Gantt', ...opts });
+    if (filename) downloadBlob(new Blob([text], { type: 'application/xml' }), filename);
+    return text;
+  }
+
+  // Remplace le planning par `data` en une action annulable (lève, sans rien changer, si les données sont invalides).
+  importData(data) {
+    if (this.readonly) return this.#denyReadonly();
+    let model;
+    try {
+      model = new GanttModel(data);
+    } catch (e) {
+      throw this.#localizeError(e);
+    }
+    const before = this.model.getData();
+    this.model = model;
+    this.#record(before);
+    this.#reconcileSelection();
+    this.emit('change', { type: 'import' });
+    this.refresh();
+    return { ok: true };
+  }
+
+  // Import d'un format : { ok, warnings: [texte traduit] } ; lève si le fichier est illisible.
+  #importFormat(parse, text) {
+    if (this.readonly) return this.#denyReadonly();
+    let parsed;
+    try {
+      parsed = parse(text);
+    } catch (e) {
+      throw this.#localizeError(e);
+    }
+    this.importData(parsed.data);
+    return { ok: true, warnings: parsed.warnings.map((w) => this.t(w.code, w.params)) };
+  }
+
+  importCSV(text) {
+    return this.#importFormat(fromCSV, text);
+  }
+
+  importMSProject(text) {
+    return this.#importFormat(fromMSPDI, text);
   }
 
   exportSVG(filename = 'gantt.svg') {

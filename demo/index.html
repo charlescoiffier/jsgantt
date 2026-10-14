@@ -22,6 +22,7 @@
       transition: background .12s, border-color .12s, box-shadow .12s;
     }
     .toolbar select { padding: 0 8px; }
+    .toolbar #undo, .toolbar #redo { width: 34px; padding: 0; justify-content: center; }
     .toolbar svg { width: 16px; height: 16px; flex: none; }
     .toolbar button:hover:not(:disabled), .toolbar .import:hover { background: #f3f4f6; border-color: #c4c9d1; }
     .toolbar button:active:not(:disabled) { background: #e5e7eb; }
@@ -135,8 +136,8 @@
       <button data-scale="month" aria-pressed="false" data-i18n="scale.month">Mois</button>
     </div>
     <div class="group" role="group" aria-label="Historique" data-i18n-aria="group.history">
-      <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span data-i18n="undo">Annuler</span></button>
-      <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span data-i18n="redo">Rétablir</span></button>
+      <button id="undo" disabled title="Annuler (Ctrl+Z)" data-i18n-title="undo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="visually-hidden" data-i18n="undo">Annuler</span></button>
+      <button id="redo" disabled title="Rétablir (Ctrl+Maj+Z)" data-i18n-title="redo.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span class="visually-hidden" data-i18n="redo">Rétablir</span></button>
     </div>
     <div class="search" role="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -145,6 +146,13 @@
     </div>
     <span class="spacer"></span>
     <div class="group" role="group" aria-label="Actions" data-i18n-aria="group.actions">
+      <div class="menu">
+        <button id="insert-btn" aria-controls="insert-menu" title="Insérer un repère ou une zone" data-i18n-title="insert.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span data-i18n="insert">Insérer</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div id="insert-menu" class="menu-list" role="menu" aria-labelledby="insert-btn" hidden>
+          <button class="menu-item" role="menuitem" id="ins-marker" data-i18n="insert.marker">Repère</button>
+          <button class="menu-item" role="menuitem" id="ins-zone" data-i18n="insert.zone">Zone colorée</button>
+        </div>
+      </div>
       <button id="open-settings" aria-haspopup="dialog" title="Paramètres" data-i18n-title="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="settings">Paramètres</span></button>
       <div class="menu">
         <button id="import-btn" aria-controls="import-menu" title="Importer un fichier JSON" data-i18n-title="import.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-i18n="import">Importer</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -287,6 +295,8 @@
         'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
         'plan.hint': 'Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.',
         'plan.critical': 'Afficher le chemin critique',
+        insert: 'Insérer', 'insert.title': 'Insérer un repère ou une zone', 'insert.marker': 'Repère', 'insert.zone': 'Zone colorée',
+        'insert.markerLabel': 'Nouveau repère', 'insert.zoneLabel': 'Nouvelle zone',
         search: 'Rechercher une tâche', 'search.placeholder': 'Rechercher…', 'settings.view': 'Affichage', 'view.columns': 'Colonnes',
         'col.wbs': 'N°', 'col.start': 'Début', 'col.end': 'Fin', 'col.duration': 'Durée', 'col.progress': 'Avancement', 'col.slack': 'Marge', 'col.owner': 'Responsable',
         'view.sort': 'Trier par', 'sort.none': 'Ordre du plan', 'sort.name': 'Nom (A → Z)', 'sort.start': 'Début (plus tôt d\'abord)', 'sort.end': 'Fin (plus tôt d\'abord)',
@@ -326,6 +336,8 @@
         'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
         'plan.hint': 'Aligning moves linked tasks; unlinked tasks stay put.',
         'plan.critical': 'Show the critical path',
+        insert: 'Insert', 'insert.title': 'Insert a marker or a zone', 'insert.marker': 'Marker', 'insert.zone': 'Colored zone',
+        'insert.markerLabel': 'New marker', 'insert.zoneLabel': 'New zone',
         search: 'Search a task', 'search.placeholder': 'Search…', 'settings.view': 'Display', 'view.columns': 'Columns',
         'col.wbs': 'No.', 'col.start': 'Start', 'col.end': 'End', 'col.duration': 'Duration', 'col.progress': 'Progress', 'col.slack': 'Slack', 'col.owner': 'Owner',
         'view.sort': 'Sort by', 'sort.none': 'Plan order', 'sort.name': 'Name (A → Z)', 'sort.start': 'Start (earliest first)', 'sort.end': 'End (earliest first)',
@@ -389,7 +401,9 @@
       { id: 'l7', from: 'm1', to: 't7', type: 'SF' },
     ];
 
-    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, scale: 'week', locale: initialLang });
+    const markers = [{ id: 'copil', date: '2026-10-21', label: 'Copil', color: 'purple' }];
+    const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel du code', color: 'blue' }];
+    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, markers, zones, scale: 'week', locale: initialLang });
     applyLang();
     document.getElementById('lang').value = lang;
     document.getElementById('lang').onchange = (e) => {
@@ -638,6 +652,15 @@
     }
     setupMenu('import-btn', 'import-menu', () => $('imp-json').click());
     setupMenu('export-btn', 'export-menu');
+    setupMenu('insert-btn', 'insert-menu', (item) => {
+      if (item.id === 'ins-marker') {
+        const r = gantt.addMarker({ label: T('insert.markerLabel'), color: 'purple' });
+        if (r.ok) gantt.editMarker(r.marker.id);
+      } else {
+        const r = gantt.addZone({ label: T('insert.zoneLabel'), color: 'blue' });
+        if (r.ok) gantt.editZone(r.zone.id);
+      }
+    });
     document.addEventListener('click', (e) => {
       for (const m of menus) if (!m.list.parentElement.contains(e.target)) m.close();
     });

@@ -85,6 +85,11 @@ export function announceChange(model, detail, i18n = FR, slack = null) {
       return t(detail.mode === 'latest' ? 'a11y.alignedLatest' : 'a11y.alignedEarliest');
     case 'calendar':
       return t('a11y.calendarChanged');
+    case 'marker':
+    case 'zone': {
+      const verb = { add: 'Added', update: 'Changed', remove: 'Removed' }[detail.action] ?? 'Changed';
+      return t(`a11y.${type}${verb}`);
+    }
     case 'undo':
       return t('a11y.undo');
     case 'redo':
@@ -94,10 +99,21 @@ export function announceChange(model, detail, i18n = FR, slack = null) {
   }
 }
 
+// Nom du diagramme, suivi de la liste des repères et des zones.
+export function chartLabel(g) {
+  const { t } = g.i18n;
+  const parts = [t('a11y.chart')];
+  const markers = g.layout.markers.map((m) => m.title);
+  const zones = g.layout.zones.map((z) => z.title);
+  if (markers.length) parts.push(t('a11y.markers', { list: markers.join(' ; ') }));
+  if (zones.length) parts.push(t('a11y.zones', { list: zones.join(' ; ') }));
+  return parts.join(', ');
+}
+
 export function syncAria(g) {
   const s = g.scroller;
   s.setAttribute('role', 'treegrid');
-  s.setAttribute('aria-label', g.i18n.t('a11y.chart'));
+  s.setAttribute('aria-label', chartLabel(g));
   s.setAttribute('aria-rowcount', String(g.layout.rows.length));
   const i = g.layout.rows.findIndex((r) => r.id === g.state.selectedId);
   if (i === -1) s.removeAttribute('aria-activedescendant');

@@ -269,3 +269,13 @@ test('colonne durée : valeurs, largeur de colonne, titres', async () => {
   assert.deepEqual(en.table.rows.map((r) => r.durationLabel), ['5 d', '0 d']);
   assert.equal(en.labels.duration, 'Duration');
 });
+
+test('ligne « fin imposée » : seulement en planification en arrière', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')], planning: { direction: 'backward', end: '2026-10-20' } });
+  const layout = computeLayout(m, ts(), metrics);
+  assert.deepEqual(layout.planningEnd, { x: 300 + 19 * 20 + 20, label: 'Fin imposée' });
+  assert.equal(computeLayout(m, ts(), metrics, { i18n: createI18n('en') }).planningEnd.label, 'Imposed end');
+  const fwd = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
+  assert.equal(computeLayout(fwd, ts(), metrics).planningEnd, null);
+});

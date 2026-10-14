@@ -91,6 +91,15 @@
     #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 14px; }
     #settings select { height: 32px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; max-width: 62%; }
     #settings select:disabled { opacity: .5; }
+    #settings input[type="date"] { height: 32px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; }
+    #settings .row[hidden] { display: none; }
+    #settings .row.actions { justify-content: flex-start; gap: 8px; }
+    #settings .row.actions button { height: 32px; padding: 0 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings .row.actions button:hover { background: #f3f4f6; }
+    body.dark #settings input[type="date"], body.dark #settings .row.actions button { background: #1f2937; border-color: #374151; }
+    body.dark #settings .row.actions button:hover { background: #273449; }
+    body.theme-todoist #settings input[type="date"], body.theme-todoist #settings .row.actions button { border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-todoist #settings .row.actions button:hover { background: #ececec; }
     #settings input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; }
     #settings .hint { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
     #settings menu { display: flex; justify-content: flex-end; margin: 16px 0 0; padding: 0; }
@@ -178,6 +187,18 @@
             <option value="calendar" data-i18n="lag.calendar">Jours calendaires</option>
           </select></div>
         <p class="hint" data-i18n="cal.lag.hint">Sans jour non travaillé, l'unité du décalage est sans effet.</p>
+        <div class="row"><label for="plan-dir" data-i18n="plan.direction">Sens de planification</label>
+          <select id="plan-dir">
+            <option value="forward" data-i18n="plan.forward">En avant</option>
+            <option value="backward" data-i18n="plan.backward">En arrière</option>
+          </select></div>
+        <div class="row" id="plan-end-row" hidden><label for="plan-end" data-i18n="plan.end">Fin imposée</label>
+          <input id="plan-end" type="date"></div>
+        <div class="row actions">
+          <button type="button" id="align-early" data-i18n="plan.alignEarliest">Caler au plus tôt</button>
+          <button type="button" id="align-late" data-i18n="plan.alignLatest">Caler au plus tard</button>
+        </div>
+        <p class="hint" data-i18n="plan.hint">Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.</p>
       </section>
       <section role="group" aria-labelledby="sg-editing">
         <h3 id="sg-editing" data-i18n="settings.editing">Édition</h3>
@@ -206,6 +227,7 @@
   <script type="module">
     import { Gantt } from '../src/gantt.js';
     import { WEEK, frenchHolidays, americanHolidays } from '../src/calendar.js';
+    import { fromDay } from '../src/dates.js';
 
     const K = (t) => `<kbd>${t}</kbd>`;
     const DEMO = {
@@ -216,6 +238,9 @@
         export: 'Exporter', 'export.svg': 'Télécharger en SVG', 'export.json': 'Télécharger en JSON', 'export.pdf': 'Télécharger en PDF',
         print: 'Imprimer', theme: 'Thème', 'theme.light': 'Défaut', 'theme.dark': 'Sombre', lang: 'Langue',
         readonly: 'Lecture seule', 'readonly.title': 'Verrouiller l\'édition', import: 'Importer', 'import.title': 'Importer un fichier JSON',
+        'plan.direction': 'Sens de planification', 'plan.forward': 'En avant', 'plan.backward': 'En arrière', 'plan.end': 'Fin imposée',
+        'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
+        'plan.hint': 'Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.',
         'group.actions': 'Actions', 'export.title': 'Exporter le diagramme', 'print.item': 'Imprimer…', 'fmt.json': 'JSON',
         'group.file': 'Fichier', settings: 'Paramètres', 'settings.title': 'Paramètres', 'settings.appearance': 'Apparence', 'settings.planning': 'Planification',
         'settings.editing': 'Édition', 'settings.weekStart': 'Début de semaine', 'week.mon': 'Lundi', 'week.sun': 'Dimanche',
@@ -244,6 +269,9 @@
         export: 'Export', 'export.svg': 'Download as SVG', 'export.json': 'Download as JSON', 'export.pdf': 'Download as PDF',
         print: 'Print', theme: 'Theme', 'theme.light': 'Default', 'theme.dark': 'Dark', lang: 'Language',
         readonly: 'Read-only', 'readonly.title': 'Lock editing', import: 'Import', 'import.title': 'Import a JSON file',
+        'plan.direction': 'Planning direction', 'plan.forward': 'Forward', 'plan.backward': 'Backward', 'plan.end': 'Imposed end',
+        'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
+        'plan.hint': 'Aligning moves linked tasks; unlinked tasks stay put.',
         'group.actions': 'Actions', 'export.title': 'Export the chart', 'print.item': 'Print…', 'fmt.json': 'JSON',
         'group.file': 'File', settings: 'Settings', 'settings.title': 'Settings', 'settings.appearance': 'Appearance', 'settings.planning': 'Planning',
         'settings.editing': 'Editing', 'settings.weekStart': 'Week starts on', 'week.mon': 'Monday', 'week.sun': 'Sunday',
@@ -389,8 +417,30 @@
       $('cal-lag').disabled = !json;
     }
     for (const id of ['cal-days', 'cal-holidays', 'cal-lag']) $(id).onchange = applyCalendar;
+
+    // Sens de planification et calages
+    function syncPlanningUI() {
+      const p = gantt.model.planning;
+      $('plan-dir').value = p.direction;
+      $('plan-end-row').hidden = p.direction !== 'backward';
+      if (p.end !== null) $('plan-end').value = fromDay(p.end);
+    }
+    function applyPlanning() {
+      const backward = $('plan-dir').value === 'backward';
+      const spec = backward ? { direction: 'backward', ...($('plan-end').value ? { end: $('plan-end').value } : {}) } : null;
+      gantt.setPlanning(spec);
+      syncPlanningUI();
+    }
+    $('plan-dir').onchange = applyPlanning;
+    $('plan-end').onchange = applyPlanning;
+    $('align-early').onclick = () => gantt.alignEarliest();
+    $('align-late').onclick = () => gantt.alignLatest();
+    syncPlanningUI();
     gantt.on('change', (d) => {
-      if (d.type === 'undo' || d.type === 'redo') syncCalendarUI();
+      if (d.type === 'undo' || d.type === 'redo') {
+        syncCalendarUI();
+        syncPlanningUI();
+      }
     });
     $('cal-lag').disabled = true;
 

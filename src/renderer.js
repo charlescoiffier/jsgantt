@@ -172,6 +172,11 @@ export function computeLayout(model, ts, metrics, state = {}) {
     });
   }
 
+  const planning = model.planning;
+  const planningEnd = planning.direction === 'backward' && planning.end !== null
+    ? { x: tableWidth + ts.dayToX(planning.end) + ts.pixelsPerDay, label: i18n.t('planning.endLabel') }
+    : null;
+
   const barById = new Map(bars.map((b) => [b.id, b]));
   const visibleBar = (id) => {
     let cur = id;
@@ -211,6 +216,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
     gridLines,
     addRow,
     constraints,
+    planningEnd,
     today,
     bars,
     links,
@@ -309,6 +315,11 @@ function renderGrid(layout) {
     g.append(svgEl('line', {
       class: 'gantt-today', x1: layout.today.x, x2: layout.today.x, y1: layout.headerHeight, y2: layout.height,
     }));
+  }
+  if (layout.planningEnd) {
+    const { x, label } = layout.planningEnd;
+    g.append(svgEl('line', { class: 'gantt-end-line', x1: x, x2: x, y1: layout.headerHeight, y2: layout.height }));
+    g.append(svgEl('text', { class: 'gantt-end-label', x: x - 6, y: layout.headerHeight + 12, 'text-anchor': 'end' }, label));
   }
   g.append(svgEl('line', { class: 'gantt-gridline', x1: tableWidth, x2: tableWidth, y1: 0, y2: layout.height }));
   return g;

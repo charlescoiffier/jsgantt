@@ -1,10 +1,9 @@
 import { toDay, fromDay } from './dates.js';
 import { GanttError } from './i18n.js';
+import { COLORS } from './colors.js';
 
 // Repères (jalons de projet) et zones colorées : indicatifs, ils ne déplacent aucune tâche.
 // Repère : { id, date, label, color, className } ; zone : { id, start, end, label, color, className }.
-
-export const ANNOTATION_COLORS = ['red', 'orange', 'green', 'blue', 'purple', 'grey'];
 
 const day = (kind, id, value) => {
   try {
@@ -17,8 +16,8 @@ const day = (kind, id, value) => {
 // Champs communs (libellé, couleur, classe) d'un objet brut ; `base` : valeurs actuelles lors d'une modification.
 function common(kind, id, raw, base = {}) {
   const color = 'color' in raw ? raw.color ?? null : base.color ?? null;
-  if (color !== null && !ANNOTATION_COLORS.includes(color)) {
-    throw new GanttError(`${kind}.color`, { id, color: String(color), list: ANNOTATION_COLORS.join(', ') });
+  if (color !== null && !COLORS.includes(color)) {
+    throw new GanttError(`${kind}.color`, { id, color: String(color), list: COLORS.join(', ') });
   }
   return {
     label: 'label' in raw ? String(raw.label ?? '') : base.label ?? '',

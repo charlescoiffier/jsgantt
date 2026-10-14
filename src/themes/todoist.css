@@ -1,5 +1,4 @@
-/* Thème « Todoist » : à charger après gantt.css, s'active avec data-theme="todoist" sur l'élément racine.
-   Priorités : ajouter la classe p1, p2 ou p3 dans `className` d'une tâche (p4 par défaut). */
+/* Thème « Todoist » : à charger après gantt.css, s'active avec data-theme="todoist" sur l'élément racine. */
 .gantt-root[data-theme="todoist"] {
   --gantt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --gantt-font-size: 12.5px;
@@ -37,10 +36,11 @@
   --gantt-link-radius: 6px;
 }
 
-/* Priorités */
-.gantt-root[data-theme="todoist"] .gantt-task.p1 { --gantt-bar-bg: #fbd9d6; --gantt-progress-bg: #d1453b; }
-.gantt-root[data-theme="todoist"] .gantt-task.p2 { --gantt-bar-bg: #ffe6c2; --gantt-progress-bg: #eb8909; }
-.gantt-root[data-theme="todoist"] .gantt-task.p3 { --gantt-bar-bg: #d3e0ff; --gantt-progress-bg: #246fe0; }
+/* Couleur d'une tâche : pilule teintée sans contour, progression pleine */
+.gantt-root[data-theme="todoist"] .gantt-task[class*="gantt-task--color-"] .gantt-bar { stroke: none; fill-opacity: .25; }
+.gantt-root[data-theme="todoist"] .gantt-task--milestone[class*="gantt-task--color-"] .gantt-bar { fill-opacity: 1; }
+.gantt-root[data-theme="todoist"] .gantt-task[class*="gantt-task--color-"] .gantt-group-pill { fill: var(--c); fill-opacity: .25; }
+.gantt-root[data-theme="todoist"] .gantt-task[class*="gantt-task--color-"] .gantt-group-pill-progress { fill: var(--c); }
 
 /* Groupes : pilule fine à la place de l'accolade, ligne de tableau grisée et en gras */
 .gantt-root[data-theme="todoist"] .gantt-bar--group { display: none; }
@@ -86,13 +86,19 @@
 
 /* Repères et zones : couleurs Todoist, étiquettes en pilule */
 .gantt-root[data-theme="todoist"] {
+  --gantt-color-red: #db4035;
+  --gantt-color-orange: #ff9933;
+  --gantt-color-amber: #e8a33b;
+  --gantt-color-yellow: #fad000;
+  --gantt-color-lime: #7ecc49;
+  --gantt-color-green: #299438;
+  --gantt-color-teal: #158fad;
+  --gantt-color-cyan: #14aaf5;
+  --gantt-color-blue: #4073ff;
+  --gantt-color-indigo: #6a5acd;
+  --gantt-color-purple: #884dff;
+  --gantt-color-pink: #e05194;
   --gantt-annotation: #808080;
-  --gantt-annotation-red: #dc4c3e;
-  --gantt-annotation-orange: #eb8909;
-  --gantt-annotation-green: #058527;
-  --gantt-annotation-blue: #246fe0;
-  --gantt-annotation-purple: #692ec2;
-  --gantt-annotation-grey: #808080;
   --gantt-zone-opacity: .07;
 }
 .gantt-root[data-theme="todoist"] .gantt-annotation-band { stroke: none; }

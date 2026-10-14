@@ -1,6 +1,8 @@
 // Vue du tableau : colonnes, tri entre tâches sœurs et filtre. Ne modifie jamais le modèle.
 
-export const BUILTIN_COLUMNS = ['name', 'wbs', 'start', 'end', 'duration', 'progress', 'slack'];
+export const BUILTIN_COLUMNS = ['name', 'wbs', 'start', 'end', 'duration', 'progress', 'slack', 'owner'];
+// Texte au bout des barres : une colonne intégrée ou rien.
+export const BAR_LABELS = [...BUILTIN_COLUMNS, 'none'];
 export const DEFAULT_COLUMNS = ['name', 'start', 'end', 'duration'];
 // Colonnes éditables en ligne (double-clic, F2, Tab).
 export const EDITABLE_COLUMNS = ['name', 'start', 'end'];
@@ -83,6 +85,8 @@ export function sortValue(col, id, ctx) {
       return model.progressOf(id);
     case 'slack':
       return ctx.slack.get(id)?.total ?? 0;
+    case 'owner':
+      return model.ownerName(t.owner);
     default:
       return customText(col, t);
   }

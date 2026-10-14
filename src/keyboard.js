@@ -157,6 +157,11 @@ export function attachKeyboard(g) {
       else g.addTask(id ? { afterId: id } : {});
       return;
     }
+    if ((key === 'e' || key === 'E') && !e.shiftKey && id) {
+      handled();
+      g.editTask(id);
+      return;
+    }
     if ((key === 'c' || key === 'C') && !e.shiftKey && id) {
       handled();
       g.editConstraint(id);

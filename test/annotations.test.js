@@ -47,7 +47,7 @@ test('import invalide : erreurs précises et traduisibles', () => {
     [{ markers: [{ id: 'x', date: '2026-10-01' }, { id: 'x', date: '2026-10-02' }] }, 'marker.duplicateId'],
     [{ markers: [{ id: 'x' }] }, 'marker.dateRequired'],
     [{ markers: [{ id: 'x', date: '2026-13-01' }] }, 'marker.date'],
-    [{ markers: [{ id: 'x', date: '2026-10-01', color: 'pink' }] }, 'marker.color'],
+    [{ markers: [{ id: 'x', date: '2026-10-01', color: 'fuchsia' }] }, 'marker.color'],
     [{ zones: [{ id: 'z', start: '2026-10-05' }] }, 'zone.datesRequired'],
     [{ zones: [{ id: 'z', start: '2026-10-05', end: '2026-10-01' }] }, 'zone.endBeforeStart'],
   ];
@@ -56,8 +56,8 @@ test('import invalide : erreurs précises et traduisibles', () => {
     assert.ok(e instanceof GanttError, code);
     assert.equal(e.code, code);
   }
-  assert.equal(fr.localize(bad({ markers: [{ id: 'x', date: '2026-10-01', color: 'pink' }] })),
-    'Repère "x" : couleur inconnue "pink" (attendu : red, orange, green, blue, purple, grey)');
+  assert.equal(fr.localize(bad({ markers: [{ id: 'x', date: '2026-10-01', color: 'fuchsia' }] })),
+    'Repère "x" : couleur inconnue "fuchsia" (attendu : red, orange, amber, yellow, lime, green, teal, cyan, blue, indigo, purple, pink)');
 });
 
 test('ajouter, modifier, supprimer un repère', () => {
@@ -72,7 +72,7 @@ test('ajouter, modifier, supprimer un repère', () => {
   assert.deepEqual(m.getData().markers[0], { id: 'm1', date: '2026-10-22', label: 'Mise en prod', color: 'red' });
   assert.equal(m.updateMarker('m1', { color: null }).marker.color, null);
   assert.equal(m.updateMarker('zz', { label: 'x' }).code, 'marker.unknown');
-  assert.equal(m.updateMarker('m1', { color: 'pink' }).code, 'marker.color');
+  assert.equal(m.updateMarker('m1', { color: 'fuchsia' }).code, 'marker.color');
   assert.equal(m.removeMarker('m1').ok, true);
   assert.deepEqual(m.markers.map((x) => x.id), ['m2']);
   assert.equal(m.removeMarker('m1').code, 'marker.unknown');

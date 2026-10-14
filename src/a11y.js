@@ -79,6 +79,10 @@ export function announceChange(model, detail, i18n = FR, slack = null) {
       return task ? t('a11y.reordered', { name: name(), level: t('a11y.level', { n: model.ancestorsOf(id).length + 1 }) }) : null;
     case 'constraint':
       return task ? t('a11y.constraintChanged', { name: name() }) : null;
+    case 'props':
+      return task ? t('a11y.propsChanged', { name: name() }) : null;
+    case 'owners':
+      return t('a11y.ownersChanged');
     case 'planning':
       return t('a11y.planningChanged');
     case 'align':

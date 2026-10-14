@@ -50,6 +50,14 @@
     body.dark .toolbar .search input { background: #1f2937; border-color: #374151; }
     body.theme-todoist .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
     body.theme-todoist .toolbar .search input:focus-visible { outline-color: #dc4c3e; }
+    #settings .owners { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    #settings .owners li, #settings .owners-add { display: flex; gap: 6px; align-items: center; }
+    #settings .owners input, #settings .owners-add input { flex: 1; height: 30px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 7px; font: 13px system-ui, sans-serif; background: inherit; color: inherit; }
+    #settings .owners button, #settings .owners-add button { height: 30px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 7px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings .owners button { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #settings .owners button svg { width: 15px; height: 15px; }
+    body.dark #settings .owners input, body.dark #settings .owners-add input, body.dark #settings .owners button, body.dark #settings .owners-add button { background: #1f2937; border-color: #374151; }
+    body.theme-todoist #settings .owners input, body.theme-todoist #settings .owners-add input, body.theme-todoist #settings .owners button, body.theme-todoist #settings .owners-add button { border: 0; background: #f5f5f5; }
     #settings .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 4px 0; }
     #settings .cols label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
@@ -210,11 +218,34 @@
             <option value="duration:desc" data-i18n="sort.duration">Durée (plus longue d'abord)</option>
             <option value="progress:asc" data-i18n="sort.progress">Avancement (moins avancé d'abord)</option>
             <option value="slack:asc" data-i18n="sort.slack">Marge (plus petite d'abord)</option>
+            <option value="owner:asc" data-i18n="sort.owner">Responsable (A → Z)</option>
+          </select></div>
+        <div class="row"><label for="view-barlabel" data-i18n="view.barLabel">Texte au bout des barres</label>
+          <select id="view-barlabel">
+            <option value="name" data-i18n="bl.name">Nom de la tâche</option>
+            <option value="wbs" data-i18n="col.wbs">N°</option>
+            <option value="start" data-i18n="col.start">Début</option>
+            <option value="end" data-i18n="col.end">Fin</option>
+            <option value="duration" data-i18n="col.duration">Durée</option>
+            <option value="progress" data-i18n="col.progress">Avancement</option>
+            <option value="slack" data-i18n="col.slack">Marge</option>
+            <option value="owner" data-i18n="col.owner">Responsable</option>
+            <option value="none" data-i18n="bl.none">Rien</option>
           </select></div>
         <div class="row"><label for="view-critical" data-i18n="view.criticalOnly">Tâches critiques seulement</label>
           <input id="view-critical" type="checkbox"></div>
         <p class="hint" data-i18n="view.hint">Un clic sur un en-tête de colonne trie aussi ; glissez le bord droit du tableau pour l'élargir.</p>
         <div class="row actions"><button type="button" id="view-reset" data-i18n="view.reset">Réinitialiser l'affichage</button></div>
+      </section>
+      <section role="group" aria-labelledby="sg-owners">
+        <h3 id="sg-owners" data-i18n="settings.owners">Responsables</h3>
+        <ul id="owners-list" class="owners"></ul>
+        <div class="row owners-add">
+          <label for="owner-new" class="visually-hidden" data-i18n="owners.newLabel">Nom du nouveau responsable</label>
+          <input id="owner-new" type="text" placeholder="Nom" data-i18n-placeholder="owners.placeholder" autocomplete="off">
+          <button type="button" id="owner-add" data-i18n="owners.add">Ajouter</button>
+        </div>
+        <p class="hint" data-i18n="owners.hint">Supprimer un responsable le retire des tâches concernées (annulable).</p>
       </section>
       <section role="group" aria-labelledby="sg-planning">
         <h3 id="sg-planning" data-i18n="settings.planning">Planification</h3>
@@ -269,6 +300,7 @@
       <tr><th data-i18n="help.dates.h">Dates</th><td data-i18n-html="help.dates"></td></tr>
       <tr><th data-i18n="help.structure.h">Structure</th><td data-i18n-html="help.structure"></td></tr>
       <tr><th data-i18n="help.progress.h">Progression</th><td data-i18n-html="help.progress"></td></tr>
+      <tr><th data-i18n="help.props.h">Propriétés</th><td data-i18n-html="help.props"></td></tr>
       <tr><th data-i18n="help.constraint.h">Contrainte</th><td data-i18n-html="help.constraint"></td></tr>
       <tr><th data-i18n="help.links.h">Liens</th><td data-i18n-html="help.links"></td></tr>
       <tr><th data-i18n="help.history.h">Historique</th><td data-i18n-html="help.history"></td></tr>
@@ -302,6 +334,10 @@
         'view.sort': 'Trier par', 'sort.none': 'Ordre du plan', 'sort.name': 'Nom (A → Z)', 'sort.start': 'Début (plus tôt d\'abord)', 'sort.end': 'Fin (plus tôt d\'abord)',
         'sort.duration': 'Durée (plus longue d\'abord)', 'sort.progress': 'Avancement (moins avancé d\'abord)', 'sort.slack': 'Marge (plus petite d\'abord)',
         'view.criticalOnly': 'Tâches critiques seulement',
+        'sort.owner': 'Responsable (A → Z)', 'view.barLabel': 'Texte au bout des barres', 'bl.name': 'Nom de la tâche', 'bl.none': 'Rien',
+        'settings.owners': 'Responsables', 'owners.newLabel': 'Nom du nouveau responsable', 'owners.placeholder': 'Nom', 'owners.add': 'Ajouter',
+        'owners.hint': 'Supprimer un responsable le retire des tâches concernées (annulable).', 'owners.remove': 'Supprimer {name}', 'owners.rename': 'Nom de {name}',
+        'help.props.h': 'Propriétés', 'help.props': `${K('E')} propriétés de la tâche : nom, dates, avancement, couleur, responsable, contrainte (ou crayon au survol de la ligne)`,
         'view.hint': 'Un clic sur un en-tête de colonne trie aussi ; glissez le bord droit du tableau pour l\'élargir.', 'view.reset': 'Réinitialiser l\'affichage',
         'plan.critical.hint': 'Tâches critiques en rouge ; le trait gris après une barre montre sa marge totale.',
         'group.actions': 'Actions', 'export.title': 'Exporter le diagramme', 'print.item': 'Imprimer…', 'fmt.json': 'JSON',
@@ -315,7 +351,7 @@
         'help.title': 'Raccourcis clavier',
         'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique', 'help.constraint.h': 'Contrainte',
-        'help.constraint': `${K('C')} contrainte de date de la tâche (ou drapeau au survol de la ligne)`,
+        'help.constraint': `${K('C')} contrainte de date de la tâche (aussi dans les propriétés)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Début')} ${K('Fin')} lignes · ${K('→')} déplier / premier enfant · ${K('←')} replier / parent`,
         'help.create': `${K('Entrée')} tâche en dessous · ${K('Maj')}+${K('Entrée')} sous-tâche · ${K('F2')} éditer le nom (${K('Tab')} : champ suivant)`,
         'help.delete': `${K('Suppr')} tâche sélectionnée (ou lien sélectionné)`,
@@ -343,6 +379,10 @@
         'view.sort': 'Sort by', 'sort.none': 'Plan order', 'sort.name': 'Name (A → Z)', 'sort.start': 'Start (earliest first)', 'sort.end': 'End (earliest first)',
         'sort.duration': 'Duration (longest first)', 'sort.progress': 'Progress (least first)', 'sort.slack': 'Slack (smallest first)',
         'view.criticalOnly': 'Critical tasks only',
+        'sort.owner': 'Owner (A → Z)', 'view.barLabel': 'Text at the end of bars', 'bl.name': 'Task name', 'bl.none': 'Nothing',
+        'settings.owners': 'Owners', 'owners.newLabel': 'New owner name', 'owners.placeholder': 'Name', 'owners.add': 'Add',
+        'owners.hint': 'Deleting an owner removes it from its tasks (undoable).', 'owners.remove': 'Delete {name}', 'owners.rename': 'Name of {name}',
+        'help.props.h': 'Properties', 'help.props': `${K('E')} task properties: name, dates, progress, color, owner, constraint (or the pencil shown when hovering the row)`,
         'view.hint': 'Clicking a column header also sorts; drag the table\'s right edge to widen it.', 'view.reset': 'Reset display',
         'plan.critical.hint': 'Critical tasks in red; the grey line after a bar shows its total slack.',
         'group.actions': 'Actions', 'export.title': 'Export the chart', 'print.item': 'Print…', 'fmt.json': 'JSON',
@@ -356,7 +396,7 @@
         'help.title': 'Keyboard shortcuts',
         'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History', 'help.constraint.h': 'Constraint',
-        'help.constraint': `${K('C')} date constraint of the task (or the flag shown when hovering the row)`,
+        'help.constraint': `${K('C')} date constraint of the task (also in the properties)`,
         'help.nav': `${K('↑')} ${K('↓')} ${K('Home')} ${K('End')} rows · ${K('→')} expand / first child · ${K('←')} collapse / parent`,
         'help.create': `${K('Enter')} task below · ${K('Shift')}+${K('Enter')} subtask · ${K('F2')} edit the name (${K('Tab')}: next field)`,
         'help.delete': `${K('Delete')} selected task (or selected link)`,
@@ -381,15 +421,15 @@
 
     const tasks = [
       { id: 'p1', name: 'Conception' },
-      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, className: 'p3', data: { owner: 'Alice' } },
-      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, className: 'p1', constraint: { type: 'SNET', date: '2026-10-12' }, data: { owner: 'Bruno' } },
+      { id: 't1', name: 'Cahier des charges', parentId: 'p1', start: '2026-10-05', end: '2026-10-09', progress: 1, color: 'blue', owner: 'alice' },
+      { id: 't2', name: 'Maquettes', parentId: 'p1', start: '2026-10-12', end: '2026-10-16', progress: 0.6, color: 'pink', owner: 'bruno', constraint: { type: 'SNET', date: '2026-10-12' } },
       { id: 'p2', name: 'Développement' },
-      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, className: 'p2', data: { owner: 'Chloé' } },
-      { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04', data: { owner: 'Chloé' } },
-      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, className: 'p1', data: { owner: 'David' } },
-      { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06', data: { owner: 'Alice' } },
+      { id: 't3', name: 'Noyau', parentId: 'p2', start: '2026-10-19', end: '2026-10-23', progress: 0.3, color: 'amber', owner: 'chloe' },
+      { id: 't4', name: 'Rendu SVG', parentId: 'p2', start: '2026-10-26', end: '2026-11-04', owner: 'chloe' },
+      { id: 't5', name: 'Interactions', parentId: 'p2', start: '2026-10-27', end: '2026-11-06', progress: 0.2, color: 'teal', owner: 'david' },
+      { id: 't6', name: 'Documentation', start: '2026-10-28', end: '2026-11-06', color: 'green', owner: 'alice' },
       { id: 'm1', name: 'Livraison v1', start: '2026-11-09', milestone: true },
-      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04', constraint: { type: 'FNLT', date: '2026-11-06' }, data: { owner: 'Bruno' } },
+      { id: 't7', name: 'Recette', start: '2026-11-02', end: '2026-11-04', constraint: { type: 'FNLT', date: '2026-11-06' }, owner: 'bruno' },
     ];
     const links = [
       { id: 'l1', from: 't1', to: 't2', type: 'FS' },
@@ -401,16 +441,17 @@
       { id: 'l7', from: 'm1', to: 't7', type: 'SF' },
     ];
 
+    const owners = [{ id: 'alice', name: 'Alice' }, { id: 'bruno', name: 'Bruno' }, { id: 'chloe', name: 'Chloé' }, { id: 'david', name: 'David' }];
     const markers = [{ id: 'copil', date: '2026-10-21', label: 'Copil', color: 'purple' }];
     const zones = [{ id: 'gel', start: '2026-11-02', end: '2026-11-06', label: 'Gel du code', color: 'blue' }];
-    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, markers, zones, scale: 'week', locale: initialLang });
+    const gantt = new Gantt(document.getElementById('chart'), { tasks, links, owners, markers, zones, scale: 'week', locale: initialLang });
     applyLang();
     document.getElementById('lang').value = lang;
     document.getElementById('lang').onchange = (e) => {
       lang = e.target.value;
       applyLang();
       gantt.setLocale(lang);
-      gantt.setColumns(columnsFor(ui.cols)); // libellé de la colonne personnalisée
+      renderOwners();
     };
     window.gantt = gantt;
 
@@ -472,7 +513,7 @@
     const VIEW_KEY = 'jsgantt-demo-view';
     const DEFAULT_COLS = ['start', 'end', 'duration'];
     const ui = { cols: DEFAULT_COLS, text: '', criticalOnly: false };
-    const columnsFor = (ids) => ids.map((id) => (id === 'owner' ? { id, label: T('col.owner'), width: 96, value: (t) => t.data?.owner ?? '' } : id));
+    const columnsFor = (ids) => ids;
     let critical = null; // ids critiques, recalculés après chaque modification
     gantt.on('change', () => { critical = null; });
     const filterFn = () => {
@@ -486,9 +527,9 @@
       };
     };
     function saveView() {
-      const { sort, tableWidth } = gantt.getView();
+      const { sort, tableWidth, barLabel } = gantt.getView();
       try {
-        localStorage.setItem(VIEW_KEY, JSON.stringify({ cols: ui.cols, sort, tableWidth, criticalOnly: ui.criticalOnly }));
+        localStorage.setItem(VIEW_KEY, JSON.stringify({ cols: ui.cols, sort, tableWidth, barLabel, criticalOnly: ui.criticalOnly }));
       } catch { /* stockage indisponible */ }
     }
     function syncViewForm() {
@@ -501,6 +542,7 @@
       }
       sel.value = value;
       $('view-critical').checked = ui.criticalOnly;
+      $('view-barlabel').value = gantt.getView().barLabel;
     }
     function applyUi(extra = {}) {
       gantt.setView({ columns: columnsFor(ui.cols), filter: filterFn(), ...extra });
@@ -510,7 +552,7 @@
       if (saved) {
         ui.cols = Array.isArray(saved.cols) ? saved.cols : DEFAULT_COLS;
         ui.criticalOnly = saved.criticalOnly === true;
-        applyUi({ sort: saved.sort ?? null, tableWidth: saved.tableWidth ?? null });
+        applyUi({ sort: saved.sort ?? null, tableWidth: saved.tableWidth ?? null, barLabel: saved.barLabel ?? 'name' });
       }
     } catch { /* vue enregistrée illisible : vue par défaut */ }
     gantt.on('view', () => { saveView(); syncViewForm(); });
@@ -525,6 +567,47 @@
       if (column && column !== 'name' && !ui.cols.includes(column)) ui.cols = [...ui.cols, column];
       gantt.setView({ columns: columnsFor(ui.cols), sort: column ? { column, dir } : null });
     };
+    $('view-barlabel').onchange = (e) => gantt.setView({ barLabel: e.target.value });
+
+    // Responsables : liste éditable (renommer, supprimer) et ajout ; resynchronisée après chaque modification.
+    const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>';
+    function renderOwners() {
+      const list = $('owners-list');
+      list.replaceChildren();
+      for (const o of gantt.model.owners) {
+        const li = document.createElement('li');
+        const input = Object.assign(document.createElement('input'), { type: 'text', value: o.name });
+        input.setAttribute('aria-label', T('owners.rename').replace('{name}', o.name));
+        input.onchange = () => {
+          if (!gantt.renameOwner(o.id, input.value).ok) input.value = o.name;
+        };
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.innerHTML = ICON_TRASH;
+        del.title = T('owners.remove').replace('{name}', o.name);
+        del.setAttribute('aria-label', del.title);
+        del.onclick = () => gantt.removeOwner(o.id);
+        li.append(input, del);
+        list.append(li);
+      }
+    }
+    renderOwners();
+    gantt.on('change', ({ type }) => {
+      if (['owners', 'undo', 'redo'].includes(type)) renderOwners();
+    });
+    const addOwner = () => {
+      const input = $('owner-new');
+      if (gantt.addOwner(input.value).ok) input.value = '';
+      input.focus();
+    };
+    $('owner-add').onclick = addOwner;
+    $('owner-new').onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addOwner();
+      }
+    };
+
     $('view-critical').onchange = (e) => {
       ui.criticalOnly = e.target.checked;
       applyUi();
@@ -670,6 +753,7 @@
       if (!file) return;
       try {
         gantt.setData(JSON.parse(await file.text()));
+        renderOwners();
         write(T('log.import'), { file: file.name });
       } catch (err) {
         write(T('log.error'), { message: err.message });

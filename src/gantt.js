@@ -9,6 +9,8 @@ import { fromDay } from './dates.js';
 import { createI18n } from './i18n.js';
 import { openConstraintEditor } from './constraint-editor.js';
 import { openAnnotationEditor } from './annotation-editor.js';
+import { openTaskEditor } from './task-editor.js';
+import { BAR_LABELS } from './view.js';
 import { normalizeColumns } from './view.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
@@ -47,14 +49,14 @@ export class Gantt {
     try {
       this.model = new GanttModel({
         tasks: options.tasks, links: options.links, calendar: options.calendar, planning: options.planning,
-        markers: options.markers, zones: options.zones,
+        markers: options.markers, zones: options.zones, owners: options.owners,
       });
     } catch (e) {
       throw this.#localizeError(e);
     }
     this.state = { selectedId: null, selectedLinkId: null };
     // Vue du tableau (ni dans les données, ni dans l'historique) : colonnes, tri, filtre, largeur.
-    this.view = { columns: DEFAULT_VIEW_COLUMNS, sort: null, filter: null, tableWidth: null };
+    this.view = { columns: DEFAULT_VIEW_COLUMNS, sort: null, filter: null, tableWidth: null, barLabel: 'name' };
     this.#applyView(options);
     this.refresh();
     this.detach = attachInteractions(this);
@@ -142,6 +144,7 @@ export class Gantt {
     this.layout = computeLayout(model, this.timescale, this.metrics, {
       ...this.state, today: todayDay(), showAdd: !this.readonly, showCritical: this.showCritical, i18n: this.i18n,
       columns: this.#columnSpecs, sort: this.view.sort, filter: this.view.filter, tableWidth: this.view.tableWidth,
+      barLabel: this.view.barLabel,
       frozenRows: dragId && this.layout ? this.layout.rowsInfo : undefined,
     });
     const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
@@ -178,6 +181,10 @@ export class Gantt {
       next.columns = v.columns ?? DEFAULT_VIEW_COLUMNS;
     }
     if ('sort' in v && v.sort !== undefined) next.sort = v.sort;
+    if (v.barLabel !== undefined) {
+      if (!BAR_LABELS.includes(v.barLabel)) throw new Error(`"barLabel" inconnu : "${v.barLabel}" (attendu : ${BAR_LABELS.join(', ')})`);
+      next.barLabel = v.barLabel;
+    }
     if ('filter' in v && v.filter !== undefined) next.filter = v.filter === '' ? null : v.filter;
     if ('tableWidth' in v && v.tableWidth !== undefined) {
       if (v.tableWidth !== null && !(Number.isFinite(v.tableWidth) && v.tableWidth > 0)) {
@@ -202,8 +209,8 @@ export class Gantt {
   }
 
   getView() {
-    const { columns, sort, filter, tableWidth } = this.view;
-    return { columns: [...columns], sort: sort ? { ...sort } : null, filter, tableWidth, scale: this.scale };
+    const { columns, sort, filter, tableWidth, barLabel } = this.view;
+    return { columns: [...columns], sort: sort ? { ...sort } : null, filter, tableWidth, barLabel, scale: this.scale };
   }
 
   // Applique une vue partielle : { columns, sort, filter, tableWidth, scale }.
@@ -277,6 +284,7 @@ export class Gantt {
     if (type !== 'collapse') this.#record(before);
     const extra = result?.link ? { linkId: result.link.id }
       : result?.task ? { id: result.task.id }
+        : result?.owner ? { ownerId: result.owner.id }
         : result?.marker ? { markerId: result.marker.id }
           : result?.zone ? { zoneId: result.zone.id } : {};
     this.#reconcileSelection();
@@ -342,6 +350,39 @@ export class Gantt {
 
   editConstraint(id) {
     openConstraintEditor(this, id);
+  }
+
+  // --- Propriétés d'une tâche et responsables ---
+
+  // { name, start, end, progress, color, owner, constraint } en une seule action annulable ; tout ou rien.
+  updateTaskProps(id, patch) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('props', { id }, (m) => m.updateTaskProps(id, patch));
+  }
+
+  editTask(id) {
+    openTaskEditor(this, id);
+  }
+
+  // Liste des responsables : [{ id?, name }] ; les tâches dont le responsable disparaît n'en ont plus. Annulable.
+  setOwners(list) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('owners', {}, (m) => m.setOwners(list));
+  }
+
+  addOwner(name) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('owners', { action: 'add' }, (m) => m.addOwner(name));
+  }
+
+  renameOwner(id, name) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('owners', { action: 'rename', ownerId: id }, (m) => m.renameOwner(id, name));
+  }
+
+  removeOwner(id) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('owners', { action: 'remove', ownerId: id }, (m) => m.removeOwner(id));
   }
 
   // --- Repères (jalons de projet) et zones colorées : annulables, refusés en lecture seule ---

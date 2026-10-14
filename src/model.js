@@ -3,6 +3,7 @@ import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
 import { createCalendar } from './calendar.js';
 import { computeSlack } from './slack.js';
+import { isColor, COLORS } from './colors.js';
 import { parseMarker, parseZone, freeId, markerToJSON, zoneToJSON } from './annotations.js';
 import { CONSTRAINT_TYPES, constraintSide, isViolated } from './constraints.js';
 
@@ -17,19 +18,21 @@ export class GanttModel {
   #planning = { direction: 'forward', end: null };
   #markers = [];
   #zones = [];
+  #owners = [];
 
   constructor(data = {}) {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) {
       throw new GanttError('data.notObject');
     }
     for (const key of Object.keys(data)) {
-      if (!['tasks', 'links', 'calendar', 'planning', 'markers', 'zones'].includes(key)) throw new GanttError('data.unknownKey', { key });
+      if (!['tasks', 'links', 'calendar', 'planning', 'markers', 'zones', 'owners'].includes(key)) throw new GanttError('data.unknownKey', { key });
     }
     const { tasks = [], links = [] } = data;
     if (!Array.isArray(tasks)) throw new GanttError('data.tasksNotArray');
     if (!Array.isArray(links)) throw new GanttError('data.linksNotArray');
     this.#calendar = createCalendar(data.calendar);
     this.#planning = this.#parsePlanning(data.planning);
+    this.#owners = this.#parseOwners(data.owners);
     this.#markers = this.#loadAnnotations('marker', data.markers, parseMarker);
     this.#zones = this.#loadAnnotations('zone', data.zones, parseZone);
     for (const raw of tasks) this.#loadTask(raw);
@@ -157,7 +160,117 @@ export class GanttModel {
       className: raw.className ?? '',
       constraint: this.#parseConstraint(id, raw.constraint),
       data: this.#parseData(id, raw.data),
+      color: this.#parseColor(id, raw.color),
+      owner: this.#parseOwnerRef(id, raw.owner),
     });
+  }
+
+  #parseColor(id, color) {
+    if (color === undefined || color === null || color === '') return null;
+    if (!isColor(color)) throw new GanttError('task.color', { id, color: String(color), list: COLORS.join(', ') });
+    return color;
+  }
+
+  #parseOwnerRef(id, owner) {
+    if (owner === undefined || owner === null || owner === '') return null;
+    if (!this.#owners.some((o) => o.id === owner)) throw new GanttError('task.owner', { id, owner: String(owner) });
+    return owner;
+  }
+
+  // Liste des responsables possibles : [{ id, name }] ; `id` facultatif (généré) quand `allowNewIds`.
+  #parseOwners(list = [], allowNewIds = false) {
+    if (!Array.isArray(list)) throw new GanttError('data.ownersNotArray');
+    const out = [];
+    const ids = new Set(list.map((o) => o?.id).filter((x) => typeof x === 'string'));
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new GanttError('owner.notObject');
+      let { id } = raw;
+      if (id === undefined && allowNewIds) {
+        id = freeId('o', ids);
+        ids.add(id);
+      }
+      if (typeof id !== 'string' || id === '') throw new GanttError('owner.idRequired');
+      if (out.some((o) => o.id === id)) throw new GanttError('owner.duplicateId', { id });
+      const name = String(raw.name ?? '').trim();
+      if (!name) throw new GanttError('owner.nameRequired', { id });
+      out.push({ id, name });
+    }
+    return out;
+  }
+
+  // --- Responsables ---
+
+  get owners() {
+    return this.#owners.map((o) => ({ ...o }));
+  }
+
+  ownerName(id) {
+    return this.#owners.find((o) => o.id === id)?.name ?? '';
+  }
+
+  // Remplace la liste ; les tâches dont le responsable disparaît n'en ont plus.
+  setOwners(list) {
+    let next;
+    try {
+      next = this.#parseOwners(list, true);
+    } catch (e) {
+      return failFrom(e);
+    }
+    this.#owners = next;
+    for (const t of this.#tasks.values()) if (t.owner && !next.some((o) => o.id === t.owner)) t.owner = null;
+    return { ok: true };
+  }
+
+  addOwner(name, id) {
+    const res = this.setOwners([...this.#owners, { ...(id === undefined ? {} : { id }), name }]);
+    return res.ok ? { ok: true, owner: { ...this.#owners[this.#owners.length - 1] } } : res;
+  }
+
+  renameOwner(id, name) {
+    if (!this.#owners.some((o) => o.id === id)) return fail('owner.unknown', { id });
+    return this.setOwners(this.#owners.map((o) => (o.id === id ? { id, name } : o)));
+  }
+
+  removeOwner(id) {
+    if (!this.#owners.some((o) => o.id === id)) return fail('owner.unknown', { id });
+    return this.setOwners(this.#owners.filter((o) => o.id !== id));
+  }
+
+  // Propriétés d'une tâche en une fois : { name, start, end, progress, color, owner, constraint }. Tout ou rien.
+  updateTaskProps(id, patch) {
+    const t = this.#require(id);
+    const group = this.isGroup(id);
+    let color;
+    let owner;
+    let progress;
+    let constraint;
+    try {
+      if ('color' in patch) color = this.#parseColor(id, patch.color);
+      if ('owner' in patch) owner = this.#parseOwnerRef(id, patch.owner);
+    } catch (e) {
+      return failFrom(e);
+    }
+    if ('progress' in patch && patch.progress !== t.progress) {
+      if (group) return fail('progress.group');
+      if (typeof patch.progress !== 'number' || !(patch.progress >= 0 && patch.progress <= 1)) return fail('task.progressRange', { id });
+      progress = Math.round(patch.progress * 100) / 100;
+    }
+    if ('constraint' in patch) {
+      const c = this.#constraintFromSpec(id, patch.constraint);
+      if (!c.ok) return c;
+      constraint = c.constraint;
+    }
+    const base = {};
+    for (const key of ['name', 'start', 'end', 'data']) if (key in patch) base[key] = patch[key];
+    if (Object.keys(base).length) {
+      const res = this.updateTask(id, base);
+      if (!res.ok) return res;
+    }
+    if (color !== undefined) t.color = color;
+    if (owner !== undefined) t.owner = owner;
+    if (progress !== undefined) t.progress = progress;
+    if (constraint !== undefined) t.constraint = constraint;
+    return { ok: true };
   }
 
   // Champ libre d'une tâche (objet JSON), copié pour rester indépendant des données d'origine.
@@ -358,20 +471,24 @@ export class GanttModel {
 
   setConstraint(id, spec) {
     const t = this.#require(id);
-    if (this.isGroup(id)) return fail('constraint.group');
-    let constraint = null;
-    if (spec !== null && spec !== undefined) {
-      if (typeof spec !== 'object' || Array.isArray(spec)) return fail('constraint.spec');
-      if (!CONSTRAINT_TYPES.includes(spec.type)) return fail('constraint.type', { type: spec.type });
-      try {
-        constraint = { type: spec.type, date: toDay(spec.date) };
-      } catch (e) {
-        return failFrom(e);
-      }
-    }
-    t.constraint = constraint;
+    const c = this.#constraintFromSpec(id, spec);
+    if (!c.ok) return c;
+    t.constraint = c.constraint;
     this.reschedule();
     return { ok: true };
+  }
+
+  // { type, date } ou null → { ok, constraint } (date en numéro de jour), ou un refus.
+  #constraintFromSpec(id, spec) {
+    if (spec === null || spec === undefined) return { ok: true, constraint: null };
+    if (this.isGroup(id)) return fail('constraint.group');
+    if (typeof spec !== 'object' || Array.isArray(spec)) return fail('constraint.spec');
+    if (!CONSTRAINT_TYPES.includes(spec.type)) return fail('constraint.type', { type: spec.type });
+    try {
+      return { ok: true, constraint: { type: spec.type, date: toDay(spec.date) } };
+    } catch (e) {
+      return failFrom(e);
+    }
   }
 
   // Une tâche qui devient un groupe ne porte plus de contrainte (ses enfants en portent).
@@ -746,6 +863,8 @@ export class GanttModel {
       className: '',
       constraint: null,
       data: null,
+      color: null,
+      owner: null,
     };
     order.splice(at, 0, id);
     this.#tasks.set(id, task);
@@ -821,6 +940,8 @@ export class GanttModel {
       if (t.className) o.className = t.className;
       if (t.constraint) o.constraint = { type: t.constraint.type, date: fromDay(t.constraint.date) };
       if (t.data) o.data = JSON.parse(JSON.stringify(t.data));
+      if (t.color) o.color = t.color;
+      if (t.owner) o.owner = t.owner;
       return o;
     });
     const calendar = this.#calendar.toJSON();
@@ -832,6 +953,7 @@ export class GanttModel {
       links: this.#links.map((x) => ({ ...x })),
       ...(calendar ? { calendar } : {}),
       ...(planning ? { planning } : {}),
+      ...(this.#owners.length ? { owners: this.#owners.map((o) => ({ ...o })) } : {}),
       ...(this.#markers.length ? { markers: this.#markers.map(markerToJSON) } : {}),
       ...(this.#zones.length ? { zones: this.#zones.map(zoneToJSON) } : {}),
     };

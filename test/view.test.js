@@ -20,8 +20,8 @@ const ids = (rows) => rows.map((r) => `${r.id}${r.depth ? `:${r.depth}` : ''}`).
 test('colonnes : « name » toujours en premier, ids intégrés et colonnes personnalisées', () => {
   assert.deepEqual(normalizeColumns().map((c) => c.id), DEFAULT_COLUMNS);
   assert.deepEqual(normalizeColumns(['end', 'name', 'progress', 'end']).map((c) => c.id), ['name', 'end', 'progress']);
-  const [, custom] = normalizeColumns([{ id: 'owner', label: 'Responsable', width: 90, value: (task) => task.data?.owner }]);
-  assert.deepEqual([custom.id, custom.label, custom.width, custom.builtin], ['owner', 'Responsable', 90, false]);
+  const [, custom] = normalizeColumns([{ id: 'team', label: 'Responsable', width: 90, value: (task) => task.data?.owner }]);
+  assert.deepEqual([custom.id, custom.label, custom.width, custom.builtin], ['team', 'Responsable', 90, false]);
   assert.throws(() => normalizeColumns(['nope']), /Colonne inconnue/);
   assert.throws(() => normalizeColumns([{ id: 'start', value: () => '' }]), /déjà utilisé/);
   assert.throws(() => normalizeColumns([{ id: 'x' }]), /Colonne personnalisée/);

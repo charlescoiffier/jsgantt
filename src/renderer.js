@@ -72,9 +72,11 @@ export function computeLayout(model, ts, metrics, state = {}) {
     remove: i18n.t('ui.remove'),
     move: i18n.t('ui.move'),
     constraint: i18n.t('ui.constraint'),
+    props: i18n.t('ui.props'),
     wbs: i18n.t('ui.wbs'),
     progress: i18n.t('ui.progress'),
     slack: i18n.t('ui.slack'),
+    owner: i18n.t('ui.owner'),
   };
   const { rowHeight, barHeight, dateColWidth, indent, linkGap, linkRadius } = metrics;
   // Bande des repères et zones sous l'échelle de temps, seulement s'il y en a.
@@ -100,6 +102,8 @@ export function computeLayout(model, ts, metrics, state = {}) {
         return metrics.progressColWidth ?? 88;
       case 'slack':
         return metrics.slackColWidth ?? 64;
+      case 'owner':
+        return metrics.ownerColWidth ?? 96;
       default:
         return c.width ?? 100;
     }
@@ -143,6 +147,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
   // Chemin critique et marges, seulement s'ils sont affichés.
   const slack = state.showCritical ? model.slack() : null;
   const criticalLinks = slack ? criticalLinkIds(model, slack) : new Set();
+  const barLabel = state.barLabel ?? 'name';
   const rows = [];
   const bars = [];
   const tableRows = [];
@@ -199,12 +204,13 @@ export function computeLayout(model, ts, metrics, state = {}) {
       selected,
       critical: sl?.critical ?? false,
       slack: slackLine,
+      color: t.color ?? null,
+      text: barLabel === 'none' ? '' : cellText({ id: barLabel }, id, ctx),
     });
     tableRows.push({
       id,
       index: i,
       label: describeTask(model, id, depth, i18n, sl),
-      constrained: !group && model.constraintOf(id) !== null,
       y: rowTop,
       depth,
       name: t.name,
@@ -343,6 +349,10 @@ function cellText(col, id, ctx) {
       return i18n.t('ui.progressValue', { p: Math.round(model.progressOf(id) * 100) });
     case 'slack':
       return i18n.t('ui.durationValue', { n: ctx.slack.get(id)?.total ?? 0 });
+    case 'owner':
+      return model.ownerName(t.owner);
+    case 'name':
+      return t.name;
     default:
       try {
         const v = col.value(t);
@@ -383,6 +393,7 @@ export function readMetrics(el) {
     wbsColWidth: num('--gantt-wbs-col-width', 48),
     progressColWidth: num('--gantt-progress-col-width', 88),
     slackColWidth: num('--gantt-slack-col-width', 64),
+    ownerColWidth: num('--gantt-owner-col-width', 96),
     indent: num('--gantt-indent', 16),
     linkGap: num('--gantt-link-gap', 10),
     linkRadius: num('--gantt-link-radius', 6),
@@ -565,7 +576,7 @@ function renderBars(layout, { readonly, dragId }) {
   const g = svgEl('g', { class: 'gantt-bars', 'aria-hidden': 'true' });
   for (const bar of layout.bars) {
     const group = svgEl('g', {
-      class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
+      class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.color && `gantt-task--color-${bar.color}`, bar.className, bar.selected && 'is-selected',
         bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging', bar.violated && 'is-violated',
         bar.critical && 'is-critical'),
       'data-id': bar.id,
@@ -598,9 +609,11 @@ function renderBars(layout, { readonly, dragId }) {
         class: 'gantt-progress', x: bar.x, y: bar.y, width: bar.progressWidth, height: bar.height, 'pointer-events': 'none',
       }));
     }
-    group.append(svgEl('text', {
-      class: 'gantt-label', x: bar.x + bar.width + 18, y: bar.y + bar.height / 2, dy: '0.35em',
-    }, bar.name));
+    if (bar.text) {
+      group.append(svgEl('text', {
+        class: 'gantt-label', x: bar.x + bar.width + 18, y: bar.y + bar.height / 2, dy: '0.35em',
+      }, bar.text));
+    }
     if (!readonly) {
       const cy = bar.y + bar.height / 2;
       const skip = { 'data-export': 'skip', 'data-id': bar.id };
@@ -632,14 +645,15 @@ function renderBars(layout, { readonly, dragId }) {
 const ACTION_ICONS = {
   grip: 'M5.5 4.5h.01M10.5 4.5h.01M5.5 8h.01M10.5 8h.01M5.5 11.5h.01M10.5 11.5h.01',
   add: 'M8 3.5v9M3.5 8h9',
-  constraint: 'M4.5 13.5v-10M4.5 3.5h7l-1.5 2.5 1.5 2.5h-7',
+  // Crayon : propriétés de la tâche
+  props: 'M10.5 3.5l2 2-6.5 6.5H4v-2zM9 5l2 2',
   delete: 'M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8M7 7v3.5M9 7v3.5',
 };
 
 function renderRowActions(row, table, rowHeight, uid, labels) {
   const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
-  const count = row.group ? 3 : 4;
+  const count = 4;
   const x0 = table.nameW - count * w - 4;
   // Fond de la grappe : dégradé qui reprend la couleur réelle de la ligne (--row-bg) et estompe le nom trop long.
   const fade = 28;
@@ -655,12 +669,12 @@ function renderRowActions(row, table, rowHeight, uid, labels) {
   const defs = [
     ['grip', labels.move, 'row-grip'],
     ['add', labels.addBelow, 'row-add'],
-    ...(row.group ? [] : [['constraint', labels.constraint, 'row-constraint']]),
+    ['props', labels.props, 'row-props'],
     ['delete', labels.remove, 'row-delete'],
   ];
   defs.forEach(([icon, label, role], i) => {
     const x = x0 + i * w;
-    const a = svgEl('g', { class: cls('gantt-action', `gantt-action--${icon}`, icon === 'constraint' && row.constrained && 'is-set') });
+    const a = svgEl('g', { class: cls('gantt-action', `gantt-action--${icon}`) });
     a.append(svgEl('path', {
       class: 'gantt-action-icon', d: ACTION_ICONS[icon],
       transform: `translate(${x + w / 2 - 8},${row.y + rowHeight / 2 - 8})`,

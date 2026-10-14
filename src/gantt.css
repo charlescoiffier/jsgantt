@@ -9,6 +9,7 @@
   --gantt-row-alt: #f9fafb;
   --gantt-weekend: #f3f4f6;
   --gantt-holiday: #fde8e8;
+  --gantt-constraint: #6b7280;
   --gantt-header-bg: #f3f4f6;
   --gantt-bar-bg: #93c5fd;
   --gantt-bar-stroke: #3b82f6;
@@ -27,8 +28,9 @@
   --gantt-row-height: 32px;
   --gantt-bar-height: 18px;
   --gantt-header-height: 48px;
-  --gantt-table-width: 360px;
+  --gantt-table-width: 420px;
   --gantt-date-col-width: 84px;
+  --gantt-duration-col-width: 56px;
   --gantt-indent: 16px;
   --gantt-link-gap: 10px;
   --gantt-link-radius: 6px;
@@ -159,6 +161,28 @@
 .gantt-drop-line.is-invalid, .gantt-drop-box.is-invalid { stroke: var(--gantt-invalid); }
 .gantt-table-row.is-reordering .gantt-table-rowbg { opacity: .5; }
 
+/* Contraintes de dates */
+.gantt-constraint-line { stroke: var(--gantt-constraint); stroke-width: 1.5; pointer-events: none; }
+.gantt-constraint-flag { fill: var(--gantt-constraint); pointer-events: none; }
+.gantt-constraint-hit { fill: transparent; cursor: pointer; }
+.gantt-constraint.is-violated .gantt-constraint-line { stroke: var(--gantt-invalid); }
+.gantt-constraint.is-violated .gantt-constraint-flag { fill: var(--gantt-invalid); }
+.gantt-task.is-violated .gantt-bar { stroke: var(--gantt-invalid); stroke-width: 2; }
+.gantt-action--constraint.is-set .gantt-action-icon { stroke: var(--gantt-selected); }
+.gantt-root.is-readonly .gantt-constraint-hit { cursor: default; }
+
+/* Fenêtre d'édition d'une contrainte */
+.gantt-popover { position: absolute; z-index: 5; width: 260px; box-sizing: border-box; padding: 12px 14px; background: var(--gantt-bg); color: var(--gantt-text); border: 1px solid var(--gantt-border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .2); font: inherit; }
+.gantt-popover h4 { margin: 0 0 8px; font-size: 13px; }
+.gantt-popover-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.gantt-popover-row[hidden] { display: none; }
+.gantt-popover label { font-size: 11px; color: var(--gantt-text-muted); }
+.gantt-popover select, .gantt-popover input { box-sizing: border-box; height: 30px; padding: 0 8px; border: 1px solid var(--gantt-border); border-radius: 7px; background: var(--gantt-bg); color: inherit; font: inherit; }
+.gantt-popover :focus-visible { outline: 2px solid var(--gantt-selected); outline-offset: 1px; }
+.gantt-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.gantt-popover button { height: 30px; padding: 0 12px; border: 1px solid var(--gantt-border); border-radius: 7px; background: var(--gantt-bg); color: inherit; font: inherit; cursor: pointer; }
+.gantt-popover-apply { background: var(--gantt-selected) !important; border-color: var(--gantt-selected) !important; color: #fff !important; }
+
 /* Surcouche (infobulle de glisser) */
 .gantt-overlay { pointer-events: none; }
 .gantt-tip-bg { fill: var(--gantt-text); opacity: 0.9; rx: 3px; ry: 3px; }
@@ -184,6 +208,7 @@
   --gantt-row-alt: #1f2937;
   --gantt-weekend: #1f2937;
   --gantt-holiday: #3a2530;
+  --gantt-constraint: #9ca3af;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;
   --gantt-bar-stroke: #60a5fa;

@@ -79,15 +79,6 @@ export function attachInteractions(g) {
         };
         root.setPointerCapture(e.pointerId);
         break;
-      case 'add-task':
-        if (!g.readonly) g.addTask();
-        break;
-      case 'row-add':
-        if (!g.readonly) g.addTask({ afterId: id });
-        break;
-      case 'row-delete':
-        if (!g.readonly) g.removeTask(id);
-        break;
       case 'row-grip':
         if (g.readonly) break;
         g.select(id, null);
@@ -120,6 +111,32 @@ export function attachInteractions(g) {
     } else {
       const p = (local(e).x - drag.bar.x) / drag.bar.width;
       drag.mutate = (m) => m.setProgress(id, p);
+    }
+  }
+
+  // Ces actions s'exécutent au clic : à l'appui, le navigateur déplace ensuite le focus et refermerait aussitôt
+  // le champ ou la fenêtre qu'elles ouvrent.
+  function onClick(e) {
+    if (g.readonly) return;
+    const hit = e.target.closest?.('[data-role]');
+    if (!hit) return;
+    const id = hit.dataset.id;
+    switch (hit.dataset.role) {
+      case 'add-task':
+        g.addTask();
+        break;
+      case 'row-add':
+        g.addTask({ afterId: id });
+        break;
+      case 'row-constraint':
+      case 'constraint':
+        g.editConstraint(id);
+        break;
+      case 'row-delete':
+        g.removeTask(id);
+        break;
+      default:
+        break;
     }
   }
 
@@ -406,6 +423,7 @@ export function attachInteractions(g) {
   g.openEditor = openEditor;
   g.isDragging = () => drag !== null;
   root.addEventListener('pointerdown', onPointerDown);
+  root.addEventListener('click', onClick);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
   root.addEventListener('pointercancel', onPointerCancel);
@@ -417,6 +435,7 @@ export function attachInteractions(g) {
     delete g.openEditor;
     delete g.isDragging;
     root.removeEventListener('pointerdown', onPointerDown);
+    root.removeEventListener('click', onClick);
     root.removeEventListener('pointermove', onPointerMove);
     root.removeEventListener('pointerup', onPointerUp);
     root.removeEventListener('pointercancel', onPointerCancel);

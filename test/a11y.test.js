@@ -70,3 +70,23 @@ test('libellés et annonces en anglais', async () => {
   assert.equal(announceChange(m, { type: 'undo' }, en), 'Undone');
   assert.equal(announceChange(m, { type: 'reorder', id: 'c1' }, en), 'Maquettes moved, level 2');
 });
+
+test('describeTask : contrainte et contrainte non respectée', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({
+    tasks: [
+      t('a', '2026-10-12', '2026-10-14', { name: 'Tâche', constraint: { type: 'SNET', date: '2026-10-12' } }),
+      t('b', '2026-10-12', '2026-10-14', { name: 'Retard', constraint: { type: 'FNLT', date: '2026-10-10' } }),
+    ],
+  });
+  assert.equal(describeTask(m, 'a', 0), 'Tâche, du 2026-10-12 au 2026-10-14, progression 0 %, niveau 1, contrainte : Début au plus tôt : 2026-10-12');
+  assert.equal(
+    describeTask(m, 'b', 0),
+    'Retard, du 2026-10-12 au 2026-10-14, progression 0 %, niveau 1, contrainte : Fin au plus tard : 2026-10-10, contrainte non respectée',
+  );
+  assert.equal(
+    describeTask(m, 'b', 0, createI18n('en')),
+    'Retard, from 2026-10-12 to 2026-10-14, progress 0%, level 1, constraint: Finish no later than: 2026-10-10, constraint not met',
+  );
+  assert.equal(announceChange(m, { type: 'constraint', id: 'a' }), 'Contrainte modifiée : Tâche');
+});

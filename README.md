@@ -30,6 +30,8 @@ Les ES modules exigent un serveur HTTP : `npm run demo` (serveur sans cache, por
 ## Données
 
 **Tâche** : `id` (obligatoire), `name`, `start` et `end` (`AAAA-MM-JJ`, fin incluse, obligatoires sauf pour un groupe), `progress` (0 à 1), `parentId`, `collapsed`, `milestone` (jalon : `end` facultatif), `className`.
+Le tableau affiche le nom, le début, la fin et la **durée en jours** (jours travaillés si un calendrier est défini, calendaires sinon ; 0 pour un jalon ; un groupe affiche la durée de son étendue). Cette colonne est en lecture seule ; `g.model.durationDays(id)` donne la même valeur.
+
 Une tâche qui a des enfants est un **groupe** : ses dates sont calculées à partir de ses enfants.
 
 **Lien** : `from`, `to`, `type` (`FS`, `SS`, `FF`, `SF`), `lag` (jours, négatif = avance), `id` facultatif.
@@ -59,6 +61,7 @@ g.setScale('month');
 g.setLocale('en');        // change la langue à chaud (voir « Localisation »)
 g.setCalendar({ workingDays: [1, 2, 3, 4, 5], holidays: [], lagUnit: 'working' }); // ou null : 7 jours sur 7 ; replanifie, annulable
 g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
+g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulable (voir « Contraintes de dates »)
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -87,6 +90,7 @@ Quand le diagramme a le focus :
 | `Alt`+`↑` `↓` | Monter / descendre parmi ses frères |
 | `Alt`+`Maj`+`↑` / `↓` | Sortir du parent / devenir enfant du frère précédent |
 | `+` / `-` | Progression de ±10 % |
+| `C` | Contrainte de date de la tâche sélectionnée |
 | `L` | Mode lien : `↑` `↓` choisissent la cible, `1` à `4` le type (FS, SS, FF, SF), `Entrée` valide en FS, `Échap` annule |
 | `Maj`+`L` | Parcourir les liens de la tâche sélectionnée, puis `Suppr` |
 | `Ctrl`/`Cmd`+`Z`, `Ctrl`/`Cmd`+`Maj`+`Z` ou `Ctrl`+`Y` | Annuler / rétablir |
@@ -96,7 +100,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -116,7 +120,7 @@ Tout le design passe par CSS. Variables principales (définies sur `.gantt-root`
 | `--gantt-group-bg`, `--gantt-milestone-bg` | Groupes, jalons |
 | `--gantt-link-color`, `--gantt-link-width`, `--gantt-link-selected` | Liens |
 | `--gantt-selected`, `--gantt-invalid` | États |
-| `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
+| `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
 | `--gantt-link-gap`, `--gantt-link-radius` | Tracé des liens |
 | `--gantt-col-width-day`, `--gantt-col-width-week`, `--gantt-col-width-month` | Largeur d'une colonne par échelle |
 | `--gantt-max-height` | Hauteur maximale du conteneur (défilement vertical) |
@@ -151,6 +155,25 @@ new Gantt(el, {
 - **Remarque :** pour les calendriers ouvrés ou ouvrables, `setCalendar` ramène les dates existantes sur des jours travaillés ; une tâche qui ne couvrait que des jours non travaillés se réduit à un jour.
 
 Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, début de semaine, jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis), unité du décalage des liens et lecture seule.
+
+## Contraintes de dates
+
+Une tâche simple peut porter **une** contrainte, `constraint: { type, date }` dans les données (importée et exportée avec le JSON) ou avec `g.setConstraint(id, { type, date } | null)` (annulable).
+
+| Type | Nom | Non respectée quand… |
+|---|---|---|
+| `SNET` | Début au plus tôt | le début est avant la date |
+| `FNET` | Fin au plus tôt | la fin est avant la date |
+| `SNLT` | Début au plus tard | le début est après la date |
+| `FNLT` | Fin au plus tard | la fin est après la date |
+| `MSO` | Doit commencer le | le début n'est pas la date |
+| `MFO` | Doit finir le | la fin n'est pas la date |
+
+- **Indicatives :** une contrainte ne déplace **jamais** une tâche et son drapeau ne bouge pas (déplacer, redimensionner, replanifier ou éditer les dates ne la modifie pas). Seule une indication graphique signale qu'elle n'est pas respectée.
+- **Affichage :** un drapeau marque la date de chaque contrainte sur la ligne de la tâche (côté gauche pour un début, droit pour une fin, infobulle avec le texte) ; il passe en rouge, avec la barre cerclée de rouge, quand la contrainte n'est pas respectée (`--gantt-constraint`, `--gantt-invalid`, classes `gantt-constraint`, `is-violated`). `g.model.violations()` donne la liste.
+- **Calendrier :** une date non travaillée est interprétée sur le jour travaillé suivant pour un début, précédent pour une fin.
+- **Groupes :** ils ne portent pas de contrainte (leurs enfants oui) ; une tâche qui devient un groupe perd la sienne.
+- **Édition :** icône drapeau au survol de la ligne, clic sur le drapeau, ou touche `C` : une petite fenêtre (type, date ; `Entrée` valide, `Échap` annule, « Retirer »). Les libellés sont traduits.
 
 ## Localisation
 

@@ -10,6 +10,7 @@
   --gantt-row-alt: #fafafa;
   --gantt-weekend: #fafafa;
   --gantt-holiday: #fdecea;
+  --gantt-constraint: #808080;
   --gantt-header-bg: #ffffff;
   --gantt-bar-bg: #e8e8e8;
   --gantt-progress-bg: #999999;
@@ -25,8 +26,9 @@
   --gantt-row-height: 34px;
   --gantt-bar-height: 18px;
   --gantt-header-height: 38px;
-  --gantt-table-width: 360px;
+  --gantt-table-width: 400px;
   --gantt-date-col-width: 80px;
+  --gantt-duration-col-width: 52px;
   --gantt-indent: 16px;
   --gantt-link-radius: 6px;
 }

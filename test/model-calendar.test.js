@@ -147,3 +147,21 @@ test('import : calendrier invalide', () => {
   assert.ok(e instanceof GanttError);
   assert.equal(e.code, 'calendar.workingDays');
 });
+
+test('durationDays : jours calendaires sans calendrier, jours travaillés avec', () => {
+  const tasks = [
+    t('a', '2026-10-05', '2026-10-09'),
+    t('one', '2026-10-05', '2026-10-05'),
+    t('ms', '2026-10-05', '2026-10-05', { milestone: true }),
+    { id: 'g', name: 'g' },
+    t('c1', '2026-10-12', '2026-10-13', { parentId: 'g' }),
+    t('c2', '2026-10-14', '2026-10-16', { parentId: 'g' }),
+    t('wk', '2026-10-09', '2026-10-12'), // vendredi -> lundi
+    t('long', '2026-10-05', '2026-10-13'),
+  ];
+  const plain = new GanttModel({ tasks });
+  assert.deepEqual(['a', 'one', 'ms', 'g', 'wk', 'long'].map((id) => plain.durationDays(id)), [5, 1, 0, 5, 4, 9]);
+  const work = new GanttModel({ tasks, calendar: cal() });
+  assert.deepEqual(['a', 'one', 'ms', 'g', 'wk', 'long'].map((id) => work.durationDays(id)), [5, 1, 0, 5, 2, 7]);
+  assert.throws(() => work.durationDays('zzz'), /inconnue/);
+});

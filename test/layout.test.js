@@ -211,3 +211,61 @@ test('libellés de la mise en page selon la langue', async () => {
   assert.match(en.table.rows[0].label, /^a, from 2026-10-05 to 2026-10-07, progress 0%, level 1$/);
   assert.match(fr.table.rows[0].label, /^a, du 2026-10-05 au 2026-10-07, progression 0 %, niveau 1$/);
 });
+
+test('marqueurs de contrainte : position, côté, état et infobulle', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({
+    tasks: [
+      t('a', '2026-10-12', '2026-10-14', { constraint: { type: 'SNET', date: '2026-10-12' } }), // respectée
+      t('b', '2026-10-05', '2026-10-07', { constraint: { type: 'FNLT', date: '2026-10-05' } }), // fin le 7 > 5 : violée
+      t('c', '2026-10-05', '2026-10-07'),
+    ],
+  });
+  const layout = computeLayout(m, ts(), metrics);
+  assert.equal(layout.constraints.length, 2);
+  const [ca, cb] = layout.constraints;
+  const a = barOf(layout, 'a');
+  assert.deepEqual([ca.id, ca.type, ca.side, ca.violated], ['a', 'SNET', 'start', false]);
+  assert.equal(ca.x, 300 + 11 * 20); // bord gauche du 12 octobre
+  assert.deepEqual([ca.y, ca.height], [a.y, a.height]);
+  assert.deepEqual([cb.id, cb.side, cb.violated], ['b', 'end', true]);
+  assert.equal(cb.x, 300 + 4 * 20 + 20); // bord droit du 5 octobre
+  assert.equal(ca.title, 'Début au plus tôt : 2026-10-12');
+  assert.equal(cb.title, 'Fin au plus tard : 2026-10-05 — non respectée');
+  assert.equal(barOf(layout, 'b').violated, true);
+  assert.equal(barOf(layout, 'a').violated, false);
+  const en = computeLayout(m, ts(), metrics, { i18n: createI18n('en') });
+  assert.equal(en.constraints[0].title, 'Start no earlier than: 2026-10-12');
+  assert.equal(en.constraints[1].title, 'Finish no later than: 2026-10-05 — not met');
+});
+
+test('marqueurs de contrainte : absents pour les lignes masquées par un repli', () => {
+  const m = new GanttModel({
+    tasks: [
+      { id: 'g', name: 'g', collapsed: true },
+      t('c1', '2026-10-05', '2026-10-07', { parentId: 'g', constraint: { type: 'SNET', date: '2026-10-05' } }),
+    ],
+  });
+  assert.deepEqual(computeLayout(m, ts(), metrics).constraints, []);
+});
+
+test('pas de contrainte : liste vide', () => {
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
+  assert.deepEqual(computeLayout(m, ts(), metrics).constraints, []);
+});
+
+test('colonne durée : valeurs, largeur de colonne, titres', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-09'), t('ms', '2026-10-12', '2026-10-12', { milestone: true })] });
+  const layout = computeLayout(m, ts(), metrics);
+  assert.deepEqual(layout.table.rows.map((r) => r.durationLabel), ['5 j', '0 j']);
+  assert.equal(layout.table.durationColWidth, 56); // valeur par défaut quand les métriques ne la fournissent pas
+  assert.equal(layout.table.nameW, 300 - 2 * 80 - 56);
+  assert.equal(layout.labels.duration, 'Durée');
+  const wide = computeLayout(m, ts(), { ...metrics, durationColWidth: 64 });
+  assert.equal(wide.table.durationColWidth, 64);
+  assert.equal(wide.table.nameW, 300 - 2 * 80 - 64);
+  const en = computeLayout(m, ts(), metrics, { i18n: createI18n('en') });
+  assert.deepEqual(en.table.rows.map((r) => r.durationLabel), ['5 d', '0 d']);
+  assert.equal(en.labels.duration, 'Duration');
+});

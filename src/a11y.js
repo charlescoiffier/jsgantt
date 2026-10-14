@@ -5,6 +5,12 @@ const FR = createI18n('fr');
 
 const nameOf = (model, id, i18n) => model.getTask(id)?.name || i18n.t('a11y.untitled');
 
+export function constraintText(model, id, i18n = FR) {
+  const c = model.constraintOf(id);
+  if (!c) return null;
+  return i18n.t('constraint.text', { type: i18n.t(`constraint.type.${c.type}`), date: fromDay(c.date) });
+}
+
 export function describeTask(model, id, depth, i18n = FR) {
   const { t } = i18n;
   const task = model.getTask(id);
@@ -23,6 +29,9 @@ export function describeTask(model, id, depth, i18n = FR) {
       state: t(task.collapsed ? 'a11y.collapsed' : 'a11y.expanded'),
     }));
   }
+  const constraint = constraintText(model, id, i18n);
+  if (constraint) parts.push(t('a11y.constraint', { text: constraint }));
+  if (model.violations().some((v) => v.id === id)) parts.push(t('a11y.constraintViolated'));
   const preds = model.links.filter((l) => l.to === id).map((l) => `${nameOf(model, l.from, i18n)} (${l.type})`);
   if (preds.length) parts.push(t('a11y.predecessors', { list: preds.join(', ') }));
   return parts.join(', ');
@@ -52,6 +61,8 @@ export function announceChange(model, detail, i18n = FR) {
       return t('a11y.linkRemoved');
     case 'reorder':
       return task ? t('a11y.reordered', { name: name(), level: t('a11y.level', { n: model.ancestorsOf(id).length + 1 }) }) : null;
+    case 'constraint':
+      return task ? t('a11y.constraintChanged', { name: name() }) : null;
     case 'calendar':
       return t('a11y.calendarChanged');
     case 'undo':

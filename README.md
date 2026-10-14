@@ -50,7 +50,7 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar });
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -62,6 +62,8 @@ g.setLocale('en');        // change la langue à chaud (voir « Localisation »)
 g.setCalendar({ workingDays: [1, 2, 3, 4, 5], holidays: [], lagUnit: 'working' }); // ou null : 7 jours sur 7 ; replanifie, annulable
 g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
 g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulable (voir « Contraintes de dates »)
+g.setPlanning({ direction: 'backward', end: '2026-11-30' }); // ou null : en avant ; annulable (voir « Planification »)
+g.alignEarliest(); g.alignLatest();  // cale les tâches reliées au plus tôt / au plus tard ; annulable
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -100,7 +102,7 @@ Toutes ces actions passent par le même chemin que la souris : annulables, avec 
 
 ## Événements
 
-`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
+`change` (détail : `type` parmi `move`, `resize`, `progress`, `link`, `unlink`, `rename`, `dates`, `add`, `remove`, `reorder`, `calendar`, `constraint`, `planning`, `align` (avec `mode`), `collapse`, `undo`, `redo`, plus `id` d'une tâche ou `linkId` d'un lien), `select`, `invalid` (`reason` traduit et `code` stable), `scale`, `history`, `locale` (`canUndo`, `canRedo`).
 L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
@@ -155,6 +157,16 @@ new Gantt(el, {
 - **Remarque :** pour les calendriers ouvrés ou ouvrables, `setCalendar` ramène les dates existantes sur des jours travaillés ; une tâche qui ne couvrait que des jours non travaillés se réduit à un jour.
 
 Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, début de semaine, jours travaillés (calendaires, ouvrables, ouvrés), jours fériés (aucun, France, États-Unis), unité du décalage des liens et lecture seule.
+
+## Planification : en avant, en arrière
+
+Les liens se résolvent dans un sens :
+- **En avant** (défaut) : une tâche qui passerait avant la fin de son prédécesseur est repoussée plus tard ; un prédécesseur n'est jamais avancé.
+- **En arrière** (`planning: { direction: 'backward', end: 'AAAA-MM-JJ' }`, aussi dans les données JSON) : le miroir, à partir d'une **fin imposée**. Une tâche qui finirait après cette date est ramenée plus tôt, avec ses prédécesseurs ; déplacer une tâche plus tôt avance aussi ses prédécesseurs, la déplacer plus tard ne repousse pas ses successeurs. Sans `end`, la fin actuelle du projet est retenue. Une ligne « Fin imposée » (`--gantt-planning-end`, classe `gantt-end-line`) marque la date.
+
+Les formules des liens FS/SS/FF/SF, le décalage (`lag`, jours travaillés ou calendaires), le calendrier et les groupes sont repris à l'envers. Un redimensionnement qui irait contre un lien est refusé dans les deux sens.
+
+`g.alignEarliest()` et `g.alignLatest()` (annulables) calent d'un coup les tâches **reliées** : au plus tôt (toutes partent du début actuel du projet puis sont repoussées par leurs liens) ou au plus tard (toutes finissent à la fin imposée, ou à la fin actuelle du projet, puis sont avancées par leurs liens). Les tâches sans lien ne bougent pas. Les contraintes de dates restent indicatives.
 
 ## Contraintes de dates
 

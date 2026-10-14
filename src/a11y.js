@@ -63,6 +63,10 @@ export function announceChange(model, detail, i18n = FR) {
       return task ? t('a11y.reordered', { name: name(), level: t('a11y.level', { n: model.ancestorsOf(id).length + 1 }) }) : null;
     case 'constraint':
       return task ? t('a11y.constraintChanged', { name: name() }) : null;
+    case 'planning':
+      return t('a11y.planningChanged');
+    case 'align':
+      return t(detail.mode === 'latest' ? 'a11y.alignedLatest' : 'a11y.alignedEarliest');
     case 'calendar':
       return t('a11y.calendarChanged');
     case 'undo':

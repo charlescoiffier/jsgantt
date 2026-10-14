@@ -12,23 +12,26 @@ export class GanttModel {
   #links = [];
   #linkSeq = 0;
   #calendar = createCalendar();
+  #planning = { direction: 'forward', end: null };
 
   constructor(data = {}) {
     if (data === null || typeof data !== 'object' || Array.isArray(data)) {
       throw new GanttError('data.notObject');
     }
     for (const key of Object.keys(data)) {
-      if (key !== 'tasks' && key !== 'links' && key !== 'calendar') throw new GanttError('data.unknownKey', { key });
+      if (!['tasks', 'links', 'calendar', 'planning'].includes(key)) throw new GanttError('data.unknownKey', { key });
     }
     const { tasks = [], links = [] } = data;
     if (!Array.isArray(tasks)) throw new GanttError('data.tasksNotArray');
     if (!Array.isArray(links)) throw new GanttError('data.linksNotArray');
     this.#calendar = createCalendar(data.calendar);
+    this.#planning = this.#parsePlanning(data.planning);
     for (const raw of tasks) this.#loadTask(raw);
     this.#buildHierarchy();
     this.#resolveDates();
     this.#snapLeaves();
     this.#aggregateGroups();
+    if (this.#planning.direction === 'backward' && this.#planning.end === null) this.#planning.end = this.#projectEnd();
     for (const raw of links) {
       const res = this.addLink(raw);
       if (!res.ok) throw new GanttError('link.invalid', { link: raw?.id ?? `${raw?.from}→${raw?.to}`, reason: res });
@@ -140,6 +143,90 @@ export class GanttModel {
     }
     this.#calendar = calendar;
     this.#snapLeaves();
+    this.reschedule();
+    return { ok: true };
+  }
+
+  #parsePlanning(spec) {
+    if (spec === undefined || spec === null) return { direction: 'forward', end: null };
+    if (typeof spec !== 'object' || Array.isArray(spec)) throw new GanttError('planning.spec');
+    const direction = spec.direction ?? 'forward';
+    if (direction !== 'forward' && direction !== 'backward') {
+      throw new GanttError('planning.direction', { direction: String(spec.direction) });
+    }
+    if (direction === 'forward') return { direction, end: null };
+    return { direction, end: spec.end === undefined || spec.end === null ? null : toDay(spec.end) };
+  }
+
+  #projectEnd() {
+    let end = null;
+    for (const t of this.#tasks.values()) if (!this.isGroup(t.id) && (end === null || t.end > end)) end = t.end;
+    return end;
+  }
+
+  // Sens de planification : { direction: 'forward' | 'backward', end } ; en arrière, `end` (jour) est la fin imposée.
+  get planning() {
+    return { ...this.#planning };
+  }
+
+  // spec : { direction: 'forward' | 'backward', end?: 'AAAA-MM-JJ' } ou null (en avant). Sans `end`, la fin actuelle du projet est retenue.
+  setPlanning(spec) {
+    let next;
+    try {
+      next = this.#parsePlanning(spec);
+    } catch (e) {
+      return failFrom(e);
+    }
+    if (next.direction === 'backward' && next.end === null) next.end = this.#projectEnd();
+    this.#planning = next;
+    this.reschedule();
+    return { ok: true };
+  }
+
+  // Tâches (et groupes) qui participent à au moins un lien, les groupes avant leurs descendants.
+  #participants() {
+    const ids = new Set();
+    for (const l of this.#links) {
+      ids.add(l.from);
+      ids.add(l.to);
+    }
+    return [...ids].sort((a, b) => this.ancestorsOf(a).length - this.ancestorsOf(b).length);
+  }
+
+  #shiftSubtree(id, k) {
+    if (k === 0) return;
+    for (const leafId of this.leafIdsUnder(id)) {
+      const leaf = this.#tasks.get(leafId);
+      leaf.start = this.#calendar.addWorkingDays(leaf.start, k);
+      leaf.end = this.#calendar.addWorkingDays(leaf.end, k);
+    }
+  }
+
+  // Cale chaque tâche reliée au plus tôt : toutes partent du début du projet puis sont repoussées par leurs liens.
+  // Les tâches sans lien ne bougent pas.
+  alignEarliest() {
+    const projectStart = Math.min(...[...this.#tasks.values()].filter((t) => !this.isGroup(t.id)).map((t) => t.start));
+    if (!Number.isFinite(projectStart)) return { ok: true };
+    for (const id of this.#participants()) {
+      this.#shiftSubtree(id, this.#calendar.workingDistance(this.#tasks.get(id).start, projectStart));
+      this.#aggregateGroups();
+    }
+    this.reschedule({ direction: 'forward' });
+    this.reschedule();
+    return { ok: true };
+  }
+
+  // Cale chaque tâche reliée au plus tard : toutes finissent à la fin imposée (ou à la fin du projet) puis sont
+  // avancées par leurs liens. Les tâches sans lien ne bougent pas.
+  alignLatest() {
+    const end = this.#planning.direction === 'backward' && this.#planning.end !== null ? this.#planning.end : this.#projectEnd();
+    if (end === null) return { ok: true };
+    const anchor = this.#calendar.prevWorking(end);
+    for (const id of this.#participants()) {
+      this.#shiftSubtree(id, this.#calendar.workingDistance(this.#tasks.get(id).end, anchor));
+      this.#aggregateGroups();
+    }
+    this.reschedule({ direction: 'backward', anchor });
     this.reschedule();
     return { ok: true };
   }
@@ -380,8 +467,8 @@ export class GanttModel {
     return true;
   }
 
-  reschedule() {
-    for (const [id, d] of computeDates(this)) {
+  reschedule(opts) {
+    for (const [id, d] of computeDates(this, opts)) {
       const t = this.#tasks.get(id);
       t.start = d.start;
       t.end = d.end;
@@ -618,7 +705,15 @@ export class GanttModel {
       return o;
     });
     const calendar = this.#calendar.toJSON();
-    return { tasks, links: this.#links.map((x) => ({ ...x })), ...(calendar ? { calendar } : {}) };
+    const planning = this.#planning.direction === 'backward'
+      ? { direction: 'backward', ...(this.#planning.end === null ? {} : { end: fromDay(this.#planning.end) }) }
+      : null;
+    return {
+      tasks,
+      links: this.#links.map((x) => ({ ...x })),
+      ...(calendar ? { calendar } : {}),
+      ...(planning ? { planning } : {}),
+    };
   }
 
   clone() {

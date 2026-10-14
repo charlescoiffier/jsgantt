@@ -40,7 +40,7 @@ export class Gantt {
     this.pdfLibs = options.pdfLibs ?? {};
     this.history = new History(options.historyLimit ?? 100);
     try {
-      this.model = new GanttModel({ tasks: options.tasks, links: options.links, calendar: options.calendar });
+      this.model = new GanttModel({ tasks: options.tasks, links: options.links, calendar: options.calendar, planning: options.planning });
     } catch (e) {
       throw this.#localizeError(e);
     }
@@ -91,6 +91,7 @@ export class Gantt {
       if (t.end > max) max = t.end;
     }
     if (min === Infinity) min = max = todayDay();
+    if (this.model.planning.end !== null) max = Math.max(max, this.model.planning.end);
     const originDay = min - 7;
     const endDay = Math.max(max + 14, originDay + 30);
     return new Timescale({
@@ -205,6 +206,23 @@ export class Gantt {
   setCalendar(spec) {
     if (this.readonly) return this.#denyReadonly();
     return this.commit('calendar', {}, (m) => m.setCalendar(spec));
+  }
+
+  // Sens de planification : { direction: 'forward' | 'backward', end?: 'AAAA-MM-JJ' } (en arrière : fin imposée) ou null. Annulable.
+  setPlanning(spec) {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('planning', {}, (m) => m.setPlanning(spec));
+  }
+
+  // Cale les tâches reliées au plus tôt / au plus tard (les tâches sans lien ne bougent pas). Annulable.
+  alignEarliest() {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('align', { mode: 'earliest' }, (m) => m.alignEarliest());
+  }
+
+  alignLatest() {
+    if (this.readonly) return this.#denyReadonly();
+    return this.commit('align', { mode: 'latest' }, (m) => m.alignLatest());
   }
 
   // Contrainte de date d'une tâche : { type: 'SNET' | 'SNLT' | 'FNET' | 'FNLT' | 'MSO' | 'MFO', date } ou null. Annulable.

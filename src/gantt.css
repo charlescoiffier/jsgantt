@@ -10,6 +10,7 @@
   --gantt-weekend: #f3f4f6;
   --gantt-holiday: #fde8e8;
   --gantt-constraint: #6b7280;
+  --gantt-planning-end: #7c3aed;
   --gantt-header-bg: #f3f4f6;
   --gantt-bar-bg: #93c5fd;
   --gantt-bar-stroke: #3b82f6;
@@ -77,6 +78,8 @@
 .gantt-weekend.gantt-holiday { fill: var(--gantt-holiday); opacity: 1; }
 .gantt-gridline { stroke: var(--gantt-border); stroke-width: 1; }
 .gantt-today { stroke: var(--gantt-today-color); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.gantt-end-line { stroke: var(--gantt-planning-end); stroke-width: 2; stroke-dasharray: 6 3; pointer-events: none; }
+.gantt-end-label { fill: var(--gantt-planning-end); font-size: 11px; font-weight: 600; pointer-events: none; }
 
 /* En-tête */
 .gantt-header-bg { fill: var(--gantt-header-bg); }
@@ -209,6 +212,7 @@
   --gantt-weekend: #1f2937;
   --gantt-holiday: #3a2530;
   --gantt-constraint: #9ca3af;
+  --gantt-planning-end: #a78bfa;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;
   --gantt-bar-stroke: #60a5fa;

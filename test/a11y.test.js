@@ -90,3 +90,12 @@ test('describeTask : contrainte et contrainte non respectée', async () => {
   );
   assert.equal(announceChange(m, { type: 'constraint', id: 'a' }), 'Contrainte modifiée : Tâche');
 });
+
+test('annonces de planification et de calage', async () => {
+  const { createI18n } = await import('../src/i18n.js');
+  const m = model();
+  assert.equal(announceChange(m, { type: 'planning' }), 'Planification modifiée');
+  assert.equal(announceChange(m, { type: 'align', mode: 'earliest' }), 'Planning calé au plus tôt');
+  assert.equal(announceChange(m, { type: 'align', mode: 'latest' }), 'Planning calé au plus tard');
+  assert.equal(announceChange(m, { type: 'align', mode: 'latest' }, createI18n('en')), 'Schedule aligned to the latest dates');
+});

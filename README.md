@@ -158,19 +158,19 @@ Dans la démo, le bouton **Paramètres** ouvre une modale : langue, thème, déb
 
 Une tâche simple peut porter **une** contrainte, `constraint: { type, date }` dans les données (importée et exportée avec le JSON) ou avec `g.setConstraint(id, { type, date } | null)` (annulable).
 
-| Type | Nom | Effet |
+| Type | Nom | Non respectée quand… |
 |---|---|---|
-| `SNET` | Début au plus tôt | La tâche est repoussée si elle commencerait avant la date |
-| `FNET` | Fin au plus tôt | La tâche est repoussée si elle finirait avant la date |
-| `SNLT` | Début au plus tard | Aucun décalage ; contrainte non respectée si le début dépasse la date |
-| `FNLT` | Fin au plus tard | Aucun décalage ; contrainte non respectée si la fin dépasse la date |
-| `MSO` | Doit commencer le | Calée sur la date ; non respectée si les liens ou un déplacement la repoussent plus tard |
-| `MFO` | Doit finir le | Idem pour la fin |
+| `SNET` | Début au plus tôt | le début est avant la date |
+| `FNET` | Fin au plus tôt | la fin est avant la date |
+| `SNLT` | Début au plus tard | le début est après la date |
+| `FNLT` | Fin au plus tard | la fin est après la date |
+| `MSO` | Doit commencer le | le début n'est pas la date |
+| `MFO` | Doit finir le | la fin n'est pas la date |
 
-- **Planification :** `SNET`, `FNET`, `MSO` et `MFO` agissent comme des bornes inférieures, avec les liens. Déplacer ou redimensionner une tâche à la main fait **suivre la date de la contrainte** : toujours pour `MSO`/`MFO`, et pour `SNET`/`FNET` seulement quand on passe en deçà de la borne (plus tard, la borne reste). Une échéance (`SNLT`/`FNLT`) ne suit pas : dépassée, elle est signalée. Seuls les liens bloquent un déplacement vers l'amont. Retirer une contrainte ne ramène pas la tâche en arrière.
-- **Calendrier :** une date non travaillée est ramenée au jour travaillé suivant pour un début, précédent pour une fin.
+- **Indicatives :** une contrainte ne déplace **jamais** une tâche et son drapeau ne bouge pas (déplacer, redimensionner, replanifier ou éditer les dates ne la modifie pas). Seule une indication graphique signale qu'elle n'est pas respectée.
+- **Affichage :** un drapeau marque la date de chaque contrainte sur la ligne de la tâche (côté gauche pour un début, droit pour une fin, infobulle avec le texte) ; il passe en rouge, avec la barre cerclée de rouge, quand la contrainte n'est pas respectée (`--gantt-constraint`, `--gantt-invalid`, classes `gantt-constraint`, `is-violated`). `g.model.violations()` donne la liste.
+- **Calendrier :** une date non travaillée est interprétée sur le jour travaillé suivant pour un début, précédent pour une fin.
 - **Groupes :** ils ne portent pas de contrainte (leurs enfants oui) ; une tâche qui devient un groupe perd la sienne.
-- **Affichage :** un drapeau marque la date de chaque contrainte sur la ligne de la tâche (côté gauche pour un début, droit pour une fin, infobulle avec le texte) ; rouge, avec la barre cerclée de rouge, quand elle n'est pas respectée (`--gantt-constraint`, `--gantt-invalid`, classes `gantt-constraint`, `is-violated`). `g.model.violations()` donne la liste.
 - **Édition :** icône drapeau au survol de la ligne, clic sur le drapeau, ou touche `C` : une petite fenêtre (type, date ; `Entrée` valide, `Échap` annule, « Retirer »). Les libellés sont traduits.
 
 ## Localisation

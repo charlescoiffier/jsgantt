@@ -7,9 +7,9 @@ const SIDE = { SNET: 'start', SNLT: 'start', MSO: 'start', FNET: 'end', FNLT: 'e
 
 export const constraintSide = (type) => SIDE[type];
 
-// Borne inférieure que la planification impose au début (ou à la fin) ; null si la contrainte ne pousse pas la tâche.
-// Une date non travaillée est ramenée sur un jour travaillé : vers l'avant pour un début, vers l'arrière pour une fin.
-export function pushTarget(calendar, type, date) {
+// Date effective d'une contrainte, utilisée pour la comparer aux dates de la tâche. Avec un calendrier, une date non
+// travaillée est ramenée sur un jour travaillé : vers l'avant pour un début, vers l'arrière pour une fin.
+export function effectiveDate(calendar, type, date) {
   switch (type) {
     case 'SNET':
     case 'MSO':
@@ -18,24 +18,26 @@ export function pushTarget(calendar, type, date) {
     case 'MFO':
       return calendar.prevWorking(date);
     default:
-      return null;
+      return date;
   }
 }
 
+// Les contraintes sont indicatives : elles ne déplacent jamais une tâche, elles sont seulement signalées quand elles ne sont pas respectées.
 export function isViolated(calendar, type, date, start, end) {
+  const target = effectiveDate(calendar, type, date);
   switch (type) {
-    case 'SNLT':
-      return start > date;
-    case 'FNLT':
-      return end > date;
     case 'SNET':
-      return start < pushTarget(calendar, type, date);
-    case 'FNET':
-      return end < pushTarget(calendar, type, date);
+      return start < target;
+    case 'SNLT':
+      return start > target;
     case 'MSO':
-      return start !== pushTarget(calendar, type, date);
+      return start !== target;
+    case 'FNET':
+      return end < target;
+    case 'FNLT':
+      return end > target;
     case 'MFO':
-      return end !== pushTarget(calendar, type, date);
+      return end !== target;
     default:
       return false;
   }

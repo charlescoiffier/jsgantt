@@ -2,7 +2,7 @@ import { toDay, fromDay } from './dates.js';
 import { computeDates } from './scheduler.js';
 import { GanttError, fail, failFrom } from './i18n.js';
 import { createCalendar } from './calendar.js';
-import { CONSTRAINT_TYPES, constraintSide, isViolated, pushTarget } from './constraints.js';
+import { CONSTRAINT_TYPES, constraintSide, isViolated } from './constraints.js';
 
 export const LINK_TYPES = ['FS', 'SS', 'FF', 'SF'];
 
@@ -177,19 +177,6 @@ export class GanttModel {
     t.constraint = constraint;
     this.reschedule();
     return { ok: true };
-  }
-
-  // Quand on déplace ou redimensionne une tâche à la main, la date de sa contrainte suit le bord déplacé :
-  // « doit commencer/finir le » toujours, « au plus tôt » seulement si on passe en deçà de la borne.
-  // Les échéances (« au plus tard ») ne bougent pas : dépassées, elles sont signalées.
-  #followConstraint(t, edges) {
-    const c = t.constraint;
-    if (!c || !edges[constraintSide(c.type)]) return;
-    const value = constraintSide(c.type) === 'start' ? t.start : t.end;
-    if (c.type === 'MSO' || c.type === 'MFO') c.date = value;
-    else if (c.type === 'SNET' || c.type === 'FNET') {
-      if (value < pushTarget(this.#calendar, c.type, c.date)) c.date = value;
-    }
   }
 
   // Une tâche qui devient un groupe ne porte plus de contrainte (ses enfants en portent).
@@ -415,7 +402,6 @@ export class GanttModel {
         const leaf = this.#tasks.get(leafId);
         leaf.start = cal.addWorkingDays(leaf.start, k);
         leaf.end = cal.addWorkingDays(leaf.end, k);
-        this.#followConstraint(leaf, { start: true, end: true });
       }
     }
     this.reschedule();
@@ -427,7 +413,7 @@ export class GanttModel {
     if (!Number.isInteger(day)) throw new TypeError('day doit être un entier');
     if (this.isGroup(id)) return fail('resize.group');
     if (t.milestone) return fail('resize.milestone');
-    const saved = { start: t.start, end: t.end, constraint: t.constraint ? { ...t.constraint } : null };
+    const saved = { start: t.start, end: t.end };
     if (edge === 'start') {
       const snapped = this.#calendar.nextWorking(day);
       if (snapped > t.end) return fail('resize.startAfterEnd');
@@ -437,12 +423,10 @@ export class GanttModel {
       if (snapped < t.start) return fail('resize.endBeforeStart');
       t.end = snapped;
     }
-    this.#followConstraint(t, { [edge]: true });
     const planned = computeDates(this).get(id);
     if (planned.start !== t.start || planned.end !== t.end) {
       t.start = saved.start;
       t.end = saved.end;
-      t.constraint = saved.constraint;
       return fail('resize.blocked');
     }
     this.reschedule();
@@ -479,18 +463,16 @@ export class GanttModel {
       start = this.#calendar.nextWorking(start);
       end = t.milestone ? start : Math.max(start, this.#calendar.prevWorking(end));
     }
-    const saved = { name: t.name, start: t.start, end: t.end, constraint: t.constraint ? { ...t.constraint } : null };
+    const saved = { name: t.name, start: t.start, end: t.end };
     if ('name' in next) t.name = next.name;
     if (!this.isGroup(id)) {
       t.start = start;
       t.end = end;
-      this.#followConstraint(t, { start: start !== saved.start, end: end !== saved.end });
       const planned = computeDates(this).get(id);
       if (planned.start !== t.start || planned.end !== t.end) {
         t.name = saved.name;
         t.start = saved.start;
         t.end = saved.end;
-        t.constraint = saved.constraint;
         return fail('update.blocked');
       }
     }

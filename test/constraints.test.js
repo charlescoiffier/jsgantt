@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CONSTRAINT_TYPES, pushTarget, isViolated, constraintSide } from '../src/constraints.js';
+import { CONSTRAINT_TYPES, effectiveDate, isViolated, constraintSide } from '../src/constraints.js';
 import { createCalendar, WEEK } from '../src/calendar.js';
 import { toDay, fromDay } from '../src/dates.js';
 
@@ -17,21 +17,18 @@ test('côté d\'une contrainte : début ou fin', () => {
   for (const t of ['FNET', 'FNLT', 'MFO']) assert.equal(constraintSide(t), 'end');
 });
 
-test('pushTarget : borne inférieure pour SNET, FNET, MSO, MFO ; rien pour SNLT et FNLT', () => {
-  assert.equal(pushTarget(all, 'SNET', d('2026-10-12')), d('2026-10-12'));
-  assert.equal(pushTarget(all, 'FNET', d('2026-10-12')), d('2026-10-12'));
-  assert.equal(pushTarget(all, 'MSO', d('2026-10-12')), d('2026-10-12'));
-  assert.equal(pushTarget(all, 'MFO', d('2026-10-12')), d('2026-10-12'));
-  assert.equal(pushTarget(all, 'SNLT', d('2026-10-12')), null);
-  assert.equal(pushTarget(all, 'FNLT', d('2026-10-12')), null);
+test('effectiveDate : sans calendrier, la date elle-même', () => {
+  for (const type of CONSTRAINT_TYPES) assert.equal(effectiveDate(all, type, d('2026-10-12')), d('2026-10-12'));
 });
 
-test('pushTarget avec un calendrier : début vers l\'avant, fin vers l\'arrière', () => {
+test('effectiveDate avec un calendrier : début vers l\'avant, fin vers l\'arrière, échéances inchangées', () => {
   // samedi 10 octobre 2026
-  assert.equal(fromDay(pushTarget(ouvres, 'SNET', d('2026-10-10'))), '2026-10-12'); // lundi
-  assert.equal(fromDay(pushTarget(ouvres, 'MSO', d('2026-10-10'))), '2026-10-12');
-  assert.equal(fromDay(pushTarget(ouvres, 'FNET', d('2026-10-10'))), '2026-10-09'); // vendredi
-  assert.equal(fromDay(pushTarget(ouvres, 'MFO', d('2026-10-10'))), '2026-10-09');
+  assert.equal(fromDay(effectiveDate(ouvres, 'SNET', d('2026-10-10'))), '2026-10-12'); // lundi
+  assert.equal(fromDay(effectiveDate(ouvres, 'MSO', d('2026-10-10'))), '2026-10-12');
+  assert.equal(fromDay(effectiveDate(ouvres, 'FNET', d('2026-10-10'))), '2026-10-09'); // vendredi
+  assert.equal(fromDay(effectiveDate(ouvres, 'MFO', d('2026-10-10'))), '2026-10-09');
+  assert.equal(fromDay(effectiveDate(ouvres, 'SNLT', d('2026-10-10'))), '2026-10-10');
+  assert.equal(fromDay(effectiveDate(ouvres, 'FNLT', d('2026-10-10'))), '2026-10-10');
 });
 
 test('isViolated : au plus tard dépassé', () => {

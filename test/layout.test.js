@@ -216,7 +216,7 @@ test('marqueurs de contrainte : position, côté, état et infobulle', async () 
   const { createI18n } = await import('../src/i18n.js');
   const m = new GanttModel({
     tasks: [
-      t('a', '2026-10-05', '2026-10-07', { constraint: { type: 'SNET', date: '2026-10-12' } }), // poussée au 12 : respectée
+      t('a', '2026-10-12', '2026-10-14', { constraint: { type: 'SNET', date: '2026-10-12' } }), // respectée
       t('b', '2026-10-05', '2026-10-07', { constraint: { type: 'FNLT', date: '2026-10-05' } }), // fin le 7 > 5 : violée
       t('c', '2026-10-05', '2026-10-07'),
     ],

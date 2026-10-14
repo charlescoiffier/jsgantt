@@ -794,18 +794,21 @@ function renderCorner(layout, uid, readonly) {
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
   const sortable = true;
   for (const col of table.columns) {
+    // Une case d'en-tête par colonne : son survol fait apparaître l'entonnoir.
+    const head = svgEl('g', { class: cls('gantt-col-head', col.filtered && 'is-filtered'), 'data-col': col.id });
+    g.append(head);
     const text = svgEl('text', {
       class: cls('gantt-header-text', 'gantt-header-text--table', col.sort && 'is-sorted'),
       x: col.x + 8, y: layout.headerHeight / 2, dy: '0.35em',
       'clip-path': `url(#${uid}-hclip-${col.id})`,
     }, col.label);
-    g.append(text);
+    head.append(text);
     if (col.sort) {
       // Flèche de tri : vers le haut en croissant, vers le bas en décroissant.
       const ax = col.x + col.width - 28;
       const ay = layout.headerHeight / 2;
       const pts = col.sort === 'asc' ? `${ax - 4},${ay + 2} ${ax + 4},${ay + 2} ${ax},${ay - 3}` : `${ax - 4},${ay - 2} ${ax + 4},${ay - 2} ${ax},${ay + 3}`;
-      g.append(svgEl('polygon', { class: 'gantt-sort-arrow', points: pts }));
+      head.append(svgEl('polygon', { class: 'gantt-sort-arrow', points: pts }));
     }
     if (sortable) {
       const hit = svgEl('rect', {
@@ -813,7 +816,7 @@ function renderCorner(layout, uid, readonly) {
         'data-role': 'sort', 'data-col': col.id, 'data-export': 'skip',
       });
       hit.append(svgEl('title', {}, col.sortTitle));
-      g.append(hit);
+      head.append(hit);
     }
     // Entonnoir : vrai bouton (Tab, Entrée, Espace), plein quand le filtre de la colonne est actif.
     const fx = col.x + col.width - 18;
@@ -826,7 +829,7 @@ function renderCorner(layout, uid, readonly) {
     btn.append(svgEl('rect', { class: 'gantt-filter-hit', x: fx - 3, y: fy - 3, width: 20, height: 20, rx: 4 }));
     btn.append(svgEl('path', { class: 'gantt-filter-icon', d: 'M2 2.5h10L8 7.5v4l-2 1v-5z', transform: `translate(${fx},${fy})` }));
     btn.append(svgEl('title', {}, col.filterTitle));
-    g.append(btn);
+    head.append(btn);
   }
   g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.headerHeight }));
   g.append(resizeHandle(table.width, layout.headerHeight));

@@ -49,10 +49,11 @@
   --gantt-header-height: 48px;
   --gantt-table-width: 420px;
   --gantt-date-col-width: 84px;
-  --gantt-duration-col-width: 56px;
+  --gantt-duration-col-width: 70px;
   --gantt-wbs-col-width: 48px;
-  --gantt-progress-col-width: 88px;
-  --gantt-slack-col-width: 64px;
+  --gantt-progress-col-width: 108px;
+  --gantt-slack-col-width: 74px;
+  --gantt-owner-col-width: 116px;
   --gantt-indent: 16px;
   --gantt-link-gap: 10px;
   --gantt-link-radius: 6px;
@@ -210,6 +211,15 @@
 .gantt-sort-arrow { fill: var(--gantt-selected); pointer-events: none; }
 .gantt-header-text--table.is-sorted { fill: var(--gantt-selected); }
 .gantt-table-resize { fill: transparent; cursor: col-resize; }
+.gantt-filter-btn { cursor: pointer; outline: none; }
+.gantt-filter-hit { fill: transparent; }
+.gantt-filter-icon { fill: none; stroke: var(--gantt-text-muted); stroke-width: 1.3; stroke-linejoin: round; opacity: 0; transition: opacity .12s; }
+/* Entonnoir visible au survol de sa case d'en-tête, au focus clavier, ou en permanence quand le filtre est actif */
+.gantt-col-head:hover .gantt-filter-icon, .gantt-filter-btn:focus-visible .gantt-filter-icon { opacity: 1; }
+@media (hover: none) { .gantt-filter-icon { opacity: .45; } } /* écrans tactiles : pas de survol */
+.gantt-filter-btn:hover .gantt-filter-hit { fill: var(--gantt-text); fill-opacity: .06; }
+.gantt-filter-btn:focus-visible .gantt-filter-hit { stroke: var(--gantt-selected); stroke-width: 2; }
+.gantt-filter-btn.is-active .gantt-filter-icon { fill: var(--gantt-selected); stroke: var(--gantt-selected); opacity: 1; }
 .gantt-table-resize:hover { fill: var(--gantt-selected); fill-opacity: .25; }
 
 /* Actions de ligne (ajouter, supprimer, déplacer) et ligne d'ajout */
@@ -253,6 +263,15 @@
 .gantt-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .gantt-popover button { height: 30px; padding: 0 12px; border: 1px solid var(--gantt-border); border-radius: 7px; background: var(--gantt-bg); color: inherit; font: inherit; cursor: pointer; }
 .gantt-popover--task { width: 300px; }
+.gantt-popover--confirm { width: 280px; }
+.gantt-popover-text { margin: 0 0 10px; font-size: 13px; line-height: 1.4; }
+.gantt-popover-confirm[hidden], .gantt-popover-actions[hidden] { display: none; }
+.gantt-popover-start { margin-right: auto; }
+.gantt-popover-remove { color: var(--gantt-invalid) !important; }
+.gantt-popover-danger { background: var(--gantt-invalid) !important; border-color: var(--gantt-invalid) !important; color: #fff !important; }
+.gantt-popover .gantt-popover-check { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 13px; color: var(--gantt-text) !important; }
+.gantt-popover-row input:disabled { opacity: .5; }
+.gantt-popover .gantt-popover-check input { width: 15px; height: 15px; margin: 0; padding: 0; accent-color: var(--gantt-selected); }
 .gantt-popover-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .gantt-swatches { display: grid; grid-template-columns: repeat(7, 22px); gap: 6px 8px; margin: 0 0 8px; padding: 0; border: 0; }
 .gantt-swatches legend { padding: 0; margin-bottom: 4px; font-size: 11px; color: var(--gantt-text-muted); }
@@ -325,7 +344,7 @@
   .gantt-scroll { display: none; }
   .gantt-print-only { display: block; }
   .gantt-print-only .gantt-svg { max-width: 100%; height: auto; }
-  .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit, .gantt-sort-hit, .gantt-table-resize { display: none; }
+  .gantt-handle, .gantt-anchor, .gantt-link-hit, .gantt-cell, .gantt-chevron-hit, .gantt-sort-hit, .gantt-table-resize, .gantt-filter-btn:not(.is-active) { display: none; }
 }
 
 /* Clavier et accessibilité */

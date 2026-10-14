@@ -10,7 +10,9 @@ import { createI18n } from './i18n.js';
 import { openConstraintEditor } from './constraint-editor.js';
 import { openAnnotationEditor } from './annotation-editor.js';
 import { openTaskEditor } from './task-editor.js';
-import { BAR_LABELS } from './view.js';
+import { openFilterEditor } from './filter-editor.js';
+import { openDeleteConfirm } from './confirm.js';
+import { BAR_LABELS, columnPredicate, viewContext } from './view.js';
 import { normalizeColumns } from './view.js';
 import { buildStandaloneSVG, serializeSVG, downloadBlob, exportPDFBlob } from './export.js';
 
@@ -56,7 +58,8 @@ export class Gantt {
     }
     this.state = { selectedId: null, selectedLinkId: null };
     // Vue du tableau (ni dans les données, ni dans l'historique) : colonnes, tri, filtre, largeur.
-    this.view = { columns: DEFAULT_VIEW_COLUMNS, sort: null, filter: null, tableWidth: null, barLabel: 'name' };
+    this.view = { columns: DEFAULT_VIEW_COLUMNS, sort: null, filter: null, filters: {}, tableWidth: null, barLabel: 'name' };
+    this.confirmDelete = options.confirmDelete !== false;
     this.#applyView(options);
     this.refresh();
     this.detach = attachInteractions(this);
@@ -145,6 +148,8 @@ export class Gantt {
       ...this.state, today: todayDay(), showAdd: !this.readonly, showCritical: this.showCritical, i18n: this.i18n,
       columns: this.#columnSpecs, sort: this.view.sort, filter: this.view.filter, tableWidth: this.view.tableWidth,
       barLabel: this.view.barLabel,
+      filters: this.view.filters,
+      weekStart: this.weekStart,
       frozenRows: dragId && this.layout ? this.layout.rowsInfo : undefined,
     });
     const parts = renderParts(this.layout, { uid: this.uid, readonly: this.readonly, dragId });
@@ -201,6 +206,19 @@ export class Gantt {
         next.sort = null;
       }
     }
+    if (v.filters !== undefined) {
+      if (v.filters !== null && (typeof v.filters !== 'object' || Array.isArray(v.filters))) {
+        throw new Error('"filters" doit être un objet { colonne: filtre } ou null');
+      }
+      next.filters = JSON.parse(JSON.stringify(v.filters ?? {}));
+    }
+    // Les filtres des colonnes retirées disparaissent ; les autres sont validés (période, dates).
+    const ctx = viewContext(this.model, this.i18n);
+    for (const key of Object.keys(next.filters)) {
+      const col = specs.find((c) => c.id === key);
+      if (!col || !next.filters[key]) delete next.filters[key];
+      else columnPredicate(col, next.filters[key], ctx, { today: todayDay(), weekStart: this.weekStart });
+    }
     if (next.filter !== null && typeof next.filter !== 'string' && typeof next.filter !== 'function') {
       throw new Error('"filter" doit être un texte, une fonction (task) => booléen ou null');
     }
@@ -209,8 +227,11 @@ export class Gantt {
   }
 
   getView() {
-    const { columns, sort, filter, tableWidth, barLabel } = this.view;
-    return { columns: [...columns], sort: sort ? { ...sort } : null, filter, tableWidth, barLabel, scale: this.scale };
+    const { columns, sort, filter, filters, tableWidth, barLabel } = this.view;
+    return {
+      columns: [...columns], sort: sort ? { ...sort } : null, filter, filters: JSON.parse(JSON.stringify(filters)),
+      tableWidth, barLabel, scale: this.scale,
+    };
   }
 
   // Applique une vue partielle : { columns, sort, filter, tableWidth, scale }.
@@ -234,6 +255,22 @@ export class Gantt {
   // Texte cherché dans les noms, fonction (task) => booléen, ou null.
   setFilter(filter) {
     this.setView({ filter });
+  }
+
+  // Filtre d'une colonne (voir « Filtres par colonne » dans le README) ou null pour l'effacer.
+  setColumnFilter(column, spec) {
+    const filters = { ...this.view.filters };
+    if (spec === null || spec === undefined) delete filters[column];
+    else filters[column] = spec;
+    this.setView({ filters });
+  }
+
+  clearFilters() {
+    this.setView({ filters: {} });
+  }
+
+  editColumnFilter(column) {
+    openFilterEditor(this, column);
   }
 
   setTableWidth(px) {
@@ -362,6 +399,14 @@ export class Gantt {
 
   editTask(id) {
     openTaskEditor(this, id);
+  }
+
+  // Demande confirmation avant de supprimer la tâche et ses descendants (petite fenêtre sous la ligne).
+  confirmRemoveTask(id) {
+    if (this.readonly) return this.#denyReadonly();
+    if (!this.confirmDelete) return this.removeTask(id);
+    openDeleteConfirm(this, id);
+    return { ok: true, pending: true };
   }
 
   // Liste des responsables : [{ id?, name }] ; les tâches dont le responsable disparaît n'en ont plus. Annulable.

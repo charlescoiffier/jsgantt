@@ -1,6 +1,7 @@
 import { COLORS } from './colors.js';
 import { CONSTRAINT_TYPES } from './constraints.js';
 import { fromDay } from './dates.js';
+import { deleteQuestion, removeAndSelectNeighbor } from './confirm.js';
 
 const el = (tag, attrs = {}, text) => {
   const e = document.createElement(tag);
@@ -95,10 +96,39 @@ export function openTaskEditor(g, id) {
   }
 
   const actions = el('div', { class: 'gantt-popover-actions' });
+  const remove = el('button', { type: 'button', class: 'gantt-popover-remove gantt-popover-start' }, g.t('task.delete'));
   const cancel = el('button', { type: 'button' }, g.t('task.cancel'));
   const apply = el('button', { type: 'submit', class: 'gantt-popover-apply' }, g.t('constraint.apply'));
-  actions.append(cancel, apply);
-  pop.append(actions);
+  actions.append(remove, cancel, apply);
+  // Confirmation de suppression : remplace le pied de la fenêtre.
+  const confirm = el('div', { class: 'gantt-popover-confirm', role: 'alert', hidden: true });
+  const question = el('p', { class: 'gantt-popover-text' });
+  const confirmActions = el('div', { class: 'gantt-popover-actions' });
+  const keep = el('button', { type: 'button' }, g.t('task.cancel'));
+  const doRemove = el('button', { type: 'button', class: 'gantt-popover-danger' }, g.t('task.delete'));
+  confirmActions.append(keep, doRemove);
+  confirm.append(question, confirmActions);
+  pop.append(actions, confirm);
+  const asking = (on) => {
+    actions.hidden = on;
+    confirm.hidden = !on;
+    if (on) {
+      question.textContent = deleteQuestion(g, id);
+      doRemove.focus();
+    } else remove.focus();
+  };
+  remove.addEventListener('click', () => {
+    if (g.confirmDelete) asking(true);
+    else {
+      close();
+      removeAndSelectNeighbor(g, id);
+    }
+  });
+  keep.addEventListener('click', () => asking(false));
+  doRemove.addEventListener('click', () => {
+    close();
+    removeAndSelectNeighbor(g, id);
+  });
 
   const close = () => {
     pop.remove();
@@ -125,7 +155,8 @@ export function openTaskEditor(g, id) {
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      close();
+      if (!confirm.hidden) asking(false);
+      else close();
     }
   });
   pop.addEventListener('focusout', (e) => {

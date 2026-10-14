@@ -88,6 +88,7 @@ export function attachKeyboard(g) {
 
   function onKeyDown(e) {
     if (g.isDragging?.()) return;
+    if (e.target.closest?.('[data-role="col-filter"]')) return; // entonnoir d'en-tête : géré par interactions
     if (linkMode) {
       onLinkMode(e);
       return;

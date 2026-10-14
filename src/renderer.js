@@ -4,7 +4,7 @@ import { createI18n } from './i18n.js';
 import { constraintSide } from './constraints.js';
 import { constraintText } from './a11y.js';
 import { criticalLinkIds } from './slack.js';
-import { normalizeColumns, viewRows, viewContext, EDITABLE_COLUMNS } from './view.js';
+import { normalizeColumns, viewRows, viewContext, columnPredicate, EDITABLE_COLUMNS } from './view.js';
 
 export const MIN_BAR_WIDTH = 4;
 export const MIN_NAME_WIDTH = 120;
@@ -112,6 +112,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
   const nameW = Math.max(MIN_NAME_WIDTH, (state.tableWidth ?? metrics.tableWidth) - others);
   const tableWidth = nameW + others;
   metrics = { ...metrics, tableWidth };
+  const filterOpts = { today: state.today, weekStart: state.weekStart ?? 1 };
   let cx = 0;
   const tableColumns = columns.map((c) => {
     const w = c.id === 'name' ? nameW : colWidth(c);
@@ -123,13 +124,17 @@ export function computeLayout(model, ts, metrics, state = {}) {
       editable: EDITABLE_COLUMNS.includes(c.id),
       sort: state.sort?.column === c.id ? state.sort.dir : null,
       sortTitle: i18n.t('ui.sortBy', { column: c.builtin ? labels[c.id] : c.label }),
+      filtered: columnPredicate(c, state.filters?.[c.id], ctx, filterOpts) !== null,
+      filterTitle: i18n.t('ui.filterBy', { column: c.builtin ? labels[c.id] : c.label }),
       spec: c,
     };
     cx += w;
     return col;
   });
   // `frozenRows` : ordre des lignes figé (pendant un glissement, pour qu'un tri ne fasse pas sauter les lignes).
-  const rowsInfo = state.frozenRows ?? viewRows(model, { sort: state.sort ?? null, filter: state.filter ?? null, columns, ctx });
+  const rowsInfo = state.frozenRows ?? viewRows(model, {
+    sort: state.sort ?? null, filter: state.filter ?? null, filters: state.filters ?? null, columns, ctx, ...filterOpts,
+  });
   const width = tableWidth + ts.totalWidth;
   const addRow = state.showAdd ? { y: headerHeight + rowsInfo.length * rowHeight, alt: rowsInfo.length % 2 === 1 } : null;
   const height = headerHeight + (rowsInfo.length + (addRow ? 1 : 0)) * rowHeight;
@@ -278,7 +283,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
 
   const barById = new Map(bars.map((b) => [b.id, b]));
   // Repli : un lien vers une tâche repliée part de son groupe visible. Filtre : un lien vers une tâche masquée est masqué.
-  const filtering = state.filter !== null && state.filter !== undefined && state.filter !== '';
+  const filtering = (state.filter !== null && state.filter !== undefined && state.filter !== '') || tableColumns.some((c) => c.filtered);
   const visibleBar = (id) => {
     if (filtering) return barById.get(id) ?? null;
     let cur = id;
@@ -428,7 +433,9 @@ function clipDefs(uid, layout, prefix = 'clip') {
   for (const col of layout.table.columns) {
     const clip = svgEl('clipPath', { id: `${uid}-${prefix}-${col.id}` });
     // Le nom s'arrête un peu avant la colonne suivante ; les autres cellules peuvent aller jusqu'au bord.
-    clip.append(svgEl('rect', { x: col.x, y: 0, width: Math.max(col.width - (col.id === 'name' ? 4 : 0), 0), height: layout.height }));
+    // En-tête : le titre s'arrête avant la flèche de tri et l'entonnoir.
+    const margin = prefix === 'hclip' ? (col.sort ? 34 : 22) : col.id === 'name' ? 4 : 0;
+    clip.append(svgEl('rect', { x: col.x, y: 0, width: Math.max(col.width - margin, 0), height: layout.height }));
     defs.append(clip);
   }
   return defs;
@@ -653,7 +660,7 @@ const ACTION_ICONS = {
 function renderRowActions(row, table, rowHeight, uid, labels) {
   const g = svgEl('g', { class: 'gantt-actions', 'data-export': 'skip', 'aria-hidden': 'true' });
   const w = 22;
-  const count = 4;
+  const count = 3;
   const x0 = table.nameW - count * w - 4;
   // Fond de la grappe : dégradé qui reprend la couleur réelle de la ligne (--row-bg) et estompe le nom trop long.
   const fade = 28;
@@ -670,7 +677,6 @@ function renderRowActions(row, table, rowHeight, uid, labels) {
     ['grip', labels.move, 'row-grip'],
     ['add', labels.addBelow, 'row-add'],
     ['props', labels.props, 'row-props'],
-    ['delete', labels.remove, 'row-delete'],
   ];
   defs.forEach(([icon, label, role], i) => {
     const x = x0 + i * w;
@@ -788,27 +794,42 @@ function renderCorner(layout, uid, readonly) {
   g.append(svgEl('rect', { class: 'gantt-header-bg', x: 0, y: 0, width: table.width, height: layout.headerHeight }));
   const sortable = true;
   for (const col of table.columns) {
+    // Une case d'en-tête par colonne : son survol fait apparaître l'entonnoir.
+    const head = svgEl('g', { class: cls('gantt-col-head', col.filtered && 'is-filtered'), 'data-col': col.id });
+    g.append(head);
     const text = svgEl('text', {
       class: cls('gantt-header-text', 'gantt-header-text--table', col.sort && 'is-sorted'),
       x: col.x + 8, y: layout.headerHeight / 2, dy: '0.35em',
       'clip-path': `url(#${uid}-hclip-${col.id})`,
     }, col.label);
-    g.append(text);
+    head.append(text);
     if (col.sort) {
       // Flèche de tri : vers le haut en croissant, vers le bas en décroissant.
-      const ax = col.x + col.width - 12;
+      const ax = col.x + col.width - 28;
       const ay = layout.headerHeight / 2;
       const pts = col.sort === 'asc' ? `${ax - 4},${ay + 2} ${ax + 4},${ay + 2} ${ax},${ay - 3}` : `${ax - 4},${ay - 2} ${ax + 4},${ay - 2} ${ax},${ay + 3}`;
-      g.append(svgEl('polygon', { class: 'gantt-sort-arrow', points: pts }));
+      head.append(svgEl('polygon', { class: 'gantt-sort-arrow', points: pts }));
     }
     if (sortable) {
       const hit = svgEl('rect', {
-        class: 'gantt-sort-hit', x: col.x, y: 0, width: col.width, height: layout.headerHeight,
+        class: 'gantt-sort-hit', x: col.x, y: 0, width: Math.max(col.width - 24, 0), height: layout.headerHeight,
         'data-role': 'sort', 'data-col': col.id, 'data-export': 'skip',
       });
       hit.append(svgEl('title', {}, col.sortTitle));
-      g.append(hit);
+      head.append(hit);
     }
+    // Entonnoir : vrai bouton (Tab, Entrée, Espace), plein quand le filtre de la colonne est actif.
+    const fx = col.x + col.width - 18;
+    const fy = layout.headerHeight / 2 - 7;
+    const btn = svgEl('g', {
+      class: cls('gantt-filter-btn', col.filtered && 'is-active'), role: 'button', tabindex: 0,
+      'aria-label': col.filterTitle, 'aria-pressed': String(col.filtered), 'data-role': 'col-filter', 'data-col': col.id,
+      'data-export': col.filtered ? undefined : 'skip',
+    });
+    btn.append(svgEl('rect', { class: 'gantt-filter-hit', x: fx - 3, y: fy - 3, width: 20, height: 20, rx: 4 }));
+    btn.append(svgEl('path', { class: 'gantt-filter-icon', d: 'M2 2.5h10L8 7.5v4l-2 1v-5z', transform: `translate(${fx},${fy})` }));
+    btn.append(svgEl('title', {}, col.filterTitle));
+    head.append(btn);
   }
   g.append(svgEl('line', { class: 'gantt-table-edge', x1: table.width, x2: table.width, y1: 0, y2: layout.headerHeight }));
   g.append(resizeHandle(table.width, layout.headerHeight));

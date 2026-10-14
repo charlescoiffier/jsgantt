@@ -137,7 +137,7 @@ export function attachA11y(g) {
     live.textContent = message + (flip ? '' : ' ');
   };
   // Tri et filtre : annoncés seulement quand ils changent (pas pour une colonne ou une largeur).
-  let last = { sort: JSON.stringify(g.view?.sort ?? null), filter: g.view?.filter ?? null };
+  let last = { sort: JSON.stringify(g.view?.sort ?? null), filter: g.view?.filter ?? null, filters: JSON.stringify(g.view?.filters ?? {}) };
   const onView = (v) => {
     const sort = JSON.stringify(v.sort);
     const parts = [];
@@ -147,8 +147,10 @@ export function attachA11y(g) {
         ? g.i18n.t('a11y.sorted', { column: col.label, dir: g.i18n.t(v.sort.dir === 'desc' ? 'a11y.sortDesc' : 'a11y.sortAsc') })
         : g.i18n.t('a11y.unsorted'));
     }
-    if (v.filter !== last.filter) parts.push(g.i18n.t('a11y.rows', { count: g.layout.rows.length }));
-    last = { sort, filter: v.filter };
+    const filters = JSON.stringify(v.filters ?? {});
+    if (filters !== last.filters) parts.push(g.i18n.t('a11y.filtersChanged', { count: Object.keys(v.filters ?? {}).length }));
+    if (v.filter !== last.filter || filters !== last.filters) parts.push(g.i18n.t('a11y.rows', { count: g.layout.rows.length }));
+    last = { sort, filter: v.filter, filters };
     if (parts.length) g.say(parts.join(', '));
   };
   const offs = [

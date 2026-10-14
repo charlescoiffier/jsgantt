@@ -51,11 +51,12 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 
 ```js
 const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning, showCritical,
-  columns, sort, filter, tableWidth, barLabel, markers, zones, owners });
+  columns, sort, filter, filters, tableWidth, barLabel, markers, zones, owners, confirmDelete });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
-g.removeTask(id);        // supprime la tâche, ses descendants et leurs liens
+g.removeTask(id);        // supprime la tâche, ses descendants et leurs liens (sans confirmation)
+g.confirmRemoveTask(id); // même chose après confirmation (option confirmDelete, vraie par défaut)
 g.moveTaskTo(id, { parentId, beforeId }); // réordonne ou change de parent
 // ces trois méthodes renvoient { ok, … } ; refusées en lecture seule ou si le résultat est invalide
 g.setScale('month');
@@ -66,7 +67,8 @@ g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulabl
 g.setPlanning({ direction: 'backward', end: '2026-11-30' }); // ou null : en avant ; annulable (voir « Planification »)
 g.alignEarliest(); g.alignLatest();  // cale les tâches reliées au plus tôt / au plus tard ; annulable
 g.setColumns(['wbs', 'start', 'end', 'progress']); g.setSort({ column: 'start', dir: 'asc' }); g.setFilter('recette');
-g.getView(); g.setView({ columns, sort, filter, tableWidth, scale }); // voir « Affichage »
+g.setColumnFilter('start', { period: 'thisWeek' }); g.clearFilters(); g.editColumnFilter('owner');
+g.getView(); g.setView({ columns, sort, filter, filters, tableWidth, barLabel, scale }); // voir « Affichage »
 g.updateTaskProps(id, { name, start, end, progress, color, owner, constraint }); g.editTask(id); // tout ou rien, annulable
 g.setOwners([{ id, name }]); g.addOwner(name); g.renameOwner(id, name); g.removeOwner(id);
 g.addMarker({ date, label, color }); g.updateMarker(id, patch); g.removeMarker(id); g.editMarker(id);
@@ -94,7 +96,7 @@ Quand le diagramme a le focus :
 | `→` / `←` | Déplier ou aller au premier enfant / replier ou aller au parent |
 | `Entrée` / `Maj`+`Entrée` | Ajouter une tâche en dessous / une sous-tâche (le nom s'édite aussitôt) |
 | `F2` | Éditer le nom (`Tab` : champ suivant, `Maj`+`Tab` : précédent) |
-| `Suppr` | Supprimer la tâche sélectionnée (ou le lien sélectionné), la ligne voisine est sélectionnée |
+| `Suppr` | Supprimer la tâche sélectionnée après confirmation (`Entrée` confirme, `Échap` annule ; ou le lien sélectionné, sans confirmation), la ligne voisine est sélectionnée |
 | `Alt`+`←` `→` / `Alt`+`PgPréc` `PgSuiv` | Déplacer d'un jour / d'une semaine |
 | `Maj`+`←` `→` | Raccourcir / allonger la fin d'un jour |
 | `Alt`+`Maj`+`←` `→` | Avancer / reculer le début d'un jour |
@@ -117,7 +119,7 @@ L'historique garde `historyLimit` étapes (100 par défaut) ; `setData` le vide.
 
 ## Interactions
 
-Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; ligne « + Ajouter une tâche » en bas du tableau, et au survol d'une ligne : poignée (glisser pour réordonner : trait entre deux lignes = même niveau, milieu d'une ligne = en faire un enfant), « + » (ajoute en dessous), crayon (propriétés de la tâche) et corbeille ; `Suppr` supprime la tâche sélectionnée (ou le lien sélectionné), annulable ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + `Z` annule, `Ctrl`/`Cmd` + `Maj` + `Z` ou `Ctrl` + `Y` rétablit (le repli d'un groupe n'est pas annulable) ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
+Glisser une barre (déplace), ses bords (redimensionne), le triangle sous la barre (progression) ; glisser une ancre ronde vers une autre barre (crée un lien, le type dépend des ancres) ; clic sur un lien puis `Suppr` ; chevron pour replier ; ligne « + Ajouter une tâche » en bas du tableau, et au survol d'une ligne : poignée (glisser pour réordonner : trait entre deux lignes = même niveau, milieu d'une ligne = en faire un enfant), « + » (ajoute en dessous), crayon (propriétés de la tâche, où se trouve aussi « Supprimer ») ; `Suppr` supprime la tâche sélectionnée après confirmation (ou le lien sélectionné), annulable ; double-clic sur une cellule du tableau pour éditer ; `Ctrl`/`Cmd` + `Z` annule, `Ctrl`/`Cmd` + `Maj` + `Z` ou `Ctrl` + `Y` rétablit (le repli d'un groupe n'est pas annulable) ; `Ctrl`/`Cmd` + molette pour zoomer ; `Échap` annule un glissement.
 
 ## Styles
 
@@ -188,6 +190,17 @@ La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON
 - **Largeur du tableau** (`tableWidth`, `g.setTableWidth(px)`, ou en glissant le bord droit du tableau, aussi en lecture seule) : le nom prend la place restante, au moins 120 px. Sans valeur, `--gantt-table-width`.
 - **Tri** (`sort: { column, dir: 'asc' | 'desc' }`, `g.setSort`, ou clic sur un en-tête : croissant, décroissant, ordre du plan) : entre tâches sœurs, la hiérarchie est conservée ; ne change que l'affichage. Pendant un tri, réordonner une tâche (souris ou clavier) est refusé (`reorder.sorted`). La colonne triée doit être affichée ; la retirer annule le tri. Pendant un glissement, l'ordre des lignes est figé.
 - **Filtre** (`filter`, `g.setFilter`) : texte cherché dans les noms (sans tenir compte de la casse ni des accents, `matchesText` dans `src/view.js`) ou fonction `(task) => booléen`. Les groupes parents des tâches retenues restent affichés, le repli est ignoré, les liens vers des tâches masquées sont masqués.
+- **Filtres par colonne** (`filters`, `g.setColumnFilter(colonne, spec | null)`, `g.clearFilters()`) : un entonnoir à droite de chaque en-tête (bouton accessible au clavier : `Tab`, `Entrée`) ouvre la fenêtre de filtre ; il est plein quand le filtre est actif. Les filtres s'additionnent entre eux et avec `filter` ; seuls ceux des colonnes affichées s'appliquent (retirer une colonne retire son filtre). Formats (JSON) :
+
+  | Colonne | Filtre |
+  |---|---|
+  | `start`, `end` | `{ period }` parmi `today`, `thisWeek`, `nextWeek`, `thisMonth`, `nextMonth`, `next30`, `past`, `future` (relatives à aujourd'hui ; la semaine suit `weekStart`) ; `{ before: 'AAAA-MM-JJ' }` ou `{ after }` (date exclue) ; `{ from, to }` (bornes incluses) |
+  | `duration` | `{ min, max }` (jours) |
+  | `progress` | `{ states: ['todo', 'doing', 'done'] }` |
+  | `slack` | `{ critical: true }` ou `{ max }` |
+  | `owner` | `{ in: [id, …, null] }` (`null` : sans responsable) |
+  | `wbs` | `{ prefix: '2' }` (2, 2.1, 2.2…) |
+  | `name`, colonnes personnalisées | `{ contains: 'texte' }` (casse et accents ignorés) |
 - Les changements de tri et de filtre sont annoncés (« Trié par Début, croissant », « 3 lignes affichées »). La navigation clavier suit les lignes affichées.
 
 ## Couleurs et responsables
@@ -195,7 +208,7 @@ La **vue** règle l'affichage du tableau. Elle n'entre ni dans les données JSON
 - **Palette commune** aux tâches, aux repères et aux zones : `red`, `orange`, `amber`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`. Chaque couleur est une variable `--gantt-color-<nom>` que chaque thème redéfinit (le sombre et Todoist ont la leur).
 - **Couleur d'une tâche** (`color`) : barre teintée, contour et progression dans la couleur (pilule teintée sans contour dans Todoist) ; groupe et jalon en couleur pleine. Classe `gantt-task--color-<nom>`. Le chemin critique, la sélection et les contraintes non respectées restent visibles par-dessus.
 - **Responsables** : liste `owners: [{ id, name }]` dans les données ; une tâche désigne le sien par `owner`. Responsable inconnu, `id` en double ou nom vide : refusés. Supprimer un responsable le retire de ses tâches. `g.setOwners`, `g.addOwner`, `g.renameOwner`, `g.removeOwner` sont annulables ; `g.model.owners`, `g.model.ownerName(id)`.
-- **Fenêtre « Tâche »** : crayon au survol de la ligne, touche `E` ou `g.editTask(id)`. Nom, début et fin (une date pour un jalon, aucune pour un groupe), avancement, couleur (12 pastilles et « Aucune », au clavier avec les flèches), responsable, contrainte. « Appliquer » enregistre tout en une seule action annulable, ou rien si une valeur est refusée (la fenêtre reste ouverte). Le drapeau des contraintes n'est plus parmi les icônes de ligne : la contrainte se règle dans cette fenêtre, avec `C` ou par un clic sur son drapeau dans la timeline.
+- **Fenêtre « Tâche »** : crayon au survol de la ligne, touche `E` ou `g.editTask(id)`. Nom, début et fin (une date pour un jalon, aucune pour un groupe), avancement, couleur (12 pastilles et « Aucune », au clavier avec les flèches), responsable, contrainte. « Appliquer » enregistre tout en une seule action annulable, ou rien si une valeur est refusée (la fenêtre reste ouverte). « Supprimer » demande confirmation dans la fenêtre (avec le nombre de sous-tâches emportées). Le drapeau des contraintes n'est plus parmi les icônes de ligne : la contrainte se règle dans cette fenêtre, avec `C` ou par un clic sur son drapeau dans la timeline.
 
 ## Repères et zones colorées
 

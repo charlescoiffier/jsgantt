@@ -1,0 +1,27 @@
+# Modèle de déploiement pour jsgantt.charlescoiffier.fr (généré par scripts/new-site.sh)
+# Copié automatiquement sur le VPS dans ~/srv/jsgantt/ à chaque déploiement.
+# Variables d'environnement de l'appli : fichier ~/srv/jsgantt/.env sur le VPS (optionnel, jamais commité).
+services:
+  app:
+    image: ghcr.io/charlescoiffier/jsgantt:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    networks: [web]
+    # Garde-fous : une appli qui s'emballe ne doit pas faire tomber les autres sites (VPS : 1 cœur, 3,8 Go)
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 200
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.jsgantt.rule=Host(`jsgantt.charlescoiffier.fr`)
+      - traefik.http.routers.jsgantt.tls.certresolver=le
+      - traefik.http.services.jsgantt.loadbalancer.server.port=8080
+
+networks:
+  web:
+    external: true

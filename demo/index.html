@@ -199,6 +199,9 @@
           <button type="button" id="align-late" data-i18n="plan.alignLatest">Caler au plus tard</button>
         </div>
         <p class="hint" data-i18n="plan.hint">Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.</p>
+        <div class="row"><label for="toggle-critical" data-i18n="plan.critical">Afficher le chemin critique</label>
+          <input id="toggle-critical" type="checkbox"></div>
+        <p class="hint" data-i18n="plan.critical.hint">Tâches critiques en rouge ; le trait gris après une barre montre sa marge totale.</p>
       </section>
       <section role="group" aria-labelledby="sg-editing">
         <h3 id="sg-editing" data-i18n="settings.editing">Édition</h3>
@@ -241,6 +244,8 @@
         'plan.direction': 'Sens de planification', 'plan.forward': 'En avant', 'plan.backward': 'En arrière', 'plan.end': 'Fin imposée',
         'plan.alignEarliest': 'Caler au plus tôt', 'plan.alignLatest': 'Caler au plus tard',
         'plan.hint': 'Le calage déplace les tâches reliées ; celles sans lien ne bougent pas.',
+        'plan.critical': 'Afficher le chemin critique',
+        'plan.critical.hint': 'Tâches critiques en rouge ; le trait gris après une barre montre sa marge totale.',
         'group.actions': 'Actions', 'export.title': 'Exporter le diagramme', 'print.item': 'Imprimer…', 'fmt.json': 'JSON',
         'group.file': 'Fichier', settings: 'Paramètres', 'settings.title': 'Paramètres', 'settings.appearance': 'Apparence', 'settings.planning': 'Planification',
         'settings.editing': 'Édition', 'settings.weekStart': 'Début de semaine', 'week.mon': 'Lundi', 'week.sun': 'Dimanche',
@@ -272,6 +277,8 @@
         'plan.direction': 'Planning direction', 'plan.forward': 'Forward', 'plan.backward': 'Backward', 'plan.end': 'Imposed end',
         'plan.alignEarliest': 'Align to earliest', 'plan.alignLatest': 'Align to latest',
         'plan.hint': 'Aligning moves linked tasks; unlinked tasks stay put.',
+        'plan.critical': 'Show the critical path',
+        'plan.critical.hint': 'Critical tasks in red; the grey line after a bar shows its total slack.',
         'group.actions': 'Actions', 'export.title': 'Export the chart', 'print.item': 'Print…', 'fmt.json': 'JSON',
         'group.file': 'File', settings: 'Settings', 'settings.title': 'Settings', 'settings.appearance': 'Appearance', 'settings.planning': 'Planning',
         'settings.editing': 'Editing', 'settings.weekStart': 'Week starts on', 'week.mon': 'Monday', 'week.sun': 'Sunday',
@@ -389,6 +396,7 @@
       gantt.render();
       syncHistory();
     };
+    $('toggle-critical').onchange = (e) => gantt.setShowCritical(e.target.checked);
     $('week-start').onchange = (e) => gantt.setWeekStart(Number(e.target.value));
 
     // Calendrier : jours travaillés, jours fériés et unité du décalage des liens

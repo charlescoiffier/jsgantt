@@ -11,6 +11,8 @@
   --gantt-weekend: #fafafa;
   --gantt-holiday: #fdecea;
   --gantt-constraint: #808080;
+  --gantt-critical: #dc4c3e;
+  --gantt-slack: #c4c4c4;
   --gantt-header-bg: #ffffff;
   --gantt-bar-bg: #e8e8e8;
   --gantt-progress-bg: #999999;
@@ -69,3 +71,9 @@
 /* Liens : arrondis, sans pointillés */
 .gantt-root[data-theme="todoist"] .gantt-link--ss .gantt-link-path,
 .gantt-root[data-theme="todoist"] .gantt-link--sf .gantt-link-path { stroke-dasharray: none; }
+
+/* Chemin critique : barre et pilule cerclées de rouge, progression rouge */
+.gantt-root[data-theme="todoist"] .gantt-task.is-critical .gantt-bar { stroke: var(--gantt-critical); stroke-width: 1.5; }
+.gantt-root[data-theme="todoist"] .gantt-task.is-critical.is-selected .gantt-bar { stroke-width: 2.5; }
+.gantt-root[data-theme="todoist"] .gantt-task--group.is-critical .gantt-group-pill { fill: #fbd9d6; }
+.gantt-root[data-theme="todoist"] .gantt-task--group.is-critical .gantt-group-pill-progress { fill: var(--gantt-critical); }

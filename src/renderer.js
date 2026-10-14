@@ -3,6 +3,7 @@ import { describeTask } from './a11y.js';
 import { createI18n } from './i18n.js';
 import { constraintSide } from './constraints.js';
 import { constraintText } from './a11y.js';
+import { criticalLinkIds } from './slack.js';
 
 export const MIN_BAR_WIDTH = 4;
 const DEFAULT_I18N = createI18n('fr');
@@ -87,6 +88,9 @@ export function computeLayout(model, ts, metrics, state = {}) {
       ? { x: tableWidth + ts.dayToX(state.today) + ts.pixelsPerDay / 2 }
       : null;
 
+  // Chemin critique et marges, seulement s'ils sont affichés.
+  const slack = state.showCritical ? model.slack() : null;
+  const criticalLinks = slack ? criticalLinkIds(model, slack) : new Set();
   const rows = [];
   const bars = [];
   const tableRows = [];
@@ -113,6 +117,16 @@ export function computeLayout(model, ts, metrics, state = {}) {
       w = Math.max(ts.barWidth(t.start, t.end), MIN_BAR_WIDTH);
     }
     const progress = model.progressOf(id);
+    const sl = slack?.get(id) ?? null;
+    // Trait de marge : de la fin de la barre à la fin au plus tard, pour une tâche non terminée qui a de la marge.
+    const slackLine = sl && sl.total > 0 && progress < 1
+      ? {
+          x1: kind === 'milestone' ? x + w : tableWidth + ts.dayToX(t.end) + ts.pixelsPerDay,
+          x2: tableWidth + ts.dayToX(sl.lateEnd) + ts.pixelsPerDay,
+          y: y + barHeight + 3,
+          title: i18n.t('slack.title', { count: sl.total, free: sl.free }),
+        }
+      : null;
     const startLabel = fromDay(t.start);
     const endLabel = fromDay(t.end);
     rows.push({ id, y: rowTop, alt, group });
@@ -131,11 +145,13 @@ export function computeLayout(model, ts, metrics, state = {}) {
       className: t.className,
       collapsed: group && t.collapsed,
       selected,
+      critical: sl?.critical ?? false,
+      slack: slackLine,
     });
     tableRows.push({
       id,
       index: i,
-      label: describeTask(model, id, depth, i18n),
+      label: describeTask(model, id, depth, i18n, sl),
       constrained: !group && model.constraintOf(id) !== null,
       y: rowTop,
       depth,
@@ -200,6 +216,7 @@ export function computeLayout(model, ts, metrics, state = {}) {
       points,
       d: roundedPath(points, linkRadius),
       selected: state.selectedLinkId === link.id,
+      critical: criticalLinks.has(link.id),
     });
   }
 
@@ -263,17 +280,19 @@ export function readMetrics(el) {
 
 function markerDefs(uid) {
   const defs = svgEl('defs');
-  const marker = svgEl('marker', {
-    id: `${uid}-arrow`,
-    markerWidth: 8,
-    markerHeight: 8,
-    refX: 7,
-    refY: 4,
-    orient: 'auto',
-    markerUnits: 'userSpaceOnUse',
-  });
-  marker.append(svgEl('path', { class: 'gantt-arrow', d: 'M0,0 L8,4 L0,8 z' }));
-  defs.append(marker);
+  for (const [suffix, cls] of [['arrow', 'gantt-arrow'], ['arrow-critical', 'gantt-arrow gantt-arrow--critical']]) {
+    const marker = svgEl('marker', {
+      id: `${uid}-${suffix}`,
+      markerWidth: 8,
+      markerHeight: 8,
+      refX: 7,
+      refY: 4,
+      orient: 'auto',
+      markerUnits: 'userSpaceOnUse',
+    });
+    marker.append(svgEl('path', { class: cls, d: 'M0,0 L8,4 L0,8 z' }));
+    defs.append(marker);
+  }
   return defs;
 }
 
@@ -352,14 +371,14 @@ function renderLinks(layout, uid) {
   const g = svgEl('g', { class: 'gantt-links', 'aria-hidden': 'true' });
   for (const link of layout.links) {
     const group = svgEl('g', {
-      class: cls('gantt-link', `gantt-link--${link.type.toLowerCase()}`, link.selected && 'is-selected'),
+      class: cls('gantt-link', `gantt-link--${link.type.toLowerCase()}`, link.selected && 'is-selected', link.critical && 'gantt-link--critical'),
       'data-link-id': link.id,
     });
     group.append(svgEl('path', {
       class: 'gantt-link-hit', d: link.d, 'data-role': 'link', 'data-link-id': link.id, 'data-export': 'skip',
     }));
     group.append(svgEl('path', {
-      class: 'gantt-link-path', d: link.d, 'marker-end': `url(#${uid}-arrow)`,
+      class: 'gantt-link-path', d: link.d, 'marker-end': `url(#${uid}-${link.critical ? 'arrow-critical' : 'arrow'})`,
     }));
     g.append(group);
   }
@@ -387,12 +406,21 @@ function renderBars(layout, { readonly, dragId }) {
   for (const bar of layout.bars) {
     const group = svgEl('g', {
       class: cls('gantt-task', `gantt-task--${bar.kind}`, bar.className, bar.selected && 'is-selected',
-        bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging', bar.violated && 'is-violated'),
+        bar.collapsed && 'is-collapsed', dragId === bar.id && 'is-dragging', bar.violated && 'is-violated',
+        bar.critical && 'is-critical'),
       'data-id': bar.id,
       'data-selectable': true,
       role: 'img',
       'aria-label': bar.label,
     });
+    if (bar.slack) {
+      const { x1, x2, y, title } = bar.slack;
+      const line = svgEl('g', { class: 'gantt-slack', 'pointer-events': 'none' });
+      line.append(svgEl('line', { class: 'gantt-slack-line', x1, x2, y1: y, y2: y }));
+      line.append(svgEl('line', { class: 'gantt-slack-tick', x1: x2, x2, y1: y - 3, y2: y + 1 }));
+      line.append(svgEl('title', {}, title));
+      group.append(line);
+    }
     group.append(barShape(bar));
     if (bar.kind === 'group') {
       // Forme alternative (pilule fine), masquée par défaut : un thème peut l'afficher à la place de l'accolade.

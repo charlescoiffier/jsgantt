@@ -279,3 +279,29 @@ test('ligne « fin imposée » : seulement en planification en arrière', async 
   const fwd = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
   assert.equal(computeLayout(fwd, ts(), metrics).planningEnd, null);
 });
+
+test('chemin critique : barres et liens critiques, traits de marge, seulement si demandé', () => {
+  const m = new GanttModel({
+    tasks: [t('a', '2026-10-05', '2026-10-06'), t('b', '2026-10-07', '2026-10-09'), t('c', '2026-10-05', '2026-10-05'), t('d', '2026-10-05', '2026-10-05', { progress: 1 })],
+    links: [{ id: 'ab', from: 'a', to: 'b', type: 'FS' }],
+  });
+  const off = computeLayout(m, ts(), metrics);
+  assert.equal(barOf(off, 'a').critical, false);
+  assert.equal(barOf(off, 'c').slack, null);
+  assert.equal(off.links[0].critical, false);
+
+  const on = computeLayout(m, ts(), metrics, { showCritical: true });
+  assert.equal(barOf(on, 'a').critical, true);
+  assert.equal(barOf(on, 'b').critical, true);
+  assert.equal(barOf(on, 'c').critical, false);
+  assert.equal(on.links[0].critical, true);
+  const c = barOf(on, 'c');
+  // du bord droit du 5 octobre au bord droit du 9 octobre (fin au plus tard)
+  assert.deepEqual([c.slack.x1, c.slack.x2], [300 + 5 * 20, 300 + 9 * 20]);
+  assert.equal(c.slack.y, c.y + c.height + 3);
+  assert.equal(c.slack.title, 'Marge totale : 4 jours (libre : 4 j)');
+  assert.equal(barOf(on, 'a').slack, null); // critique : pas de marge
+  assert.equal(barOf(on, 'd').slack, null); // terminée : pas de trait
+  assert.match(on.table.rows[0].label, /sur le chemin critique$/);
+  assert.match(on.table.rows[2].label, /marge totale 4 jours, marge libre 4 j$/);
+});

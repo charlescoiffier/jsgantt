@@ -11,6 +11,8 @@
   --gantt-holiday: #fde8e8;
   --gantt-constraint: #6b7280;
   --gantt-planning-end: #7c3aed;
+  --gantt-critical: #b91c1c;
+  --gantt-slack: #9ca3af;
   --gantt-header-bg: #f3f4f6;
   --gantt-bar-bg: #93c5fd;
   --gantt-bar-stroke: #3b82f6;
@@ -125,6 +127,14 @@
 .gantt-link.is-selected .gantt-link-path { stroke: var(--gantt-link-selected); stroke-width: 2.5; }
 .gantt-link--ss .gantt-link-path,
 .gantt-link--sf .gantt-link-path { stroke-dasharray: 5 3; }
+/* Chemin critique et marges (option showCritical) */
+.gantt-task.is-critical .gantt-bar { stroke: var(--gantt-critical); stroke-width: 2; }
+.gantt-task.is-critical .gantt-progress { fill: var(--gantt-critical); }
+.gantt-task--group.is-critical .gantt-bar, .gantt-task--milestone.is-critical .gantt-bar { fill: var(--gantt-critical); }
+.gantt-link--critical .gantt-link-path { stroke: var(--gantt-critical); stroke-width: 2; }
+.gantt-arrow--critical { fill: var(--gantt-critical); }
+.gantt-task.is-critical.is-selected .gantt-bar { stroke: var(--gantt-selected); }
+.gantt-slack-line, .gantt-slack-tick { stroke: var(--gantt-slack); stroke-width: 1.5; }
 .gantt-link-draft { stroke: var(--gantt-selected); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
 
 /* Tableau (collant à gauche) */
@@ -213,6 +223,8 @@
   --gantt-holiday: #3a2530;
   --gantt-constraint: #9ca3af;
   --gantt-planning-end: #a78bfa;
+  --gantt-critical: #f87171;
+  --gantt-slack: #6b7280;
   --gantt-header-bg: #1f2937;
   --gantt-bar-bg: #1e40af;
   --gantt-bar-stroke: #60a5fa;
@@ -244,5 +256,7 @@
   .gantt-link-path { stroke: CanvasText; }
   .gantt-arrow { fill: CanvasText; }
   .gantt-today { stroke: Highlight; }
+  .gantt-task.is-critical .gantt-bar, .gantt-link--critical .gantt-link-path { stroke: CanvasText; stroke-width: 3; }
+  .gantt-slack-line, .gantt-slack-tick { stroke: GrayText; }
   .gantt-task.is-selected .gantt-bar, .gantt-link.is-selected .gantt-link-path { stroke: Highlight; stroke-width: 3; }
 }

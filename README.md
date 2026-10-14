@@ -50,7 +50,7 @@ Planification en avant : une tâche n'est jamais avancée, seulement repoussée.
 ## API
 
 ```js
-const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning });
+const g = new Gantt(el, { tasks, links, scale, readonly, pdfLibs, historyLimit, locale, weekStart, calendar, planning, showCritical });
 g.on('change' | 'select' | 'invalid' | 'scale' | 'history', handler); // retourne une fonction de désabonnement
 g.undo(); g.redo();     // annuler / rétablir ; g.canUndo et g.canRedo (faux en lecture seule)
 g.addTask({ name, start, end, parentId, afterId }); // sans start : jour au centre de la vue ; durée par défaut 3 jours
@@ -64,6 +64,8 @@ g.setWeekStart(0);       // 0 = dimanche, 1 = lundi
 g.setConstraint(id, { type: 'SNET', date: '2026-10-12' }); // ou null ; annulable (voir « Contraintes de dates »)
 g.setPlanning({ direction: 'backward', end: '2026-11-30' }); // ou null : en avant ; annulable (voir « Planification »)
 g.alignEarliest(); g.alignLatest();  // cale les tâches reliées au plus tôt / au plus tard ; annulable
+g.setShowCritical(true); // affiche le chemin critique et les marges (voir « Chemin critique et marges »)
+g.model.slack();         // Map id → { total, free, lateStart, lateEnd, critical } ; g.model.criticalIds()
 g.getData();            // { tasks, links } au format JSON
 g.setData(data);        // remplace le planning (lève avant toute modification si invalide)
 g.exportSVG(filename?); // télécharge et retourne la chaîne SVG ; filename = null : pas de téléchargement
@@ -122,6 +124,7 @@ Tout le design passe par CSS. Variables principales (définies sur `.gantt-root`
 | `--gantt-group-bg`, `--gantt-milestone-bg` | Groupes, jalons |
 | `--gantt-link-color`, `--gantt-link-width`, `--gantt-link-selected` | Liens |
 | `--gantt-selected`, `--gantt-invalid` | États |
+| `--gantt-critical`, `--gantt-slack` | Chemin critique, traits de marge |
 | `--gantt-row-height`, `--gantt-bar-height`, `--gantt-header-height`, `--gantt-table-width`, `--gantt-date-col-width`, `--gantt-duration-col-width`, `--gantt-indent` | Géométrie (lue par le JS) |
 | `--gantt-link-gap`, `--gantt-link-radius` | Tracé des liens |
 | `--gantt-col-width-day`, `--gantt-col-width-week`, `--gantt-col-width-month` | Largeur d'une colonne par échelle |
@@ -167,6 +170,20 @@ Les liens se résolvent dans un sens :
 Les formules des liens FS/SS/FF/SF, le décalage (`lag`, jours travaillés ou calendaires), le calendrier et les groupes sont repris à l'envers. Un redimensionnement qui irait contre un lien est refusé dans les deux sens.
 
 `g.alignEarliest()` et `g.alignLatest()` (annulables) calent d'un coup les tâches **reliées** : au plus tôt (toutes partent du début actuel du projet puis sont repoussées par leurs liens) ou au plus tard (toutes finissent à la fin imposée, ou à la fin actuelle du projet, puis sont avancées par leurs liens). Les tâches sans lien ne bougent pas. Les contraintes de dates restent indicatives.
+
+## Chemin critique et marges
+
+Calculés en jours travaillés (calendrier compris), sans rien déplacer :
+
+- **Fin de référence :** la fin imposée en planification en arrière, sinon la fin la plus tardive du projet (comme Merlin Project).
+- **Dates au plus tard :** chaque tâche placée le plus tard possible avant la fin de référence, en respectant ses liens vers ses successeurs (types, décalage, groupes).
+- **Marge totale :** retard possible sans repousser la fin de référence (début au plus tard − début). **Marge libre :** retard possible sans décaler aucun successeur direct (ni ceux des groupes de la tâche) ; jamais plus grande que la marge totale.
+- **Critique :** marge totale nulle (ou négative). Une tâche terminée (100 %) n'est jamais critique, elle ne peut plus repousser la fin. Un groupe a la plus petite marge de ses tâches et est critique si l'une d'elles l'est.
+- Les contraintes de dates, indicatives, n'entrent pas dans le calcul.
+
+`g.model.slack()` renvoie `Map` id → `{ total, free, lateStart, lateEnd, critical }` (jours en numéros, comme `getTask`) ; `g.model.criticalIds()` la liste des tâches et groupes critiques.
+
+Affichage (option `showCritical`, ou `g.setShowCritical(bool)`, désactivé par défaut) : barres critiques avec la classe `is-critical` (`--gantt-critical`), liens entre deux tâches critiques sans écart avec `gantt-link--critical`, et un trait fin `gantt-slack` (`--gantt-slack`) de la fin de chaque barre non terminée jusqu'à sa fin au plus tard. Les descriptions des lignes et les annonces de dates mentionnent « sur le chemin critique » ou la marge. L'export et l'impression reprennent l'affichage. Tout est recalculé en direct pendant un glissement.
 
 ## Contraintes de dates
 
@@ -218,4 +235,4 @@ Les refus (`invalid`, résultats de `addTask`, `moveTaskTo`…) et les exception
 
 ## Hors v1
 
-Calendriers ouvrés, chemin critique, planification en arrière, contraintes de dates, navigation clavier complète, heures.
+Heures (granularité = jour).

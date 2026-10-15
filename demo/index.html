@@ -7,17 +7,25 @@
   <link rel="stylesheet" href="../src/gantt.css">
   <link rel="stylesheet" href="../src/themes/epure.css">
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1f2937; }
+    html, body { height: 100%; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 10px 16px 12px; box-sizing: border-box; display: flex; flex-direction: column; background: #fff; color: #1f2937; }
+    /* En-tête : titre et dernière action sur une ligne */
+    .topbar { display: flex; align-items: baseline; gap: 14px; min-width: 0; margin-bottom: 8px; }
+    .topbar h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; flex: none; }
+    #log { flex: 1; min-width: 0; font: 11.5px/1.4 ui-monospace, monospace; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Le diagramme occupe toute la hauteur restante */
+    #chart { flex: 1; min-height: 240px; display: flex; flex-direction: column; }
+    #chart > .gantt-scroll { flex: 1; min-height: 0; }
     body.dark { background: #111827; color: #e5e7eb; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 14px; align-items: center; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 10px; align-items: center; }
     .toolbar .group { display: inline-flex; align-items: center; gap: 6px; }
     .toolbar .group-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
     .toolbar .spacer { flex: 1; }
     .toolbar .import { position: relative; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
     .toolbar button, .toolbar .import, .toolbar select {
-      height: 34px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px;
-      padding: 0 12px; font: 500 13px/1 system-ui, sans-serif; color: #1f2937; background: #fff;
+      height: 30px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px;
+      padding: 0 10px; font: 500 12.5px/1 system-ui, sans-serif; color: #1f2937; background: #fff;
       border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,.04);
       transition: background .12s, border-color .12s, box-shadow .12s;
     }
@@ -25,15 +33,15 @@
     .toolbar [hidden] { display: none !important; }
     .toolbar #clear-filters { color: #2563eb; border-color: #93c5fd; }
     body.theme-epure .toolbar #clear-filters { color: #dc4c3e; }
-    .toolbar #undo, .toolbar #redo, .toolbar #clear-filters { width: 34px; padding: 0; justify-content: center; }
-    .toolbar svg { width: 16px; height: 16px; flex: none; }
+    .toolbar #undo, .toolbar #redo, .toolbar #clear-filters, .toolbar #open-help { width: 30px; padding: 0; justify-content: center; }
+    .toolbar svg { width: 15px; height: 15px; flex: none; }
     .toolbar button:hover:not(:disabled), .toolbar .import:hover { background: #f3f4f6; border-color: #c4c9d1; }
     .toolbar button:active:not(:disabled) { background: #e5e7eb; }
     .toolbar button:focus-visible, .toolbar select:focus-visible, .toolbar .import:focus-within { outline: 2px solid #2563eb; outline-offset: 2px; }
     .toolbar button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
     .toolbar button.toggle[aria-pressed="true"] { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
-    .toolbar .seg { display: inline-flex; gap: 2px; padding: 3px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; }
-    .toolbar .seg button { height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; color: #4b5563; }
+    .toolbar .seg { display: inline-flex; gap: 2px; padding: 2px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .toolbar .seg button { height: 24px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; color: #4b5563; }
     .toolbar .seg button:hover:not(:disabled) { background: #e5e7eb; }
     .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.04); }
     /* Sombre */
@@ -48,40 +56,51 @@
     body.dark .toolbar .seg button[aria-pressed="true"] { background: #374151; color: #fff; box-shadow: none; }
     .toolbar .search { position: relative; display: inline-flex; align-items: center; }
     .toolbar .search svg { position: absolute; left: 10px; color: #6b7280; pointer-events: none; }
-    .toolbar .search input { height: 34px; box-sizing: border-box; width: 136px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
+    .toolbar .search input { height: 30px; box-sizing: border-box; width: 136px; padding: 0 10px 0 32px; font: 13px system-ui, sans-serif; color: inherit; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; }
     .toolbar .search input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
     body.dark .toolbar .search input { background: #1f2937; border-color: #374151; }
-    body.theme-epure .toolbar .search input { height: 30px; border: 0; background: #f5f5f5; border-radius: 7px; }
+    body.theme-epure .toolbar .search input { height: 28px; border: 0; background: #f5f5f5; border-radius: 7px; }
     body.theme-epure .toolbar .search input:focus-visible { outline-color: #dc4c3e; }
-    #settings .owners { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    #settings .owners { list-style: none; margin: 2px 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
     #settings .owners li, #settings .owners-add { display: flex; gap: 6px; align-items: center; }
-    #settings .owners input, #settings .owners-add input { flex: 1; height: 30px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 7px; font: 13px system-ui, sans-serif; background: inherit; color: inherit; }
-    #settings .owners button, #settings .owners-add button { height: 30px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 7px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
-    #settings .owners button { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #settings .owners input, #settings .owners-add input { flex: 1; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 7px; font: 13px system-ui, sans-serif; background: inherit; color: inherit; }
+    #settings .owners button, #settings .owners-add button { height: 28px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 7px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings .owners button { width: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
     #settings .owners button svg { width: 15px; height: 15px; }
     body.dark #settings .owners input, body.dark #settings .owners-add input, body.dark #settings .owners button, body.dark #settings .owners-add button { background: #1f2937; border-color: #374151; }
     body.theme-epure #settings .owners input, body.theme-epure #settings .owners-add input, body.theme-epure #settings .owners button, body.theme-epure #settings .owners-add button { border: 0; background: #f5f5f5; }
-    #settings .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 4px 0; }
-    #settings .cols label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-    #log { margin-top: 12px; font: 12px/1.5 ui-monospace, monospace; max-height: 140px; overflow: auto; color: #6b7280; }
-    #chart { --gantt-max-height: 520px; }
-    .help { margin-top: 12px; font-size: 13px; color: #4b5563; }
-    .help summary { cursor: pointer; font-weight: 600; }
-    .help table { border-collapse: collapse; margin-top: 8px; }
-    .help th { text-align: left; padding: 4px 16px 4px 0; vertical-align: top; white-space: nowrap; color: #1f2937; }
-    .help td { padding: 4px 0; }
-    .help kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid #d1d5db; border-bottom-width: 2px; border-radius: 4px; background: #f9fafb; color: #1f2937; }
-    body.dark .help { color: #9ca3af; }
-    body.dark .help th { color: #e5e7eb; }
-    body.dark .help kbd { background: #1f2937; border-color: #374151; color: #e5e7eb; }
+    #settings .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 12px; margin: 2px 0 4px; }
+    #settings .cols label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+    body.dark #log { color: #6b7280; }
+    /* Fenêtre d'aide (bouton « ? ») */
+    #help { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+    #help::backdrop { background: rgba(17,24,39,.45); }
+    #help form { padding: 14px 18px 12px; }
+    #help h2 { margin: 0 0 8px; font-size: 15px; outline: none; }
+    #help h3 { margin: 12px 0 6px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; }
+    #help ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.45; }
+    #help li + li { margin-top: 3px; }
+    #help table { border-collapse: collapse; font-size: 12.5px; }
+    #help th { text-align: left; padding: 3px 14px 3px 0; vertical-align: top; white-space: nowrap; font-weight: 600; }
+    #help td { padding: 3px 0; line-height: 1.45; }
+    #help kbd { font: 11.5px ui-monospace, monospace; padding: 0 4px; border: 1px solid #d1d5db; border-bottom-width: 2px; border-radius: 4px; background: #f9fafb; color: #1f2937; }
+    #help menu { display: flex; justify-content: flex-end; margin: 12px 0 0; padding: 0; }
+    #help menu button { height: 30px; padding: 0 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #help :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    body.dark #help { background: #111827; color: #e5e7eb; border-color: #374151; }
+    body.dark #help h3 { border-color: #374151; color: #9ca3af; }
+    body.dark #help kbd { background: #1f2937; border-color: #374151; color: #e5e7eb; }
+    body.dark #help menu button { background: #1f2937; border-color: #374151; }
+    body.theme-epure #help { border-radius: 12px; border-color: #ececec; color: #202020; }
+    body.theme-epure #help menu button { border: 0; background: #f5f5f5; border-radius: 7px; }
     /* Boutons du thème Épure */
     body.theme-epure .toolbar { gap: 4px 8px; }
     body.theme-epure .toolbar button, body.theme-epure .toolbar .import, body.theme-epure .toolbar select {
-      border: 0; background: transparent; color: #202020; border-radius: 7px; padding: 0 10px; height: 30px; font-size: 13px; box-shadow: none; cursor: pointer;
+      border: 0; background: transparent; color: #202020; border-radius: 7px; padding: 0 9px; height: 28px; font-size: 12.5px; box-shadow: none; cursor: pointer;
     }
     body.theme-epure .toolbar button:hover:not(:disabled), body.theme-epure .toolbar .import:hover { background: #f5f5f5; }
     body.theme-epure .toolbar .seg { background: #f1f1f1; border: 0; border-radius: 10px; margin-right: 8px; }
-    body.theme-epure .toolbar .seg button { color: #666; height: 24px; padding: 0 12px; }
+    body.theme-epure .toolbar .seg button { color: #666; height: 22px; padding: 0 11px; }
     body.theme-epure .toolbar .seg button:hover:not(:disabled) { background: transparent; color: #202020; }
     body.theme-epure .toolbar .seg button[aria-pressed="true"] { background: #fff; color: #202020; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
     body.theme-epure .toolbar button.toggle[aria-pressed="true"] { background: #fdf0ef; color: #dc4c3e; }
@@ -103,28 +122,28 @@
     body.theme-epure .toolbar .menu-list button.menu-item:hover, body.theme-epure .toolbar .menu-list button.menu-item:focus-visible { background: #f5f5f5; }
 
     /* Modale des paramètres */
-    #settings { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(460px, calc(100vw - 32px)); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+    #settings { border: 1px solid #d1d5db; border-radius: 14px; padding: 0; width: min(440px, calc(100vw - 32px)); color: #1f2937; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
     #settings::backdrop { background: rgba(17,24,39,.45); }
-    #settings form { padding: 18px 22px 16px; }
-    #settings h2 { margin: 0 0 6px; font-size: 17px; }
-    #settings h3 { margin: 14px 0 4px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; }
+    #settings form { padding: 14px 18px 12px; }
+    #settings h2 { margin: 0 0 4px; font-size: 15px; }
+    #settings h3 { margin: 10px 0 2px; padding-top: 9px; border-top: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; }
     #settings section:first-of-type h3 { border-top: 0; padding-top: 0; }
-    #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 14px; }
-    #settings select { height: 32px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; max-width: 62%; }
+    #settings .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 13px; }
+    #settings select { height: 28px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; max-width: 62%; }
     #settings select:disabled { opacity: .5; }
-    #settings input[type="date"] { height: 32px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; }
+    #settings input[type="date"] { height: 28px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; }
     #settings .row[hidden] { display: none; }
     #settings .row.actions { justify-content: flex-start; gap: 8px; }
-    #settings .row.actions button { height: 32px; padding: 0 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings .row.actions button { height: 28px; padding: 0 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
     #settings .row.actions button:hover { background: #f3f4f6; }
     body.dark #settings input[type="date"], body.dark #settings .row.actions button { background: #1f2937; border-color: #374151; }
     body.dark #settings .row.actions button:hover { background: #273449; }
     body.theme-epure #settings input[type="date"], body.theme-epure #settings .row.actions button { border: 0; background: #f5f5f5; border-radius: 7px; }
     body.theme-epure #settings .row.actions button:hover { background: #ececec; }
-    #settings input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2563eb; }
-    #settings .hint { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
-    #settings menu { display: flex; justify-content: flex-end; margin: 16px 0 0; padding: 0; }
-    #settings menu button { height: 34px; padding: 0 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
+    #settings input[type="checkbox"] { width: 16px; height: 16px; accent-color: #2563eb; }
+    #settings .hint { margin: 1px 0 2px; font-size: 11.5px; line-height: 1.35; color: #6b7280; }
+    #settings menu { display: flex; justify-content: flex-end; margin: 12px 0 0; padding: 0; }
+    #settings menu button { height: 30px; padding: 0 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: inherit; font: 500 13px system-ui, sans-serif; cursor: pointer; }
     #settings menu button:hover { background: #f3f4f6; }
     #settings :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
     body.dark #settings { background: #111827; color: #e5e7eb; border-color: #374151; }
@@ -140,7 +159,10 @@
   <script defer src="https://stats.charlescoiffier.fr/script.js" data-website-id="df9b36a6-a121-46e0-8b4b-881f370e58f9" data-domains="jsgantt.charlescoiffier.fr" data-do-not-track="true"></script>
 </head>
 <body>
-  <h1>jsgantt</h1>
+  <header class="topbar">
+    <h1>jsgantt</h1>
+    <output id="log" title="Dernière action" data-i18n-title="log.title"></output>
+  </header>
   <div class="toolbar" id="toolbar" role="toolbar" aria-label="Actions du diagramme" data-i18n-aria="toolbar">
     <div class="seg" role="group" aria-label="Échelle" data-i18n-aria="group.scale">
       <button data-scale="day" aria-pressed="false" data-i18n="scale.day">Jour</button>
@@ -187,6 +209,7 @@
           <button class="menu-item" role="menuitem" id="exp-print" title="Imprimer" data-i18n-title="print" data-i18n="print.item">Imprimer…</button>
         </div>
       </div>
+      <button id="open-help" aria-haspopup="dialog" title="Aide et raccourcis (?)" data-i18n-title="help.open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.5-2.7 4"/><path d="M12 17.3h.01"/></svg><span class="visually-hidden" data-i18n="help.dialog">Aide</span></button>
     </div>
     <input id="imp-file" type="file" hidden>
   </div>
@@ -301,9 +324,13 @@
       <menu><button value="close" data-i18n="close">Fermer</button></menu>
     </form>
   </dialog>
-  <details class="help">
-    <summary data-i18n="help.title">Raccourcis clavier</summary>
-    <table>
+  <dialog id="help" aria-labelledby="help-title">
+    <form method="dialog">
+      <h2 id="help-title" tabindex="-1" autofocus data-i18n="help.dialog">Aide</h2>
+      <h3 data-i18n="help.how">Fonctionnement</h3>
+      <ul data-i18n-html="help.points"></ul>
+      <h3 data-i18n="help.title">Raccourcis clavier</h3>
+      <table>
       <tr><th data-i18n="help.nav.h">Naviguer</th><td data-i18n-html="help.nav"></td></tr>
       <tr><th data-i18n="help.create.h">Créer</th><td data-i18n-html="help.create"></td></tr>
       <tr><th data-i18n="help.delete.h">Supprimer</th><td data-i18n-html="help.delete"></td></tr>
@@ -314,9 +341,10 @@
       <tr><th data-i18n="help.constraint.h">Contrainte</th><td data-i18n-html="help.constraint"></td></tr>
       <tr><th data-i18n="help.links.h">Liens</th><td data-i18n-html="help.links"></td></tr>
       <tr><th data-i18n="help.history.h">Historique</th><td data-i18n-html="help.history"></td></tr>
-    </table>
-  </details>
-  <div id="log" aria-live="polite"></div>
+      </table>
+      <menu><button value="close" data-i18n="close">Fermer</button></menu>
+    </form>
+  </dialog>
 
   <script type="module">
     import { Gantt } from '../src/gantt.js';
@@ -359,7 +387,14 @@
         'cal.lag.hint': 'Sans jour non travaillé, l\'unité du décalage est sans effet.', close: 'Fermer',
         'log.error': 'erreur', 'log.import': 'import', 'log.warning': 'avertissement', 'fmt.msp': 'MS Project (XML)',
         'export.csv': 'Tableur (Excel, Numbers, LibreOffice)', 'export.ics': 'Agenda (Google Agenda, Outlook, Calendrier)', 'export.msp': 'MS Project, Merlin Project, ProjectLibre…',
-        'help.title': 'Raccourcis clavier',
+        'help.title': 'Raccourcis clavier', 'help.dialog': 'Aide', 'help.how': 'Fonctionnement', 'help.open': 'Aide et raccourcis (?)', 'log.title': 'Dernière action',
+        'help.points': '<li><strong>Glisser une barre</strong> la déplace, ses bords changent ses dates, le petit triangle règle l\'avancement ; les tâches liées suivent.</li>'
+          + '<li><strong>Relier deux tâches</strong> : glisser un des ronds au bout d\'une barre vers une autre barre (le type dépend des bouts reliés).</li>'
+          + '<li><strong>Au survol d\'une ligne</strong> : poignée pour réordonner, « + » pour ajouter, crayon pour les propriétés (couleur, responsable, contrainte, suppression).</li>'
+          + '<li><strong>Tableau</strong> : double-clic sur une cellule pour la modifier, clic sur un en-tête pour trier, entonnoir pour filtrer, bord droit pour l\'élargir.</li>'
+          + '<li><strong>Insérer</strong> : un repère (une date clé) ou une zone colorée (une période).</li>'
+          + '<li><strong>Paramètres</strong> : colonnes, responsables, calendrier, chemin critique ; <strong>Importer / Exporter</strong> : JSON, CSV, MS Project, iCalendar, SVG, PDF.</li>'
+          + '<li>Tout est <strong>annulable</strong> (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>), et rien n\'est envoyé à un serveur.</li>',
         'help.nav.h': 'Naviguer', 'help.create.h': 'Créer', 'help.delete.h': 'Supprimer', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progression', 'help.links.h': 'Liens', 'help.history.h': 'Historique', 'help.constraint.h': 'Contrainte',
         'help.constraint': `${K('C')} contrainte de date de la tâche (aussi dans les propriétés)`,
@@ -405,7 +440,14 @@
         'cal.lag.hint': 'Without non-working days, the lag unit has no effect.', close: 'Close',
         'log.error': 'error', 'log.import': 'import', 'log.warning': 'warning', 'fmt.msp': 'MS Project (XML)',
         'export.csv': 'Spreadsheet (Excel, Numbers, LibreOffice)', 'export.ics': 'Calendar (Google Calendar, Outlook, Apple Calendar)', 'export.msp': 'MS Project, Merlin Project, ProjectLibre…',
-        'help.title': 'Keyboard shortcuts',
+        'help.title': 'Keyboard shortcuts', 'help.dialog': 'Help', 'help.how': 'How it works', 'help.open': 'Help and shortcuts (?)', 'log.title': 'Last action',
+        'help.points': '<li><strong>Drag a bar</strong> to move it, its edges to change its dates, the small triangle to set progress; linked tasks follow.</li>'
+          + '<li><strong>Link two tasks</strong>: drag one of the dots at the end of a bar onto another bar (the type depends on the ends).</li>'
+          + '<li><strong>Hovering a row</strong>: grip to reorder, “+” to add, pencil for properties (color, owner, constraint, deletion).</li>'
+          + '<li><strong>Table</strong>: double-click a cell to edit it, click a header to sort, funnel to filter, right edge to widen.</li>'
+          + '<li><strong>Insert</strong>: a marker (a key date) or a colored zone (a period).</li>'
+          + '<li><strong>Settings</strong>: columns, owners, calendar, critical path; <strong>Import / Export</strong>: JSON, CSV, MS Project, iCalendar, SVG, PDF.</li>'
+          + '<li>Everything can be <strong>undone</strong> (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>), and nothing is sent to a server.</li>',
         'help.nav.h': 'Navigate', 'help.create.h': 'Create', 'help.delete.h': 'Delete', 'help.dates.h': 'Dates', 'help.structure.h': 'Structure',
         'help.progress.h': 'Progress', 'help.links.h': 'Links', 'help.history.h': 'History', 'help.constraint.h': 'Constraint',
         'help.constraint': `${K('C')} date constraint of the task (also in the properties)`,
@@ -468,8 +510,10 @@
     window.gantt = gantt;
 
     const log = document.getElementById('log');
+    // Seule la dernière action est affichée, à côté du titre (le texte complet en infobulle).
     const write = (kind, detail) => {
-      log.prepend(Object.assign(document.createElement('div'), { textContent: `${kind} ${JSON.stringify(detail)}` }));
+      log.textContent = `${kind} ${JSON.stringify(detail)}`;
+      log.title = log.textContent;
     };
     for (const name of ['change', 'select', 'invalid', 'scale']) gantt.on(name, (d) => write(name, d));
 
@@ -699,6 +743,18 @@
     // Modale des paramètres
     const settings = $('settings');
     $('open-settings').onclick = () => settings.showModal();
+    // Aide : bouton « ? » ou touche « ? » (hors saisie)
+    const help = $('help');
+    $('open-help').onclick = () => help.showModal();
+    help.addEventListener('click', (e) => {
+      if (e.target === help) help.close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest?.('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open], .gantt-popover')) return;
+      e.preventDefault();
+      help.showModal();
+    });
     settings.addEventListener('click', (e) => {
       if (e.target === settings) settings.close();
     });

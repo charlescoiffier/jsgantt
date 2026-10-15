@@ -44,10 +44,14 @@ sans toucher au code ; trois thèmes sont fournis (clair, sombre, et « Épure �
 
 ## Utiliser la démo
 
-![La fenêtre Paramètres : langue, thème, affichage, responsables, planification](docs/images/parametres.png)
+| Paramètres | Aide (bouton « ? ») |
+|---|---|
+| ![La fenêtre Paramètres : langue, thème, affichage, responsables, planification](docs/images/parametres.png) | ![La fenêtre d'aide : fonctionnement en quelques points et raccourcis clavier](docs/images/aide.png) |
 
 - **Barre d'outils** : échelle (jour, semaine, mois), annuler et rétablir, recherche dans les noms, menu **Insérer**
-  (repère ou zone colorée), **Paramètres**, **Importer** et **Exporter**.
+  (repère ou zone colorée), **Paramètres**, **Importer**, **Exporter** et **?** (aide : fonctionnement résumé et
+  raccourcis clavier, aussi avec la touche `?`). La dernière action s'affiche à côté du titre ; le diagramme occupe
+  toute la hauteur de la fenêtre.
 - **Tâches** : glisser une barre la déplace, glisser ses bords change ses dates, le petit triangle sous la barre règle
   l'avancement. Double-clic sur une cellule du tableau pour la modifier. Au survol d'une ligne : poignée (réordonner,
   ou glisser au milieu d'une ligne pour en faire une sous-tâche), « + » (ajouter en dessous) et crayon (propriétés).
@@ -69,7 +73,7 @@ sans toucher au code ; trois thèmes sont fournis (clair, sombre, et « Épure �
 
 ### Raccourcis clavier
 
-Quand le diagramme a le focus (clic dans le tableau ou `Tab`) :
+Quand le diagramme a le focus (clic dans le tableau ou `Tab`). La liste est aussi dans l'aide de la démo (bouton « ? ») :
 
 | Groupe | Touches | Effet |
 |---|---|---|
@@ -456,7 +460,7 @@ Toutes les actions au clavier passent par le même chemin que la souris : annula
 protocole DevTools : date du jour figée au 14 octobre 2026, interface en français, stockage vidé avant chaque image (les
 captures sont reproductibles). Le GIF est obtenu en simulant un vrai glissement à la souris, puis assemblé par `ffmpeg`
 (palette optimisée). Prérequis : Google Chrome (ou `CHROME_PATH`) et `ffmpeg`. On peut ne régénérer qu'une image :
-`npm run capture:readme -- --only=apercu` (`critique`, `sombre`, `epure`, `proprietes`, `filtres`, `parametres`,
+`npm run capture:readme -- --only=apercu` (`critique`, `sombre`, `epure`, `proprietes`, `filtres`, `aide`, `parametres`,
 `responsables`, `animation`).
 
 ## Tests

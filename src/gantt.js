@@ -68,6 +68,11 @@ export class Gantt {
     this.detach = attachInteractions(this);
     this.detachA11y = attachA11y(this);
     this.detachKeyboard = attachKeyboard(this);
+    // Conteneur plus haut que le contenu (diagramme en pleine hauteur) : la grille suit sa taille.
+    this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+      if (this.layout && this.scroller.clientHeight !== this.viewHeight) this.render();
+    }) : null;
+    this.resizeObserver?.observe(this.scroller);
     // À l'impression, les couches sont recomposées en un seul dessin (comme pour l'export SVG).
     this.onBeforePrint = () => {
       this.onAfterPrint();
@@ -84,6 +89,7 @@ export class Gantt {
   }
 
   destroy() {
+    this.resizeObserver?.disconnect();
     this.detach();
     this.detachKeyboard();
     this.detachA11y();
@@ -145,13 +151,16 @@ export class Gantt {
     }
   }
 
-  render({ model = this.model, dragId = null } = {}) {
+  render({ model = this.model, dragId = null } = {}, again = true) {
     this.root.classList.toggle('is-readonly', this.readonly);
+    this.viewHeight = this.scroller.clientHeight;
     this.layout = computeLayout(model, this.timescale, this.metrics, {
       ...this.state, today: todayDay(), showAdd: !this.readonly, showCritical: this.showCritical, i18n: this.i18n,
       columns: this.#columnSpecs, sort: this.view.sort, filter: this.view.filter, tableWidth: this.view.tableWidth,
       barLabel: this.view.barLabel,
       filters: this.view.filters,
+      // 1 px de marge : la hauteur réelle du conteneur peut être fractionnaire (barre de défilement inutile sinon).
+      minHeight: Math.max(0, (this.viewHeight ?? 0) - 1),
       weekStart: this.weekStart,
       frozenRows: dragId && this.layout ? this.layout.rowsInfo : undefined,
     });
@@ -163,6 +172,8 @@ export class Gantt {
     this.parts = parts;
     this.svg = parts.main;
     syncAria(this);
+    // Une barre de défilement apparue (ou disparue) change la hauteur visible : un second rendu ajuste la grille.
+    if (again && this.scroller.clientHeight !== this.viewHeight) this.render({ model, dragId }, false);
   }
 
   setScale(scale) {

@@ -379,3 +379,12 @@ test('couleur de tâche et texte au bout des barres', () => {
   assert.deepEqual(owner.table.columns.map((c) => [c.id, c.label, c.width]).slice(1), [['owner', 'Responsable', 96]]);
   assert.deepEqual(owner.table.rows[0].cells.map((c) => c.text), ['Ana']);
 });
+
+test('hauteur minimale : la grille et le tableau descendent jusqu’en bas du conteneur', () => {
+  const m = new GanttModel({ tasks: [t('a', '2026-10-05', '2026-10-07')] });
+  assert.equal(computeLayout(m, ts(), metrics).height, 48 + 32);
+  const tall = computeLayout(m, ts(), metrics, { minHeight: 400.6 });
+  assert.equal(tall.height, 400);
+  assert.equal(tall.rows.length, 1);
+  assert.equal(computeLayout(m, ts(), metrics, { minHeight: 10 }).height, 48 + 32);
+});

@@ -35,7 +35,6 @@ const PRELUDE = `(() => {
   Object.defineProperty(navigator, 'language', { get: () => 'fr-FR' });
   Object.defineProperty(navigator, 'languages', { get: () => ['fr-FR', 'fr'] });
   try { localStorage.clear(); } catch { /* chaque image part de la vue par défaut */ }
-  addEventListener('DOMContentLoaded', () => { const log = document.getElementById('log'); if (log) log.hidden = true; });
 })();`;
 
 // Préparation commune : thème, puis réglages propres à chaque image (dans la page, avec `gantt` et `$`).
@@ -57,6 +56,7 @@ const SHOTS = {
     setup: `gantt.setColumns(['start', 'end', 'owner', 'progress']); gantt.setColumnFilter('owner', { in: ['alice', 'chloe'] });
       gantt.setColumnFilter('start', { after: '2026-10-01' }); await new Promise((r) => setTimeout(r, 100)); gantt.editColumnFilter('start');`,
   },
+  aide: { width: 1100, height: 820, setup: `document.getElementById('open-help').click();` },
   parametres: {
     width: 1100, height: 900,
     setup: `document.getElementById('open-settings').click();`,

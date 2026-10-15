@@ -137,7 +137,8 @@ export function computeLayout(model, ts, metrics, state = {}) {
   });
   const width = tableWidth + ts.totalWidth;
   const addRow = state.showAdd ? { y: headerHeight + rowsInfo.length * rowHeight, alt: rowsInfo.length % 2 === 1 } : null;
-  const height = headerHeight + (rowsInfo.length + (addRow ? 1 : 0)) * rowHeight;
+  // `minHeight` : hauteur visible du conteneur, pour que grille et tableau descendent jusqu'en bas.
+  const height = Math.max(headerHeight + (rowsInfo.length + (addRow ? 1 : 0)) * rowHeight, Math.floor(state.minHeight ?? 0));
 
   const shift = (cell) => ({ ...cell, x: cell.x + tableWidth });
   const cells = ts.headerCells();
